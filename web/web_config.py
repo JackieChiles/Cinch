@@ -3,7 +3,7 @@
 Configuration settings for server.py.
 """
 HOSTNAME = "localhost"
-PORT = 8080					# integer
+PORT = 2424					# integer
 
 OK_RESPONSE = 200
 
