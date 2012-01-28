@@ -16,16 +16,16 @@ Object of the game: Be the first to reach a score of 11 by collecting scoring po
 <th>Name</th><th>Description</th><th>Who Scores?</th>
 </tr>
 <tr>
-<td>High<td><td>highest trump out<td><td>original/eventual owner<td>
+<td>High</td><td>highest trump out</td><td>original/eventual owner</td>
 </tr>
 <tr>
-<td>Low<td><td>lowest trump out<td><td>original owner<td>
+<td>Low</td><td>lowest trump out</td><td>original owner</td>
 </tr>
 <tr>
-<td>Jack<td><td>jack of trumps<td><td>eventual owner<td>
+<td>Jack</td><td>jack of trumps</td><td>eventual owner</td>
 </tr>
 <tr>
-<td>Game<td><td>most 'pips' in tricks<td><td>eventual owner<td>
+<td>Game</td><td>most 'pips' in tricks</td><td>eventual owner</td>
 </tr>
 </table>
 
