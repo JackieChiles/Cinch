@@ -4,13 +4,18 @@ Web server for game engine communication for Cinch (not for web pages).
 To access, use the following code in a root-level module:
     import web.web_server as server
     server.start_server()
+
+TODO:   Add send_error functionality
+        Add logging
+        Change Access-Control-Allow-Origin to appropriate resource
+
 """
 from http.server import HTTPServer,BaseHTTPRequestHandler  
 from socketserver import ThreadingMixIn
 import threading
 
-from urllib.parse import parse_qs, urlparse
-from html import escape
+from urllib.parse import urlparse
+from cgi import escape
 import json
 
 from . import web_config as settings
@@ -27,11 +32,11 @@ class HttpHandler(BaseHTTPRequestHandler):
         self.send_header("Content-type", "text/plain") # mime-type
         self.end_headers()
 
-        self.query = self.path[2:]   #trim '/?' from path (=query)
+        parsed_path = urlparse(self.path)
+        self.raw_query = parsed_path.query
         self.parse_data()
 
         ##test
-        parsed_path = urlparse(self.path)
         message = '\n'.join([
                 'CLIENT VALUES:',
                 'client_address=%s (%s)' % (self.client_address,
@@ -50,37 +55,54 @@ class HttpHandler(BaseHTTPRequestHandler):
                 'thread ID=%s' % threading.currentThread().getName()
                 ])
 
-        self.wfile.write(message.encode())  #convert str to bytearray
-        return
+        self.send_message(message)
 
     def do_POST(self):
-        """Process POST requests for Cinch application."""
+        """Process Ajax JSON POST requests for Cinch application."""
         self.send_response(settings.OK_RESPONSE)
         self.send_header("Content-type", "text/plain")
+        self.send_header("Access-Control-Allow-Origin", "*") #handle CORS
         self.end_headers()
         
         content_len = int(self.headers.__getitem__('content-length'))
-        self.query = self.rfile.read(content_len).decode('utf-8') #decode bytes
+        self.raw_query = self.rfile.read(content_len)
         self.parse_data()
 
         ##test
-        message = "\n You sent a POST request with parameters {0}".format(
-            json.dumps(self.fields))
-
-        self.wfile.write(message.encode())  #convert str  to bytearray
-        return
+        keys = [x for x in self.json.keys()]
+        vals = [x for x in self.json.values()]
+        d = { vals[0] : keys[0] }
+        message = json.dumps(d)
+        ##
+        
+        self.send_message(message)
 
     def parse_data(self):
-        """Break-out query data into dictionary, self.fields."""
-        #convert self.query to string using try-except block here, instead of
-        #in the GET/POST functions.
-        clean_data = escape(self.query)  #sanitize inputs
-        self.fields = parse_qs(clean_data)
-        print(self.fields)
-        return
+        """Parse raw_query into dictionary."""
+        try:
+            self.query = self.raw_query.decode()    # convert bytes to str
+        except AttributeError:
+            self.query = self.raw_query             # input already a str
+        finally:
+            self.query = escape(self.query)         # sanitize inputs
+
+        try:
+            self.json = json.loads(self.query)
+        except ValueError:
+            self.json = {"Error":"Input not in JSON format"}
+
+    def send_message(self, message):
+        """Helper interface for sending data to client."""
+        try:
+            m = message.encode()
+        except AttributeError:
+            m = message
+
+        self.wfile.write(m)
 
 
 def start_server():
+    """Initialize server."""
     httpd = ThreadedHTTPServer(
         (settings.HOSTNAME, settings.PORT), HttpHandler)
     print("Server started on {0}, port {1}..." .format(settings.HOSTNAME,
@@ -89,7 +111,3 @@ def start_server():
         httpd.serve_forever()
     except KeyboardInterrupt:   # Exit gracefully with CTRL^C
         print("Server halted with keyboard interrupt.\n")
-
-
-if __name__ == '__main__':
-    start_server()
