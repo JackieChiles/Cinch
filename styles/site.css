@@ -1,0 +1,114 @@
+#right-content
+{
+    float:left;
+    margin-left:10px;
+    width:300px;
+}
+
+#right-content > *
+{
+    width:100%;
+}
+
+#right-content .ui-btn
+{
+    margin:0;
+}
+
+#right-content input
+{
+    padding-left:0;
+    padding-right:0;
+}
+
+#output-list
+{
+    max-height:600px;
+    overflow-y:scroll;
+}
+
+#left-content
+{
+    float:left;
+}
+
+#left-content > div
+{
+    float:left;
+    padding:3px;
+    height:220px;
+    width:290px
+}
+
+#play-surface
+{
+    background-color:#339C53;
+    border:1px solid #000000;
+    box-shadow:3px 3px 4px 3px #555555;
+    height:100%;
+    width:100%;
+}
+
+#scoreboard *
+{
+    text-align:center;
+}
+
+.float-break
+{
+    visibility: hidden;
+    height:1px;
+    float:none!important;
+}
+
+.no-mobile
+{
+    display:none;
+}
+
+.tile
+{
+    height:96px;
+    width:72px;
+}
+
+.tile-button
+{
+    display:inline;
+    float:left;
+}
+
+.tile-button .ui-btn-inner
+{
+    padding:0.6em;
+}
+
+.ui-content
+{
+    width:400px;
+}
+
+.temp-border /*temporary*/
+{
+    border:1px dashed #aaaaaa;
+    margin:-1px;
+}
+
+.qh /*Temporary*/
+{
+    background-image:url('../images/QH.png');
+    background-repeat:no-repeat;
+}
+
+@media all and (min-width: 480px)
+{
+    .ui-content
+    {
+        min-width:1280px;
+    }
+    
+    .no-mobile
+    {
+        display:block;
+    }
+}

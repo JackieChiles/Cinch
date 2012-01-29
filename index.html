@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1"> 
+        <title>Cinch</title>
+        
+        <link rel="stylesheet" href="jquery.mobile/jquery.mobile-1.0.1.min.css" />
+        <link rel="stylesheet" href="styles/site.css" />
+        
+        <script type="text/javascript" src="scripts/jquery-1.7.1.min.js"></script>
+        <script type="text/javascript" src="jquery.mobile/jquery.mobile-1.0.1.min.js"></script>
+        <script type="text/javascript" src="scripts/modernizr-2.0.6.js"></script>
+        
+        <script type="text/javascript">
+	    var pos = 25;
+	
+	    function CanvasCard(cardName) {
+		var canvas = document.getElementById('play-surface');
+		var context = canvas.getContext('2d');
+		var cardImage = new Image();
+		cardImage.src = 'images/' + cardName + '.png';
+		cardImage.onload = function () {
+		    context.drawImage(cardImage, pos, pos);
+		};
+		
+		pos += 15;
+	    }
+	
+            function OutputMessage(text) {
+                $('#output-list').append(
+                    $('<li>', {
+                        text: text  
+                    })
+                );
+                $("#output-list").listview("refresh");
+            }
+            
+            function SubmitMessage() {
+                OutputMessage($('#text-to-insert').val());
+                $('#text-to-insert').val("");
+                
+                //TODO: send chats to server here
+            }
+        
+            $( function () {
+                $("#text-to-insert").keypress(function(event) {
+                    if ( event.which == 13 ) {
+                       event.preventDefault();
+                       $('#submit-button').click();
+                     }
+                });
+		
+		$('#play-surface').attr('width', '290').attr('height', '220');
+		
+                OutputMessage("Welcome to Cinch- it's pretty rad here.");
+		
+                if (Modernizr.canvas && Modernizr.canvastext) {
+                    OutputMessage("Canvas and canvas text support detected.");
+                }
+                else {
+                    OutputMessage("Your browser does not support canvas and canvas text.")
+                }
+            });
+        </script>
+    </head>
+    <body>
+        <div data-role="page">
+            <div data-role="header">
+            <h1>Cinch</h1>
+            </div><!-- /header -->
+            <div data-role="content">
+                <div id="left-content">
+                    <div>
+                        <ul data-role="listview" data-inset="true" id="scoreboard">
+                            <li>
+                                <h2>Your score</h2><br />
+                                <span>5</span>
+                            </li>
+                            <li>
+                                <h2>Their score</h2><br />
+                                <span>8</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="temp-border">
+                        Partner's stuff
+                    </div>
+                    <div class="no-mobile"></div>
+                    
+                    <div class="float-break"></div>
+                    <div class="temp-border">
+                        Left opponent's stuff
+                    </div>
+                    <div>
+                        <canvas id="play-surface">
+                        </canvas>
+                    </div>
+                    <div class="temp-border">
+                        &nbsp;&nbsp;Right opponent's stuff
+                    </div>
+                    
+                    <div class="float-break"></div>
+                    <div>
+                        Controls and stuff here? For example:
+                        <div data-role="button">
+                            Submit bid
+                        </div>
+                    </div>
+                    <div>
+                        <div data-role="button" onclick="CanvasCard('QH')" class="tile-button">
+                            <div class="qh tile"></div>
+                        </div>
+                        <br />
+                        <== Click me
+                    </div>
+                </div>
+                <div id="right-content">
+                    <input id="text-to-insert" type="text" /><br />
+                    <button id="submit-button" onclick="SubmitMessage()">Submit</button>
+                    <ul data-role="listview" data-inset="true" id="output-list">
+                        <li data-role="list-divider">Messages</li>
+                    </ul>
+                </div>
+            </div><!-- /content -->
+        </div><!-- /page -->
+    </body>
+</html>
