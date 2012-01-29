@@ -85,6 +85,7 @@
 
 .ui-content
 {
+    overflow-y:hidden;
     width:400px;
 }
 
