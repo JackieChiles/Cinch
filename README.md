@@ -16,4 +16,4 @@ Technology
 
 ####Server
 * [Python 3.2.2](http://python.org/download/releases/3.2.2/)
-* [web.py](http://webpy.org/)
+* <del>[web.py](http://webpy.org/)</del>
