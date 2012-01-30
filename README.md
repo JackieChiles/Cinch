@@ -12,8 +12,9 @@ Technology
 ----------
 ####Client
 * [jQuery](http://jquery.com/)
+* [jQuery Mobile](http://jquerymobile.com/)
+* [Modernizr](http://www.modernizr.com/)
 * HTML 5
 
 ####Server
 * [Python 3.2.2](http://python.org/download/releases/3.2.2/)
-* <del>[web.py](http://webpy.org/)</del>
