@@ -1,3 +1,11 @@
+/*Development*/
+#debug-area
+{
+    width:300px;
+    height:500px;
+}
+/*End development*/
+
 #right-content
 {
     float:left;

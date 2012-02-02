@@ -14,6 +14,10 @@
         
         <script type="text/javascript">
 	    var pos = 25;
+	    var responseCount = 0;
+	    
+	    //Development URL
+	    var serverUrl = "http://localhost:2424"
 	
 	    function CanvasCard(cardName) {
 		var canvas = document.getElementById('play-surface');
@@ -26,6 +30,32 @@
 		
 		pos += 15;
 	    }
+	    
+	    //Development
+	    function LogDebugMessage(message) {
+		var log = $('#debug-area').val();
+		$('#debug-area').val(log + message + '\n\n')
+	    }
+	    
+	    function StartLongPoll() {
+		$.ajax({
+		    url: serverUrl,
+		    type: 'GET',
+		    success: function (result, testStatus, jqXHR) {
+			responseCount++;
+			LogDebugMessage('Long poll response ' + responseCount + ' received from server: ' + result);
+		    },
+		    error: function (jqXHR, textStatus, errorThrown) {
+			LogDebugMessage('Error starting long poll: ' + errorThrown);
+		    },
+		    complete: function (jqXHR, textStatus) {
+			//Delay before polling again
+			setTimeout(function() {
+			    StartLongPoll();
+			}, 3000);
+		    }
+		});
+	    }
 	
             function OutputMessage(text) {
                 $('#output-list').append(
@@ -36,11 +66,30 @@
                 $("#output-list").listview("refresh");
             }
             
+	    //TODO: handle message IDs and player numbers
+	    //This can be done once server is set up to assign them
             function SubmitMessage() {
-                OutputMessage($('#text-to-insert').val());
+		var messageText = $('#text-to-insert').val();
+		var message = {
+		    message: messageText
+		};
+		
+                OutputMessage(messageText);
                 $('#text-to-insert').val("");
                 
-                //TODO: send chats to server here
+                $.ajax({
+		    url: serverUrl,
+		    data: JSON.stringify(message),
+		    type: 'POST',
+		    success: function (result, testStatus, jqXHR) {
+			LogDebugMessage('Chat response from server: ' + result);
+		    },
+		    error: function (jqXHR, textStatus, errorThrown) {
+			LogDebugMessage('Error sending chat: ' + errorThrown);
+		    },
+		    complete: function (jqXHR, textStatus) {
+		    }
+		});
             }
         
             $( function () {
@@ -54,6 +103,9 @@
 		$('#play-surface').attr('width', '290').attr('height', '220');
 		
                 OutputMessage("Welcome to Cinch- it's pretty rad here.");
+		
+		LogDebugMessage('--Debug console--');
+		StartLongPoll();
 		
                 if (Modernizr.canvas && Modernizr.canvastext) {
                     OutputMessage("Canvas and canvas text support detected.");
@@ -122,6 +174,7 @@
                         <li data-role="list-divider">Messages</li>
                     </ul>
                 </div>
+		<textarea id="debug-area"></textarea>
             </div><!-- /content -->
         </div><!-- /page -->
     </body>
