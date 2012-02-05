@@ -11,6 +11,7 @@ TODO:   Add send_error functionality
         Add logging
         Change Access-Control-Allow-Origin to appropriate resource
         See what happens if client closes connection while server is thinking
+        Client management using cookies
 
 * Inspired by Voxound comet server
 
@@ -23,10 +24,34 @@ from cgi import escape
 import json
 from collections import deque
 
-from . import web_config as settings
+from web import web_config as settings
+from web.channel import CommChannel
 
+##class ClientManager:
+##    """Provide management functions for client monitoring.
+##
+##    Setting/reading cookies...
+##
+##    """
+##    def __init__(self):
+##        clients = list()
+##    
+##    def add_client(self):
+##        """Creates new client in client table.
+##
+##        Returns new client id, client guid.
+##        """
+##        return 3, "kittens"
+##
+##    def get_client(self, handler):
+##        print("getting client...")
+##        print(handler.headers)
+##        ck = handler.headers['cookie']
+##        return ck
 
-class CometServer(ThreadingMixIn, HTTPServer):
+  
+##class CometServer(ThreadingMixIn, HTTPServer, ClientManager):
+class CometServer(ThreadingMixIn, HTTPServer):    
     """Perform event handling for comet long polling using many threads."""
     def __init__(self, hostname, port, cache_size=settings.CACHE_SIZE):
         """Initialize server. Overrides inherited __init__."""
@@ -38,7 +63,9 @@ class CometServer(ThreadingMixIn, HTTPServer):
         self.events = []
         self.lock = Lock()
 
-        self.listeners = []
+        self.responders = []
+
+##        self.client_manager = ClientManager()
 
     def run_server(self):
         try:
@@ -46,44 +73,70 @@ class CometServer(ThreadingMixIn, HTTPServer):
         except KeyboardInterrupt:   # Exit gracefully with CTRL^C
             print("Server halted with keyboard interrupt.\n")
 
-    def add_announcer(self, channel):
-        """
+    def add_announcer(self, header, channel):
+        """Register channel as an announcer to the server.
+
+        Announcer channel will call server's notify function when it needs
+        to publish a message to the server. add_announcer() will give the
+        channel a reference to the server's notify function.
+
+        header (str): descriptor word for messages announced by channel
+        channel (CommChannel): object doing the announcing
 
         """
+        assert isinstance(header, str)
+        assert isinstance(channel, CommChannel)
 
+        # Create function for channel to call to server
+        def handler(*args): self.notify(header, args)
+        channel.add_announce_callback(handler)
 
-    def add_listener(self, channel, signature=None):
-        """Register listener for handling incoming data/requests.
+    def add_responder(self, channel, signature):
+        """Register responser for handling incoming data/requests.
 
         channel (CommChannel): external object that cares to handle messages
         signature (list): list of keys for JSON encoded dictionary of data
             that handler cares about
 
         """
-        #do some error handling/assertion, since this gets used outside server
-        #assert something
-        if signature is None:
-            signature = channel.signature
+        assert isinstance(channel, CommChannel)
+        assert isinstance(signature, list)
         
-        self.listeners.append({"listener":channel, "signature":signature})
+        self.responders.append({'channel':channel, 'signature':signature})
 
-    def handle_event(self, msg):
-        """Try to handle event with registered event handler.
+    def handle_msg(self, channel, msg):
+        """Try to handle event with registered channel.
 
+        channel (CommChannel): channel identified by exists_channel that
+            is designated for handling this type of msg
         msg (dict): JSON encoded dictionary of message received by server
+        return: msg-like response from channel
 
         """
-        for h in self.listeners:
-            if (all (k in msg for k in h["signature"]) and
-                all (k in h["signature"] for k in msg)): #test for 1-to-1 mapping
+        assert isinstance(channel, CommChannel)
+        assert isinstance(msg, dict)
 
-                handler = h["listener"]  #really need to rework this naming
-                try:
-                    return handler.callback(msg)
-                except Exception:
-                    return None, None #make more useful
+        response = channel.respond(msg)
+        assert isinstance(response, dict)
+        
+        return response
 
-        return None, None
+    def get_responder(self, msg):
+        """Checks server for registered responder for msg.
+
+        msg (dict): incoming message
+        returns: responder if exists, None if not
+
+        """
+        assert isinstance(msg, dict)
+
+        for r in self.responders:
+            if (all (k in msg for k in r['signature']) and
+                all (k in r['signature'] for k in msg)):
+
+                return r['channel']
+
+        return None
 
     def retrieve(self, lastid, timeout):
         """Retrieve all events from queue with lastid or later.
@@ -102,7 +155,7 @@ class CometServer(ThreadingMixIn, HTTPServer):
 
                 msgs = list(self.queue[interval*-1 + x] for
                             x in range(interval))
-                return (True, (lastid, msgs))
+                return (True, (self.lastid, msgs))
 
             #else listen for new event during timeout
             event = Event()
@@ -129,59 +182,49 @@ class CometServer(ThreadingMixIn, HTTPServer):
             self.lastid += 1
             self.queue.append(msg)
 
-            # thread management?
-            for event in self.events: #frees all events created by.notify
+            # thread management
+            for event in self.events: #frees all events created by notify
                 event.set()
             self.events = []
-        
+
   
 class HttpHandler(BaseHTTPRequestHandler):
     """Handle GET/POST requests for Cinch from web clients."""
     def do_GET(self):
         """Process GET requests for Cinch application.
 
-        Primarily used to push status updates to clients (via Comet), but
-        able to handle other GET requests (to be determined). GET is to
-        be read-only.
-
+        Exclusively used to send items from server.queue to requesting clients.
+        GET requests must have the following fields:
+        - id: id # of last message received (-1 for first message???)
+        
         """
-        ## Acknowledge request
-        self.send_response(settings.OK_RESPONSE)
-        self.send_header("Content-type", "text/plain") # mime-type
-        self.send_header("Access-Control-Allow-Origin", "*") #handle CORS
-        self.end_headers()
+        ## Identify client
+
 
         ## Interpret request
         parsed_path = urlparse(self.path)
         self.raw_query = parsed_path.query
         self.parse_data()
-        #check for long-polling flag (in handler?)
-        #add client to active client list; have routine for clients to stale out
-        ## client logging shall be handled in a ... handler.
 
-         ## Delegate data to appropriate engines
-##        header, message = self.server.handle_event(self.json)
-##        if message == None:
-##            header = "error"
-##            message = "no handler found!"
-        ##work on default GET handling; maybe don't notify in unknown cases?
-               
-
-
-        ## here we are sending out the event queue to all once there are 2
-        ## items in it.
-        success, res = self.server.retrieve(self.server.lastid-1, 2.5)
-        if success:
-            idd, msgs = res
-            self.send_message("{0}::{1} --- {2}".format(
-                idd, self.server.lastid, json.dumps(msgs)))
-        else:
-            self.send_message("erk")
-
-        #####
-        # Do stuff if not a Comet GET
-        #####
+        ## Acknowledge request
+        self.send_response(settings.OK_RESPONSE)
+        self.send_header("Content-type", "text/plain") # mime-type
+        self.send_header("Access-Control-Allow-Origin", "*") #handle CORS
+        self.end_headers()
+      
+        client_lastid = self.json.get('id', None)
+        if client_lastid is None:  #GET is not valid Comet query
+            #return  #or other option for non-Comet GETs
+            client_lastid = self.server.lastid-1 #debug
         
+        success, res = self.server.retrieve(client_lastid, 2.5)
+        if success:
+            server_lastid, msgs = res
+            self.send_message("{{ id: {0}, msgs: {1} }}".format(
+                server_lastid, json.dumps(msgs)))
+        else:
+            self.send_message("Nothing to report.\n")
+       
     def do_POST(self):
         """Process POST requests for Cinch application.
 
@@ -190,6 +233,10 @@ class HttpHandler(BaseHTTPRequestHandler):
         and will be parsed and passed to the appropriate engine.
         
         """
+        ## Identify client.
+        ##need to do stuff with client ID???
+        ### id will (probably) be a field in every message
+        
         ## Acknowledge request.
         self.send_response(settings.OK_RESPONSE)
         self.send_header("Content-type", "text/plain")
@@ -197,19 +244,20 @@ class HttpHandler(BaseHTTPRequestHandler):
         self.end_headers()
 
         ## Interpret request.
-        content_len = int(self.headers.__getitem__('content-length'))
+        content_len = int(self.headers['content-length'])
         self.raw_query = self.rfile.read(content_len)
         self.parse_data()
 
-        ## Delegate data to appropriate engines
-        header, message = self.server.handle_event(self.json)
-        if message == None:
-            header = "error"
-            message = "no handler found!"
-        ##work on default POST handling; maybe don't notify in unknown cases?
-##need to do stuff with ID number???
-        self.server.notify(header, self.json)
-        self.send_message(message)
+        ## Delegate data to appropriate sinks.
+        channel = self.server.get_responder(self.json)
+        if channel is None:
+            #no handler exists, do default action
+            self.server.notify('UNKNOWN', self.json)
+        else:
+            response = self.server.handle_msg(channel, self.json)
+            self.send_message(response)
+            ##let responders broadcast as they see fit
+            ##will be implementing address/addressee functionality
 
     def parse_data(self):
         """Parse raw_query into dictionary."""
