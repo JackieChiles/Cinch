@@ -15,7 +15,8 @@
         <script type="text/javascript">
 	    var pos = 25;
 	    var responseCount = 0;
-	    
+	    var lastid = 0;
+		
 	    //Development URL
 	    var serverUrl = "http://localhost:2424"
 	
@@ -41,9 +42,20 @@
 		$.ajax({
 		    url: serverUrl,
 		    type: 'GET',
+			data: {'guid':0, 'lastid':lastid},
+			
 		    success: function (result, testStatus, jqXHR) {
 			responseCount++;
 			LogDebugMessage('Long poll response ' + responseCount + ' received from server: ' + result);
+			if (result != "") {
+			
+				var myJSON = jQuery.parseJSON(result);
+				if (myJSON.id != null) {
+					var myID = parseInt(myJSON.id);
+					if (myID >= 0) {lastid = myID;}
+				}
+			}
+
 		    },
 		    error: function (jqXHR, textStatus, errorThrown) {
 			LogDebugMessage('Error starting long poll: ' + errorThrown);
