@@ -20,7 +20,7 @@ server.add_responder(chats, web.channel.CHAT_SIGNATURE)
 # some things may only announce (eg daemons), while others only respond to
 # client actions. but if an object wants any sort of multicast/broadcast
 # ability, it must be registered as an announcer.
-server.add_announcer("chat", chats)
+server.add_announcer(chats)
 
 
 #Start server

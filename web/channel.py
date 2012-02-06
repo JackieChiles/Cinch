@@ -6,6 +6,8 @@
 import json
 from threading import Lock, Timer #might not need these
 
+from web.message import Message
+
 #CHAT_SIGNATURE = ['user', 'msg']
 CHAT_SIGNATURE = ['message']
 
@@ -39,10 +41,10 @@ class CommChannel:
         Classes that extend CommChannel will call this to send data (dicts)
         to the server. Message header is set during announcer registration.
 
-        msg (dict): message to be announced
+        msg (Message): message to be announced
         
         """
-        assert isinstance(msg, dict)
+        assert isinstance(msg, Message)
 
         f = self.callbacks['announce']
         f(msg)
@@ -58,8 +60,8 @@ class CommChannel:
         triggered this response. Any broadcast-like messages must be sent
         through announce().
 
-        msg (dict): incoming message from server
-        returns: outgoing message to server
+        msg (Message): incoming message from server
+        returns: outgoing Message object to server
 
         """
         raise NotImplementedError("Must implement respond().")   
@@ -71,17 +73,24 @@ class Chats(CommChannel):
     def __init__(self):
         CommChannel.__init__(self)
 
-        #### debug
-        t = Timer(3.0, self.announce, args=[{'msg':"announcement!"}])
+        #### demo threading test
+        test = Message(data={'msg':"announcement!"})
+        t = Timer(3.0, self.announce, args=[test])
         t.start()
 
     ## Overriden member
-    def respond(self, args):
+    def respond(self, incoming_msg):
         """Overriding respond() from CommChannel.
 
         Demonstrating division between announcing and responding.
         """
-        self.announce({'announce':args})
-        return json.dumps(args)
+        assert isinstance(incoming_msg, Message)
+        
+        # sample announcement inside a response
+        msg = Message({'announce':incoming_msg.data})
+        self.announce(msg)
+
+        # sample response to web query
+        return incoming_msg
         
     

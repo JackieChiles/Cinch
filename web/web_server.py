@@ -3,15 +3,12 @@
 !Built for Initial Network Capability for handling Chat-like data, not game data.
 
 Web server for game engine communication for Cinch (not for web pages).
-To access, use the following code in a root-level module:
-    import web.web_server as server
-    server.start_server()
 
 TODO:   Add send_error functionality
         Add logging
         Change Access-Control-Allow-Origin to appropriate resource
         See what happens if client closes connection while server is thinking
-        Client management using cookies
+        Client management using HTML5 WebStorage
 
 * Inspired by Voxound comet server
 
@@ -19,13 +16,15 @@ TODO:   Add send_error functionality
 from http.server import HTTPServer,BaseHTTPRequestHandler  
 from socketserver import ThreadingMixIn
 from threading import Lock, Event
-from urllib.parse import urlparse
+from urllib.parse import urlparse, parse_qs
 from cgi import escape
 import json
 from collections import deque
 
 from web import web_config as settings
 from web.channel import CommChannel
+from web.message import Message
+
 
 ##class ClientManager:
 ##    """Provide management functions for client monitoring.
@@ -37,17 +36,9 @@ from web.channel import CommChannel
 ##        clients = list()
 ##    
 ##    def add_client(self):
-##        """Creates new client in client table.
-##
-##        Returns new client id, client guid.
-##        """
-##        return 3, "kittens"
+##       return 3, "kittens"
 ##
 ##    def get_client(self, handler):
-##        print("getting client...")
-##        print(handler.headers)
-##        ck = handler.headers['cookie']
-##        return ck
 
   
 ##class CometServer(ThreadingMixIn, HTTPServer, ClientManager):
@@ -60,11 +51,10 @@ class CometServer(ThreadingMixIn, HTTPServer):
         self.max = cache_size
         self.lastid = 0
         self.queue = deque(maxlen=cache_size)
-        self.events = []
-        self.lock = Lock()
-
+        self.events = []    #temp list of threads when many hit server at once
+        self.lock = Lock()  #thread control
+        
         self.responders = []
-
 ##        self.client_manager = ClientManager()
 
     def run_server(self):
@@ -73,22 +63,23 @@ class CometServer(ThreadingMixIn, HTTPServer):
         except KeyboardInterrupt:   # Exit gracefully with CTRL^C
             print("Server halted with keyboard interrupt.\n")
 
-    def add_announcer(self, header, channel):
+    def add_announcer(self, channel):
         """Register channel as an announcer to the server.
 
         Announcer channel will call server's notify function when it needs
         to publish a message to the server. add_announcer() will give the
         channel a reference to the server's notify function.
 
-        header (str): descriptor word for messages announced by channel
         channel (CommChannel): object doing the announcing
 
         """
-        assert isinstance(header, str)
         assert isinstance(channel, CommChannel)
 
         # Create function for channel to call to server
-        def handler(*args): self.notify(header, args)
+        def handler(msg):
+            assert isinstance(msg, Message)
+            self.notify(msg)
+            
         channel.add_announce_callback(handler)
 
     def add_responder(self, channel, signature):
@@ -105,34 +96,35 @@ class CometServer(ThreadingMixIn, HTTPServer):
         self.responders.append({'channel':channel, 'signature':signature})
 
     def handle_msg(self, channel, msg):
-        """Try to handle event with registered channel.
+        """Handle event with registered channel.
 
         channel (CommChannel): channel identified by exists_channel that
             is designated for handling this type of msg
-        msg (dict): JSON encoded dictionary of message received by server
-        return: msg-like response from channel
+        msg (Message): Message object message received by server
+        return: Message response from channel
 
         """
         assert isinstance(channel, CommChannel)
-        assert isinstance(msg, dict)
+        assert isinstance(msg, Message)
 
         response = channel.respond(msg)
-        assert isinstance(response, dict)
+        assert isinstance(response, Message)
         
         return response
 
     def get_responder(self, msg):
         """Checks server for registered responder for msg.
 
-        msg (dict): incoming message
+        msg (Message): incoming message
         returns: responder if exists, None if not
 
         """
-        assert isinstance(msg, dict)
+        assert isinstance(msg, Message)
 
+        data = msg.data
         for r in self.responders:
-            if (all (k in msg for k in r['signature']) and
-                all (k in r['signature'] for k in msg)):
+            if (all (k in data for k in r['signature']) and
+                all (k in r['signature'] for k in data)):
 
                 return r['channel']
 
@@ -168,14 +160,13 @@ class CometServer(ThreadingMixIn, HTTPServer):
         else:
             return (False, None)
 
-    def notify(self, header, args):
+    def notify(self, msg):
         """Add new event to event queue.
 
-        header (str/int): descriptor for kind of event -- not using ATM
-        args (dict): JSON encoded argument/data list
+        msg (Message): Message object containing source/dest/data.
 
         """
-        msg = "[{0}, {1}]".format(header, json.dumps(args))
+        assert isinstance(msg, Message)
 
         # Enqueue message
         with self.lock:        #locks the thread, then unlocks at end of block
@@ -198,32 +189,38 @@ class HttpHandler(BaseHTTPRequestHandler):
         - id: id # of last message received (-1 for first message???)
         
         """
-        ## Identify client
-
-
         ## Interpret request
         parsed_path = urlparse(self.path)
         self.raw_query = parsed_path.query
         self.parse_data()
-
+        message = Message(self.json, source_key=settings.GUID_KEY)
+        
         ## Acknowledge request
         self.send_response(settings.OK_RESPONSE)
-        self.send_header("Content-type", "text/plain") # mime-type
-        self.send_header("Access-Control-Allow-Origin", "*") #handle CORS
+        self.send_header(*settings.CONTENT_TYPE)
+        self.send_header(*settings.ACCESS_CONTROL) #handle CORS
         self.end_headers()
-      
-        client_lastid = self.json.get('id', None)
+
+        client_lastid = message.data.get(settings.COMET_ID_KEY, None)
         if client_lastid is None:  #GET is not valid Comet query
-            #return  #or other option for non-Comet GETs
-            client_lastid = self.server.lastid-1 #debug
-        
-        success, res = self.server.retrieve(client_lastid, 2.5)
+            print("not a valid Comet query")
+            return  #or other option for non-Comet GETs
+        else:
+            client_lastid = int(client_lastid)
+            
+        success, res = self.server.retrieve(client_lastid,
+                                            settings.COMET_TIMEOUT)
         if success:
             server_lastid, msgs = res
-            self.send_message("{{ id: {0}, msgs: {1} }}".format(
-                server_lastid, json.dumps(msgs)))
-        else:
-            self.send_message("Nothing to report.\n")
+
+            # Stringify message block
+            msgs_data_strings = []
+            for msg in msgs:
+                msgs_data_strings.append(json.dumps(msg.data))
+
+            msgs_text = ",".join(msgs_data_strings)
+
+            self.send_message({'id': server_lastid, 'msgs': msgs_text})
        
     def do_POST(self):
         """Process POST requests for Cinch application.
@@ -233,48 +230,56 @@ class HttpHandler(BaseHTTPRequestHandler):
         and will be parsed and passed to the appropriate engine.
         
         """
-        ## Identify client.
-        ##need to do stuff with client ID???
-        ### id will (probably) be a field in every message
-        
-        ## Acknowledge request.
-        self.send_response(settings.OK_RESPONSE)
-        self.send_header("Content-type", "text/plain")
-        self.send_header("Access-Control-Allow-Origin", "*") #handle CORS
-        self.end_headers()
-
         ## Interpret request.
         content_len = int(self.headers['content-length'])
         self.raw_query = self.rfile.read(content_len)
         self.parse_data()
+        message = Message(self.json, source_key=settings.GUID_KEY)
+        
+        ## Acknowledge request.
+        self.send_response(settings.OK_RESPONSE)
+        self.send_header(*settings.CONTENT_TYPE)
+        self.send_header(*settings.ACCESS_CONTROL)
+        self.end_headers()
 
         ## Delegate data to appropriate sinks.
-        channel = self.server.get_responder(self.json)
+        channel = self.server.get_responder(message)
         if channel is None:
-            #no handler exists, do default action
-            self.server.notify('UNKNOWN', self.json)
+            # No handler exists
+            self.server.notify(message)
         else:
-            response = self.server.handle_msg(channel, self.json)
-            self.send_message(response)
-            ##let responders broadcast as they see fit
-            ##will be implementing address/addressee functionality
+            response = self.server.handle_msg(channel, message)
+            self.send_message(response.data)
 
     def parse_data(self):
         """Parse raw_query into dictionary."""
         try:
-            self.query = self.raw_query.decode()    # convert bytes to str
+            query = self.raw_query.decode()     # convert bytes to str
         except AttributeError:
-            self.query = self.raw_query             # input already a str
+            query = self.raw_query              # input already a str
         finally:
-            self.query = escape(self.query)         # sanitize inputs
+            query = escape(query)               # sanitize inputs
 
         try:
-            self.json = json.loads(self.query)
+            self.json = json.loads(query)
         except ValueError:
-            self.json = {"Error":"Input not in JSON format"}
+            # Data may be from GET query
+            try:
+                self.json = parse_qs(query) #query is (likely) from GET
+                # GET values get packed into lists by parse_qs, while we
+                # expect a single value per key. Unpack the "lists".
+                for k in self.json:
+                    self.json[k] = self.json[k][0]
+            except Exception:
+                self.json = {"Error": "Cannot parse data."}
 
     def send_message(self, message):
         """Helper interface for sending data to client."""
+        assert isinstance(message, (str, bytes, dict))
+
+        if isinstance(message, dict):
+            message = json.dumps(message)
+        
         try:
             m = message.encode()
         except AttributeError:
