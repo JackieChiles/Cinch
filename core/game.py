@@ -4,9 +4,9 @@ no comment
 """
 import random
 
-import common
-from player import Player
-import cards
+import core.common
+from core.player import Player
+import core.cards
 
 
 #Constants and global variables
@@ -14,6 +14,9 @@ STARTING_HAND_SIZE = 9
 NUM_PLAYERS = 4
 GAME_MODE = enum(PLAY_MODE=1, BID_MODE=2)
 
+# Bid constants
+BID_PASS = 0
+BID_CINCH = 5
 
 
 class Game:
