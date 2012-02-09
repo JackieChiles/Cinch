@@ -42,20 +42,16 @@
 		$.ajax({
 		    url: serverUrl,
 		    type: 'GET',
-			data: {'guid':0, 'lastid':lastid},
-			
+		    data: {'guid':0, 'lastid':lastid},
+		    dataType: 'json',
 		    success: function (result, testStatus, jqXHR) {
 			responseCount++;
-			LogDebugMessage('Long poll response ' + responseCount + ' received from server: ' + result);
-			if (result != "") {
-			
-				var myJSON = jQuery.parseJSON(result);
-				if (myJSON.id != null) {
-					var myID = parseInt(myJSON.id);
-					if (myID >= 0) {lastid = myID;}
-				}
-			}
-
+			LogDebugMessage('Long poll response ' + responseCount + ' received from server: ' + JSON.stringify(result));
+			if (result !== null)
+			    if (result.hasOwnProperty('id')) {
+				    var myID = parseInt(result.id);
+				    if (myID >= 0) {lastid = myID;}
+			    }
 		    },
 		    error: function (jqXHR, textStatus, errorThrown) {
 			LogDebugMessage('Error starting long poll: ' + errorThrown);
