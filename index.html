@@ -17,6 +17,8 @@
 	    var responseCount = 0;
 	    var lastid = 0;
 		
+		var guid = 3;
+		
 	    //Development URL
 	    var serverUrl = "http://localhost:2424"
 	
@@ -42,14 +44,14 @@
 		$.ajax({
 		    url: serverUrl,
 		    type: 'GET',
-		    data: {'guid':0, 'lastid':lastid},
+		    data: {'uid':guid, 'last':lastid},
 		    dataType: 'json',
 		    success: function (result, testStatus, jqXHR) {
 			responseCount++;
 			LogDebugMessage('Long poll response ' + responseCount + ' received from server: ' + JSON.stringify(result));
 			if (result !== null)
-			    if (result.hasOwnProperty('id')) {
-				    var myID = parseInt(result.id);
+			    if (result.hasOwnProperty('new')) {
+				    var myID = parseInt(result.new);
 				    if (myID >= 0) {lastid = myID;}
 			    }
 		    },
@@ -78,16 +80,17 @@
 	    //This can be done once server is set up to assign them
             function SubmitMessage() {
 		var messageText = $('#text-to-insert').val();
-		var message = {
-		    message: messageText
-		};
+
+		if (messageText == "") {
+			return;
+		}
 		
                 OutputMessage(messageText);
                 $('#text-to-insert').val("");
                 
                 $.ajax({
 		    url: serverUrl,
-		    data: JSON.stringify(message),
+		    data: {'uid': guid, 'msg':messageText},
 		    type: 'POST',
 		    success: function (result, testStatus, jqXHR) {
 			LogDebugMessage('Chat response from server: ' + result);
