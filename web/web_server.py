@@ -223,15 +223,12 @@ class HttpHandler(BaseHTTPRequestHandler):
                 return
             
             # Stringify message block
-            msgs_data_strings = []
+            msgs_data = []
             for msg in msgs:
-                msgs_data_strings.append(json.dumps(msg.data))
-
-            msgs_text = ",".join(msgs_data_strings)
-            msgs_text = '[' + msgs_text + ']'   # JS parser needs array
+                msgs_data.append(msg.data)
 
             self.send_message({config.COMET_LATEST_KEY: server_lastid,
-                               config.COMET_MESSAGE_BLOCK_KEY: msgs_text})
+                               config.COMET_MESSAGE_BLOCK_KEY: msgs_data})
 
     def do_POST(self):
         """Process POST requests for Cinch application.
