@@ -2,7 +2,7 @@
 """Client management class for web server.
 
 """
-#from uuid import uuid4  # don't really need 32-byte ID
+import string
 import random
 
 # Constants for client id elements
@@ -10,12 +10,12 @@ CLIENT_NAME = 0
 CLIENT_GROUP = 1
 CLIENT_PLAYER_NUM = 2
 
-MAX_GUID = 32767
+MAX_TRIES = 32767
 
 class ClientManager:
     """Provide mapping functions for Clients with respect to the game engine.
 
-    self.clients is a dictionary of lists, keyed by client guid.
+    self.clients is a dictionary of lists, keyed by client guid (str).
     
     Clients have the following associations (keys):
     - name (str): user name for client
@@ -36,15 +36,15 @@ class ClientManager:
         """
         count = 0
         while True:
-            guid = random.randint(0, MAX_GUID)
+            guid = generate_id()
 
             # Verify guid unique in ClientManager
-            if guid not in self.clients:
+            if guid not in self.clients.keys():
                 break
 
             # Prevent infinite loops
             count += count
-            if count == MAX_GUID:
+            if count == MAX_TRIES:
                 raise RuntimeError(
                     "Too many clients. Cannot create new client.")
                
@@ -57,7 +57,7 @@ class ClientManager:
 
         In current implementation, clients can belong to at most 1 group.
 
-        client (int): guid for client
+        client (str): guid for client
         group (int): id for group
         
         """
@@ -85,7 +85,7 @@ class ClientManager:
     def del_client(self, ident):
         """Delete client and remove from its group (if applicable).
 
-        ident (int): guid for client
+        ident (str): guid for client
 
         """
         try:
@@ -129,7 +129,7 @@ class ClientManager:
     def get_group_by_client(self, client):
         """Return group that contains client.
 
-        client (int): guid of client
+        client (str): guid of client
 
         """
         try:
@@ -140,7 +140,7 @@ class ClientManager:
     def get_player_num_by_client(self, client):
         """Return playerNum for client.
 
-        client (int): guid of client
+        client (str): guid of client
 
         """
         try:
@@ -151,7 +151,7 @@ class ClientManager:
     def set_client_name(self, client, name):
         """Set name for client.
 
-        client (int): guid for client
+        client (str): guid for client
         name (str): player name for client
 
         """
@@ -163,7 +163,7 @@ class ClientManager:
     def set_client_player_num(self, client, playerNum):
         """Set player number for client.
 
-        client (int): guid for client
+        client (str): guid for client
         playerNum (int): id for player within player's group
 
         """
@@ -171,3 +171,13 @@ class ClientManager:
         assert isinstance(playerNum, int)
         
         self.clients[client][CLIENT_PLAYER_NUM] = playerNum
+
+
+def generate_id(size=6):
+    """Generate random character string of specified size.
+
+    Uses digits, upper- and lower-case letters.
+    
+    """
+    chars=string.ascii_letters + string.digits
+    return ''.join(random.choice(chars) for x in range(size))
