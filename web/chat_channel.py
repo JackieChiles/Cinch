@@ -16,10 +16,8 @@ class ChatEngine(CommChannel):
     def register(self, server):
         """Register ChatEngine as announce and responder to the server.
 
+        Add responder to listen for chat messages. No response will be sent.
         Use announce mode to multi-cast chat message to other parties in room.
-
-        Use respond mode to acknowledge receipt of message and order client to
-        self-publish message (??? is this desirable???)
 
         """
         server.add_responder(self, CHAT_SIGNATURE)
@@ -47,6 +45,7 @@ class ChatEngine(CommChannel):
         recipients = [incoming_msg.source] #for testing purposes
 
         # Package into Message and notify the server
+        ##TODO: change where uNum comes from
         msg_data = {'uNum':999, 'msg':chat}
         msg = Message(msg_data,
                       source=incoming_msg.source, dest_list=recipients)
