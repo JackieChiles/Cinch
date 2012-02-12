@@ -4,7 +4,7 @@ no comment
 """
 import random
 
-import core.common
+import core.common as common
 from core.player import Player
 import core.cards
 
@@ -12,7 +12,7 @@ import core.cards
 #Constants and global variables
 STARTING_HAND_SIZE = 9
 NUM_PLAYERS = 4
-GAME_MODE = enum(PLAY_MODE=1, BID_MODE=2)
+GAME_MODE = common.enum(PLAY=1, BID=2)
 
 # Bid constants
 BID_PASS = 0
@@ -50,19 +50,6 @@ class Game:
         and set internal variable.
         """
 
-    def set_player_ids(self):
-        """Set random ids for player objects."""
-        ids = [random.randint(0,1023) for x in range(len(self.players))]
-
-        if len(set(ids)) == len(self.players):
-            #All created ids unique, so set value in Player objects
-            for player in self.players:
-                player.id = ids.pop()
-
-        else:
-            #Not enough ids, so try again
-            self.set_player_ids()
-
     def deal_hand(self):
         """Deal new hand to each player and set card ownership."""
         for player in self.players:
@@ -79,7 +66,6 @@ if __name__ == '__main__':
     g = Game()
     g.players = [Player() for x in range(4)]
     print(g)
-    g.set_player_ids()
     g.deal_hand()
     print("Undealt cards:",g.deck)
     print("players[0].hand=",g.players[0].hand)
