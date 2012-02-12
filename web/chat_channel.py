@@ -47,10 +47,9 @@ class ChatEngine(CommChannel):
         recipients = [incoming_msg.source] #for testing purposes
 
         # Package into Message and notify the server
-        msg_data = {'source': incoming_msg.source,
-                    'dest':recipients,
-                    'uNum':999, 'msg':chat}  #rework Message.py to avoid this jankiness
-        msg = Message(msg_data, source_key='source', dest_key='dest')
+        msg_data = {'uNum':999, 'msg':chat}
+        msg = Message(msg_data,
+                      source=incoming_msg.source, dest_list=recipients)
         self.announce(msg)
 
         # No error conditions exist for chat, so return None

@@ -126,6 +126,8 @@ class CometServer(ThreadingMixIn, HTTPServer):
         assert isinstance(msg, Message)
 
         response = channel.respond(msg)
+
+        assert (isinstance(response, Message) or response is None)
         
         return response
 
