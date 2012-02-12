@@ -27,7 +27,7 @@ class Message:
 
         if source is not None:
             self.source = source
-        else if source_key is not None:
+        elif source_key is not None:
             # Set Message.source and remove from data
             self.source = data.pop(source_key, None)
         else:
