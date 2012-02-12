@@ -9,6 +9,8 @@ class Message:
         should not be included within data. Otherwise, set source_key and/or
         dest_key and include within data.
 
+        Setting a source is optional.
+
         data (dict): dictionary of all data relevant to Message, including
             source, destination, and message body
         source (str): ID of source of message
@@ -25,12 +27,11 @@ class Message:
 
         if source is not None:
             self.source = source
-        else:
+        else if source_key is not None:
             # Set Message.source and remove from data
             self.source = data.pop(source_key, None)
-
-        # A source must be set for Message
-        assert (self.source is not None)
+        else:
+            self.source = None
 
         if dest_list is not None:
             self.dest_list = dest_list
