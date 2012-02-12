@@ -18,6 +18,7 @@ chat_engine.register(server)
 #server.run_server()
 
 gr = GameRouter()
+gr.register_handlers(server)
 
 
 

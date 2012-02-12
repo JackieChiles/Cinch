@@ -17,10 +17,13 @@ class ClientManager:
 
     self.clients is a dictionary of lists, keyed by client guid (str).
     
-    Clients have the following associations (keys):
+    Clients have a list with the following values:
     - name (str): user name for client
     - group (int): group/game number
     - playerNum (int): ID of Client within group
+
+    self.groups is a dictionary, keyed by game id (int). The value of each
+    group is a list of client guids that are in the group.
     
     """
     def __init__(self):
@@ -28,7 +31,7 @@ class ClientManager:
         self.clients = dict()
         self.groups = dict()
         
-    def add_client(self, name=None):
+    def create_client(self, name=None):
         """Create new client in internal map. Return client guid.
 
         name (str): player/user name for client [optional]
@@ -71,16 +74,21 @@ class ClientManager:
         # Add client to group's info
         self.groups[group].append(client)
 
-    def add_group(self, ident):
-        """Create group.
+    def create_group(self):
+        """Create new group and return group ID.
 
-        ident (int): id for group
+        Groups are sequentially numbered.
 
         """
-        if ident in self.groups.keys():
-            raise Exception("Group {0} already exists.".format(ident))
-        
+        try:
+            last_group = max(self.groups.keys())
+        except ValueError:
+            last_group = -1
+
+        ident = last_group + 1        
         self.groups[ident] = None
+
+        return ident
 
     def del_client(self, ident):
         """Delete client and remove from its group (if applicable).
@@ -146,8 +154,26 @@ class ClientManager:
         try:
             return self.clients[client][CLIENT_PLAYER_NUM]
         except KeyError:
-            raise KeyError("Client {0} does not exist.".format(client))            
+            raise KeyError("Client {0} does not exist.".format(client))
 
+    def get_player_nums_in_group(self, group):
+        """Return list of player numbers of clients in group.
+
+        group (int): group id
+
+        """
+        pNums = []
+        try:
+            clients = self.groups[group]
+            for client in clients:
+                c = self.clients[client]
+                if c[CLIENT_PLAYER_NUM] is not None:
+                    pNums.append(c[CLIENT_PLAYER_NUM])
+        except KeyError:
+            return "Cannot get player numbers from Group {0}".format(group)
+
+        return pNums
+        
     def set_client_name(self, client, name):
         """Set name for client.
 
