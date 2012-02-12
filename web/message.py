@@ -26,6 +26,6 @@ class Message:
         self.data = data
 
     def __repr__(self):
-        """Stringify this."""
-        print("From: {0}\nTo: {1}\nData: {3}\n".format(
-            self.source, self.dest_list, self.data))
+        """Return descriptive string of Message."""
+        return "From: " + str(self.source) + "\nTo: " + str(self.dest_list) \
+               + "\nData: " + str(self.data)

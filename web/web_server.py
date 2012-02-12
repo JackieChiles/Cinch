@@ -79,17 +79,17 @@ class CometServer(ThreadingMixIn, HTTPServer):
 
     def filter_msgs(self, guid, msgs):
         """Filter out all Messages in msgs not intended for user guid.
-
-        msgs will be mutated in place (with pop()), so no return is needed.
         
         guid: guid value of client requesting message block
         msgs (list): block of candidate messages to be sent out
 
         """
-        for index, msg in enumerate(msgs[:]):
-            # enumerate provides index & data
-            if guid not in msg.dest_list:
-                del msgs[index]
+        tmp = []
+        for msg in msgs:
+            if guid in msg.dest_list:
+                tmp.append(msg)
+
+        return tmp
 
     def get_responder(self, msg):
         """Checks server for registered response channel for msg.
@@ -216,8 +216,7 @@ class HttpHandler(BaseHTTPRequestHandler):
 
             # Filter messages based on Message recipient list, requestor
             guid = message.source
-            # Mutating msgs w/in filter_msgs(), so no return is needed
-            self.server.filter_msgs(message.source, msgs)
+            msgs = self.server.filter_msgs(message.source, msgs)
             # Return if no messages remain after filtering
             if len(msgs) == 0:
                 return
