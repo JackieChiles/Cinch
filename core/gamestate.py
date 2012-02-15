@@ -6,6 +6,7 @@ import cards
 
 # Constants; these can be replaced later
 NUM_PLAYERS = 4
+TEAM_SIZE = 2
 
 class GameState(dict):
     """
@@ -35,7 +36,7 @@ class GameState(dict):
         self['active_player'] = 0
         self['cards_in_play'] = []
         self['scores'] = (0, 0)
-        self['past_tricks'] = [[], []]
+        self['team_stacks'] = [[], []]
     
     def next_player(self):
         """Move around the table one seat to the left."""
@@ -70,25 +71,84 @@ class GameState(dict):
         
         # Find the winning card and determine who played it.
         current_highest_card_rank = 0
-        current_highest_card_pos = -1
         for each in self['cards_in_play']:
             if each.suit == winning_suit:
                 if each.rank > current_highest_card_rank:
                     current_highest_card_rank = each.rank
-                    current_highest_card_pos = self['cards_in_play'].index(each)
-        return (self['active_player'] + current_highest_card_pos) % NUM_PLAYERS
+                    current_highest_card_owner = each.owner
+        return current_highest_card_owner
         
     def score_hand(self):
         """Score a completed hand and adjust scores."""
-        pass # Might need to tweak this code later. Doesn't seem to do much. >_>
+        # May want to use not-worst practices later. Or maybe not.
+        # Just let it happen mike.
+        # Because the pairings are always 0,2 and 1,3 we can easily convert
+        # player numbers to team numbers 0 or 1. Conveniently these are the
+        # indices of the team_stacks list as well.
+        
+        # Initialize the comparison variables.
+        current_high_rank = 0
+        current_low_rank = 15
+        game_points = [0, 0] # Team 0 and Team 1
+        
+        for stack in range(len(self['team_stacks']):
+            for card in self['team_stacks'][stack]:
+                if card.suit == self['trump']:
+                # High and low points assigned by player, converted to team.
+                    if card.rank > current_high_rank:
+                        current_high_rank = card.rank
+                        high_holder = (card.owner % TEAM_SIZE)
+                    if card.rank < current_low_rank:
+                        current_low_rank = card.rank
+                        low_holder = (card.owner % TEAM_SIZE)
+                    if card.rank == 11:
+                        jack = stack # Jack point is assigned by team.
+                # Game points also assigned by team.
+                if card.rank > 10:
+                    game_points[stack] += (card.rank - 10)
+                if card.rank == 10:
+                    game_points[stack] += card.rank
          
+         # Determine who gets the Game point, no point for a tie.
+         if max(game_points).index == max(reversed(game_points).index
+         
+         # All cards accounted for, now assign temp points to teams.
+         
+         temp_points = [0, 0] # Initialize to be able to increment
+         temp_points[high_holder] += 1
+         temp_points[low_holder] += 1
+         temp_points[jack] += 1
+         temp_points[game_holder] += 1
+         
+         # Compare to bids and adjust scores.
+         
+         declaring_team = self['declarer'] % TEAM_SIZE
+         
+         # Handle cinching and getting set.
+         
+         if self['high_bid'] == 5: # Don't hardcode this, it's CINCH.
+            if temp_points[declaring_team] == 4             # Made it.
+                if score(declaring_team) == 0               # Auto-win.
+                    temp_points(declaring_team) = 11
+                else
+                    temp_points(declaring_team) = 10
+            else                                            # Ouch, set.
+                temp_points(declaring_team) = -10
+            else if temp_points[declaring_team] < self['high_bid']: # Set
+                temp_points[declaring_team] = -1*self['high_bid']
+         
+         for each in self['scores']:
+            self['scores'](each) += temp_points(each)
+            
+         return None
         
 if __name__ == "__main__":
     print("Default Game State")
     gs = GameState(2000)
     d = cards.Deck()
-    for x in [1]*4:
+    for x in [1, 2, 3, 4]:
         gs['cards_in_play'].append(d.deal_one())
+        gs['cards_in_play'][-1].owner = x
     print(gs['cards_in_play'])
     print(gs.trick_winner())
 
