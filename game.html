@@ -1,50 +1,14 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <meta charset="utf-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1"> 
         <title>Cinch</title>
-        
-        <link rel="stylesheet" href="jquery.mobile/jquery.mobile-1.0.1.min.css" />
-        <link rel="stylesheet" href="styles/site.css" />
-        
-        <script type="text/javascript" src="scripts/jquery-1.7.1.min.js"></script>
-        <script type="text/javascript" src="jquery.mobile/jquery.mobile-1.0.1.min.js"></script>
-        <script type="text/javascript" src="scripts/modernizr-2.0.6.js"></script>
-	<script type="text/javascript" src="scripts/main.js"></script>
-        
-        <script type="text/javascript">       
-            $( function () {
-                $("#text-to-insert").keypress(function(event) {
-                    if ( event.which == 13 ) {
-                       event.preventDefault();
-                       $('#submit-button').click();
-                     }
-                });
-		
-		$('#play-surface').attr('width', '290').attr('height', '220');
-                OutputMessage("Welcome to Cinch- it's pretty rad here.");
-		
-		//Development
-		LogDebugMessage('--Debug console--');
-		
-		StartLongPoll();
-		
-                if (Modernizr.canvas && Modernizr.canvastext) {
-                    OutputMessage("Canvas and canvas text support detected.");
-                }
-                else {
-                    OutputMessage("Your browser does not support canvas and canvas text.")
-                }
-            });
-        </script>
     </head>
     <body>
-        <div data-role="page">
+        <div data-role="page" id="game-page">
             <div data-role="header">
             <h1>Cinch</h1>
             </div><!-- /header -->
-            <div data-role="content">
+            <div data-role="content" id="game-content">
                 <div id="left-content">
                     <div>
                         <ul data-role="listview" data-inset="true" id="scoreboard">
@@ -92,7 +56,7 @@
                 </div>
                 <div id="right-content">
                     <input id="text-to-insert" type="text" /><br />
-                    <button id="submit-button" onclick="SubmitMessage()">Submit</button>
+                    <button id="submit-button" onclick="SubmitChat()">Submit</button>
                     <ul data-role="listview" data-inset="true" id="output-list">
                         <li data-role="list-divider">Messages</li>
                     </ul>

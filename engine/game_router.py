@@ -90,6 +90,8 @@ class NewGameHandler(GameRouterHandler):    ####untested
         cm.add_client_to_group(client_id, game_id)
         cm.set_client_player_num(client_id, 0)
 
+        print("in new game handler")
+
         #return dict with client GUID and player number
         return {'uid': client_id, 'pNum': 0}
 

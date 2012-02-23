@@ -6,6 +6,20 @@
 }
 /*End development*/
 
+/*****************************************
+** Home page                            **
+*****************************************/
+
+#home-buttons-container
+{
+    margin: 0 auto;
+    width:290px;
+}
+
+/*****************************************
+** Game page                            **
+*****************************************/
+
 #right-content
 {
     float:left;
@@ -91,7 +105,7 @@
     padding:0.6em;
 }
 
-.ui-content
+.ui-content#game-content
 {
     overflow-y:hidden;
     width:400px;
@@ -111,7 +125,7 @@
 
 @media all and (min-width: 480px)
 {
-    .ui-content
+    .ui-content#game-content
     {
         min-width:1280px;
     }

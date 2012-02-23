@@ -14,13 +14,11 @@ server = web.web_server.boot_server()
 chat_engine = ChatEngine()
 chat_engine.register(server)
 
-#Start server
-#server.run_server()
-
 gr = GameRouter()
 gr.register_handlers(server)
 
-
+#Start server
+server.run_server()
 
 #debug
 
