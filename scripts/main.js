@@ -108,8 +108,8 @@ function SubmitChat() {
     PostData({'uid': guid, 'msg': messageText});
 }
 
-function SubmitJoin(gameNum) {
-    PostData({'join': gameNum});
+function SubmitJoin(gameNum, pNum) {
+    PostData({'join': gameNum, 'pNum': pNum});
 }
 
 function SubmitNew(mode) {
