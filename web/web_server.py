@@ -125,9 +125,9 @@ class CometServer(ThreadingMixIn, HTTPServer):
         assert isinstance(channel, CommChannel)
         assert isinstance(msg, Message)
 
-        response = channel.respond(msg)
+        response = channel.respond(msg) #can be Message, dict, or None
 
-        assert (isinstance(response, Message) or response is None)
+        assert (isinstance(response, (Message, dict)) or response is None)
         
         return response
 
@@ -261,6 +261,8 @@ class HttpHandler(BaseHTTPRequestHandler):
 
             if isinstance(response, Message): # e.g. error states, new game
                 self.send_message(response.data)
+            elif isinstance(response, dict): #New and join game responses currently return dict
+                self.send_message(response)
 
     def parse_data(self):
         """Parse raw_query into dictionary."""
