@@ -11,7 +11,7 @@ from web.message import Message
 from web.channel import CommChannel
 from engine.client_manager import ClientManager
 
-
+MAX_GAME_SIZE = 4 # Max number of players in a game
 # Message signatures
 SIGNATURE_NEW_GAME = ['game']
 SIGNATURE_JOIN_GAME = ['join', 'pNum']
@@ -67,7 +67,7 @@ class GameRouterHandler(CommChannel):
 #--------------------
 # Handlers for specific message types / actions
 #--------------------
-class NewGameHandler(GameRouterHandler):    ####untested
+class NewGameHandler(GameRouterHandler):
     """React to new game messages from server."""
     # Overriden members
     def register(self, server):
@@ -75,22 +75,21 @@ class NewGameHandler(GameRouterHandler):    ####untested
 
     def respond(self, msg):
         """Handle new game request."""
-        if msg.data['game'] != 0:   #just in case
+        if msg.data['game'] != '0':   #just in case
             return
         
         #create new game object and add to router.games and client_mgr
-        new_game = Game()
+        ##new_game = Game()
+        new_game = None #TODO: change once Game works
         game_id = cm.create_group()
         self.router.games[game_id] = new_game
-
+        
         #generate GUID for requesting client, add to cm
         #add game to client in cm
         #set pNum for client in cm -- setting to 0 for now
         client_id = cm.create_client()
         cm.add_client_to_group(client_id, game_id)
         cm.set_client_player_num(client_id, 0)
-
-        print("in new game handler")
 
         #return dict with client GUID and player number
         return {'uid': client_id, 'pNum': 0}
@@ -104,16 +103,16 @@ class JoinGameHandler(GameRouterHandler):  ###untested
 
     def respond(self, msg):
         """Handle client request to join game."""
-        #inspect target game to see if requested pNum is open
+        #TODO: inspect target game to see if requested pNum is open
         #if not return error
         ## for current version, ignore requested pNum and manually assign one
 
         # Locate available seat in game and assign to pNum
-        group_id = msg.data['join']
+        group_id = int(msg.data['join'])
         cur_player_nums = set(cm.
                               get_player_nums_in_group(group_id))
 
-        poss_nums = set([x for x in range(0,3)])  #avoid hardcoding
+        poss_nums = set([x for x in range(0,MAX_GAME_SIZE)])
         avail_nums = poss_nums - cur_player_nums
 
         try:
@@ -131,7 +130,8 @@ class JoinGameHandler(GameRouterHandler):  ###untested
         cm.set_client_player_num(client_id, pNum)
 
         #check if game is full. if so, trigger game start (after short delay)
-        if len(cm.groups[group_id]) == 4:   #don't hardcode this
+        if len(cm.groups[group_id]) == MAX_GAME_SIZE:
+            #start game
             pass
 
         #return dict with client GUID and assigned player number
@@ -159,7 +159,7 @@ class GameEventHandler(GameRouterHandler):
         return None
 
 
-## need way for Game object to know to use this
+## TODO: need way for Game object to know to use this
 class GameNotificationHandler(GameRouterHandler):
     """Receive data from Game and package in message for server."""
     # Overriden members

@@ -74,6 +74,9 @@ class ClientManager:
         # Add client to group's info
         self.groups[group].append(client)
 
+        ###TODO remove this line
+        print(self.clients, self.groups)
+
     def create_group(self):
         """Create new group and return group ID.
 
@@ -86,7 +89,7 @@ class ClientManager:
             last_group = -1
 
         ident = last_group + 1        
-        self.groups[ident] = None
+        self.groups[ident] = []     # client IDs will be added to this list
 
         return ident
 
