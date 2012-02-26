@@ -25,7 +25,7 @@ var actions = {
     msgs: function (messages) { HandleChats(messages); },
     new: function (id) { lastChatID = id; },
     pNum: function (pNum) { playerNum = pNum; },
-    uid: function (uid) { guid = uid; }
+    uid: function (uid) { guid = uid; StartLongPoll(); } //Don't start long-polling until server gives valid guid
 };
 
 /////////////////////////////////////////////////////////////////
