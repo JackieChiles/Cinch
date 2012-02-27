@@ -149,12 +149,6 @@ class GameState(dict):
          
         for each in range(len(self['scores'])):
             self['scores'][each] += temp_points[each]
-        
-        print(high_holder)
-        print(low_holder)
-        print(jack_holder)
-        print(game_points)
-        print(game_holder)
             
         return None
         
