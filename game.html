@@ -41,17 +41,18 @@
                     
                     <div class="float-break"></div>
                     <div>
-                        Controls and stuff here? For example:
-                        <div data-role="button">
-                            Submit bid
+			<!-- Development -->
+                        <button onclick="RemoveCard(parseInt($('#temp-card').val()))">Remove card</button>
+                        <div data-role="button" onclick="AddCard(parseInt($('#temp-card').val()), $('#temp-enable').is(':checked'))">
+                            Add card to hand
                         </div>
+			<fieldset data-role="controlgroup">
+			    <input type="checkbox" name="temp-enable" id="temp-enable" checked />
+			    <label for="temp-enable">Enable card</label>
+			    <input type="text" id="temp-card"  value="14"/>
+			</fieldset>
                     </div>
                     <div id="hand">
-                        <div data-role="button" onclick="CanvasCard('QH')" class="tile-button">
-                            <div class="qh tile"></div>
-                        </div>
-                        <br />
-                        <== Click me
                     </div>
                 </div>
                 <div id="right-content">

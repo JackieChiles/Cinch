@@ -98,6 +98,7 @@
 {
     display:inline;
     float:left;
+    margin:1px;
 }
 
 .tile-button .ui-btn-inner
@@ -115,12 +116,6 @@
 {
     border:1px dashed #aaaaaa;
     margin:-1px;
-}
-
-.qh /*Temporary*/
-{
-    background-image:url('../images/QH.png');
-    background-repeat:no-repeat;
 }
 
 @media all and (min-width: 480px)

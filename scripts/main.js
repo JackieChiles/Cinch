@@ -2,12 +2,27 @@
 // Constants                                                   //
 /////////////////////////////////////////////////////////////////
 var GAME_MODE_NEW = 0;
+var PLAY_SURFACE_WIDTH = 290;
+var PLAY_SURFACE_HEIGHT = 220;
+var CARD_IMAGE_WIDTH = 72;
+var CARD_IMAGE_HEIGHT = 96;
+var CARD_EDGE_OFFSET = 5;
+var CARD_IMAGE_DIR = 'images/';
+var CARD_IMAGE_EXTENSION = '.png';
+var suits = ['C', 'D', 'H', 'S'];
+var ranks = ['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A'];
+var playerEnum = {
+    south: 0,
+    west: 1,
+    north: 2,
+    east: 3
+};
 
 /////////////////////////////////////////////////////////////////
 // Globals                                                     //
 /////////////////////////////////////////////////////////////////
+
 //Development
-var pos = 25;
 var responseCount = 0;
 
 var lastChatID = 0;
@@ -21,11 +36,72 @@ var serverUrl = "http://localhost:2424"
 // Data structures                                             //
 /////////////////////////////////////////////////////////////////
 var actions = {
+    addC: function(card) {},
     err: function (errorMessage) { LogDebugMessage(errorMessage); },
     msgs: function (messages) { HandleChats(messages); },
     new: function (id) { lastChatID = id; },
     pNum: function (pNum) { playerNum = pNum; },
+    remC: function (card) {},
     uid: function (uid) { guid = uid; StartLongPoll(); } //Don't start long-polling until server gives valid guid
+};
+
+var hand = [];
+
+//TODO: add enable()/disable() ?
+var Card = function(encodedCard, enabled) {
+    this.enabled = enabled;
+    this.encoded = encodedCard;
+    
+    var numRanks = ranks.length;
+    var suitIndex = Math.floor((this.encoded - 1) / numRanks);
+    
+    //Translates a card integer from server to useable string
+    this.decoded = ranks[this.encoded - suitIndex * numRanks - 1] + suits[suitIndex];
+    
+    this.imagePath = CARD_IMAGE_DIR + this.decoded + CARD_IMAGE_EXTENSION;
+    
+    //Development
+    this.imagePath =
+        this.imagePath.indexOf('undefined') > 0 || this.imagePath.indexOf('NaN') > 0
+        ? CARD_IMAGE_DIR + 'undefined' + CARD_IMAGE_EXTENSION
+        : this.imagePath;
+    
+    //Add to DOM
+    this.addToHand = function() {
+        $('#hand').append(CardTileFactory(this.decoded, this.enabled, this.imagePath)).trigger("create");
+    }
+    
+    this.remove = function() {
+        $('div[data-card="' + this.decoded + '"]').remove();
+    }
+    
+    this.getPosition = function(player) {
+        //TODO: actually find positions for other players
+    
+        var x = 0;
+        var y = 0;
+        
+        if(player == playerEnum.south) { //The client
+            x = PLAY_SURFACE_WIDTH / 2 - CARD_IMAGE_WIDTH / 2;
+            y = PLAY_SURFACE_HEIGHT - CARD_IMAGE_HEIGHT - CARD_EDGE_OFFSET;
+        }
+        
+        return [x, y]; 
+    }
+    
+    this.play = function(player) {
+        //TODO: get permission from server to do this
+        //For now just free-wheelin and playing cards without server confirmation
+        var cardPosition = this.getPosition(player);
+        
+        var canvas = document.getElementById('play-surface');
+        var context = canvas.getContext('2d');
+        var cardImage = new Image();
+        cardImage.src = this.imagePath;
+        cardImage.onload = function () {
+            context.drawImage(cardImage, cardPosition[0], cardPosition[1]);
+        };
+    }
 };
 
 /////////////////////////////////////////////////////////////////
@@ -117,16 +193,19 @@ function SubmitNew(mode) {
 // Other                                                       //
 /////////////////////////////////////////////////////////////////
 
-function CanvasCard(cardName) {
-    var canvas = document.getElementById('play-surface');
-    var context = canvas.getContext('2d');
-    var cardImage = new Image();
-    cardImage.src = 'images/' + cardName + '.png';
-    cardImage.onload = function () {
-        context.drawImage(cardImage, pos, pos);
-    };
+//Development
+function AddCard(cardNum, enabled) {
+    var newCard = new Card(cardNum, enabled);
     
-    pos += 15;
+    hand[newCard.decoded] = newCard;
+    hand[newCard.decoded].addToHand();
+}
+
+function RemoveCard(cardNum) {
+    var cardToRemove = new Card(cardNum, true);
+    
+    hand[cardToRemove.decoded].remove();
+    delete hand[cardToRemove.decoded];
 }
 
 //Development
@@ -142,4 +221,26 @@ function OutputMessage(text) {
         })
     );
     $("#output-list").listview("refresh");
+}
+
+function CardTileFactory(card, enabled, imagePath) {
+    //TODO: use more reliable method of path mapping
+    //TODO: bind or "live" events instead of using "attr" ?
+    
+    var tile =
+        $('<div>')
+        .attr('data-role', 'button')
+        .attr('data-card', card)
+        .attr('onclick', "hand[$(this).data('card')].play(0)")
+        .addClass('tile-button')
+        .append(
+            $('<div>')
+            .addClass('tile')
+            .css('background-image', 'url("' + imagePath + '")')
+        );
+        
+    if(!(enabled))
+        tile = tile.addClass('ui-disabled');
+        
+    return tile;
 }

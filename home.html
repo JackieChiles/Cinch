@@ -13,7 +13,7 @@
         <script type="text/javascript" src="scripts/modernizr-2.0.6.js"></script>
 	<script type="text/javascript" src="scripts/main.js"></script>
         
-        <script type="text/javascript">       
+        <script type="text/javascript">
             $('#game-page').live('pageinit', function () {
                 
                 //Kill the pageinit handler so it doesn't trigger more than once
@@ -26,7 +26,7 @@
                      }
                 });
 		
-		$('#play-surface').attr('width', '290').attr('height', '220');
+		$('#play-surface').attr('width', PLAY_SURFACE_WIDTH).attr('height', PLAY_SURFACE_HEIGHT);
                 OutputMessage("Welcome to Cinch- it's pretty rad here.");
 		
 		//Development
