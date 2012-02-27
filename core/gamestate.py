@@ -111,9 +111,13 @@ class GameState(dict):
                     game_points[team_number] += card.rank
          
         # Determine who gets the Game point, no point for a tie.
-        for team_total in game_points:
+        for team, team_total in list(enumerate(game_points)):
             if team_total > current_best_game_point_total:
                 current_best_game_point_total = team_total
+                game_holder = team
+            else:
+                if team_total == current_best_game_point_total:
+                    game_holder = None
          
          
         # All cards accounted for, now assign temp points to teams.
@@ -133,7 +137,7 @@ class GameState(dict):
          
         if self['high_bid'] == 5: # Don't hardcode this, it's CINCH.
             if temp_points[declaring_team] == 4:       # Made it.
-                if score[declaring_team] == 0:         # Auto-win.
+                if self['scores'][declaring_team] == 0:         # Auto-win.
                     temp_points[declaring_team] = 11
                 else:
                     temp_points[declaring_team] = 10
@@ -143,8 +147,14 @@ class GameState(dict):
             if temp_points[declaring_team] < self['high_bid']: # Set
                 temp_points[declaring_team] = -1*self['high_bid']
          
-        for each in self['scores']:
+        for each in range(len(self['scores'])):
             self['scores'][each] += temp_points[each]
+        
+        print(high_holder)
+        print(low_holder)
+        print(jack_holder)
+        print(game_points)
+        print(game_holder)
             
         return None
         
@@ -153,7 +163,7 @@ if __name__ == "__main__":
     gs = GameState(2000)
     gs['trump'] = 1
     gs['dealer'] = 2
-    gs['high_bid'] = 3
+    gs['high_bid'] = 5
     gs['declarer'] = 0
     d = cards.Deck()
     for x in range(36):
