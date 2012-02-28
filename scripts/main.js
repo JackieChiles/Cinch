@@ -26,8 +26,9 @@ var playerEnum = {
 var responseCount = 0;
 
 var lastChatID = 0;
-var guid = 3;
+var guid = 0;
 var playerNum = 0;
+var isActivePlayer = false;
     
 //Development URL
 var serverUrl = "http://localhost:2424"
@@ -36,16 +37,14 @@ var serverUrl = "http://localhost:2424"
 // Data structures                                             //
 /////////////////////////////////////////////////////////////////
 var actions = {
-    addC: function(card) {},
+    addC: function(cards) { HandleAddCards(cards); },
     err: function (errorMessage) { LogDebugMessage(errorMessage); },
     msgs: function (messages) { HandleChats(messages); },
     new: function (id) { lastChatID = id; },
     pNum: function (pNum) { playerNum = pNum; },
-    remC: function (card) {},
+    remC: function (card) { RemoveCard(card); },
     uid: function (uid) { guid = uid; StartLongPoll(); } //Don't start long-polling until server gives valid guid
 };
-
-var hand = [];
 
 //TODO: add enable()/disable() ?
 var Card = function(encodedCard, enabled) {
@@ -104,9 +103,21 @@ var Card = function(encodedCard, enabled) {
     }
 };
 
+var hand = [];
+var responseCompleteQueue = [];
+
 /////////////////////////////////////////////////////////////////
 // Server response handlers                                    //
 /////////////////////////////////////////////////////////////////
+function HandleAddCards(cards) {
+    //Must wait until after other handlers are called in case cards need to be removed first
+    
+    responseCompleteQueue.push(function (card) {
+        for(var ii = 0; ii < cards.length; ii++)
+            AddCard(cards[ii], isActivePlayer);
+    });
+}
+
 function HandleChats(messages) {
     for(var ii = 0; ii < messages.length; ii++)
         OutputMessage(messages[ii].msg);
@@ -139,6 +150,12 @@ function StartLongPoll() {
             LogDebugMessage('Error starting long poll: ' + errorThrown);
         },
         complete: function (jqXHR, textStatus) {
+            //Take care of any queued items
+            for(var ii = 0; ii < responseCompleteQueue.length; ii++)
+                responseCompleteQueue[ii]();
+                
+            responseCompleteQueue.length = 0;
+            
             //Delay before polling again
             setTimeout(function() {
                 StartLongPoll();
@@ -170,6 +187,10 @@ function PostData(data) {
     });
 }
 
+function SubmitBid(bid) {
+    PostData({'uid': guid, 'bid': bid});
+}
+
 //TODO: handle message IDs and player numbers
 //This can be done once server is set up to assign them
 function SubmitChat() {
@@ -189,6 +210,11 @@ function SubmitJoin(gameNum, pNum) {
 function SubmitNew(mode) {
     PostData({'game': mode});
 }
+
+function SubmitPlay(card) {
+    PostData({'uid': guid, 'card': card.encoded});
+}
+
 /////////////////////////////////////////////////////////////////
 // Other                                                       //
 /////////////////////////////////////////////////////////////////
@@ -204,8 +230,13 @@ function AddCard(cardNum, enabled) {
 function RemoveCard(cardNum) {
     var cardToRemove = new Card(cardNum, true);
     
-    hand[cardToRemove.decoded].remove();
-    delete hand[cardToRemove.decoded];
+    try {
+        hand[cardToRemove.decoded].remove();
+        delete hand[cardToRemove.decoded];
+    }
+    catch (e) {
+        LogDebugMessage(e);
+    }
 }
 
 //Development
