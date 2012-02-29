@@ -3,7 +3,7 @@
 /////////////////////////////////////////////////////////////////
 var GAME_MODE_NEW = 0;
 var PLAY_SURFACE_WIDTH = 290;
-var PLAY_SURFACE_HEIGHT = 220;
+var PLAY_SURFACE_HEIGHT = 245;
 var CARD_IMAGE_WIDTH = 72;
 var CARD_IMAGE_HEIGHT = 96;
 var CARD_EDGE_OFFSET = 5;
@@ -27,7 +27,7 @@ var responseCount = 0;
 
 var lastChatID = 0;
 var guid = 0;
-var playerNum = 0;
+var myPlayerNum = 0;
 var isActivePlayer = false;
     
 //Development URL
@@ -37,26 +37,23 @@ var serverUrl = "http://localhost:2424"
 // Data structures                                             //
 /////////////////////////////////////////////////////////////////
 var actions = {
+    actvP: function(playerNum) {  },
     addC: function(cards) { HandleAddCards(cards); },
     err: function (errorMessage) { LogDebugMessage(errorMessage); },
     msgs: function (messages) { HandleChats(messages); },
     new: function (id) { lastChatID = id; },
-    pNum: function (pNum) { playerNum = pNum; },
+    pNum: function (pNum) { myPlayerNum = pNum; },
     remC: function (card) { RemoveCard(card); },
     uid: function (uid) { guid = uid; StartLongPoll(); } //Don't start long-polling until server gives valid guid
 };
 
-//TODO: add enable()/disable() ?
 var Card = function(encodedCard, enabled) {
+    var numRanks = ranks.length;
+    var suitIndex = Math.floor((encodedCard - 1) / numRanks);
+    
     this.enabled = enabled;
     this.encoded = encodedCard;
-    
-    var numRanks = ranks.length;
-    var suitIndex = Math.floor((this.encoded - 1) / numRanks);
-    
-    //Translates a card integer from server to useable string
-    this.decoded = ranks[this.encoded - suitIndex * numRanks - 1] + suits[suitIndex];
-    
+    this.decoded = ranks[this.encoded - suitIndex * numRanks - 1] + suits[suitIndex];   
     this.imagePath = CARD_IMAGE_DIR + this.decoded + CARD_IMAGE_EXTENSION;
     
     //Development
@@ -64,14 +61,26 @@ var Card = function(encodedCard, enabled) {
         this.imagePath.indexOf('undefined') > 0 || this.imagePath.indexOf('NaN') > 0
         ? CARD_IMAGE_DIR + 'undefined' + CARD_IMAGE_EXTENSION
         : this.imagePath;
+        
+    this.jQueryObject = CardTileFactory(this.decoded, this.enabled, this.imagePath);
     
     //Add to DOM
     this.addToHand = function() {
-        $('#hand').append(CardTileFactory(this.decoded, this.enabled, this.imagePath)).trigger("create");
+        $('#hand').append(this.jQueryObject).trigger("create");
     }
     
     this.remove = function() {
         $('div[data-card="' + this.decoded + '"]').remove();
+    }
+    
+    this.enable = function() {
+        this.enabled = true;
+        this.jQueryObject.removeClass('ui-disabled');
+    }
+    
+    this.disable = function() {
+        this.enabled = false;
+        this.jQueryObject.addClass('ui-disabled');
     }
     
     this.getPosition = function(player) {
@@ -219,7 +228,6 @@ function SubmitPlay(card) {
 // Other                                                       //
 /////////////////////////////////////////////////////////////////
 
-//Development
 function AddCard(cardNum, enabled) {
     var newCard = new Card(cardNum, enabled);
     
@@ -230,6 +238,7 @@ function AddCard(cardNum, enabled) {
 function RemoveCard(cardNum) {
     var cardToRemove = new Card(cardNum, true);
     
+    //Exception could happen if card isn't actually in hand
     try {
         hand[cardToRemove.decoded].remove();
         delete hand[cardToRemove.decoded];
@@ -237,6 +246,11 @@ function RemoveCard(cardNum) {
     catch (e) {
         LogDebugMessage(e);
     }
+}
+
+function EnablePlaying() {
+    for(var ii = 0; ii < hand.length; ii++)
+        hand[ii].enable();
 }
 
 //Development
