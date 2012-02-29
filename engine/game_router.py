@@ -15,7 +15,9 @@ MAX_GAME_SIZE = 4 # Max number of players in a game
 # Message signatures
 SIGNATURE_NEW_GAME = ['game']
 SIGNATURE_JOIN_GAME = ['join', 'pNum']
-###SIGNATURE_GAME_ACTION = []
+SIGNATURE_GAME_PLAY = ['card']
+#SIGNATURE_BID = []
+#SIGNATURE_GAME_ACTION = []
 
 cm = ClientManager()
 
@@ -26,15 +28,16 @@ class GameRouter:
         self.games = dict() #will be of format {gameid: game object}
         self.handlers = []
 
+        self.games = [] #list of (game_id, game_object) tuples
+
         # Create pre-game handlers
         self.handlers.append(NewGameHandler(self, SIGNATURE_NEW_GAME))
         self.handlers.append(JoinGameHandler(self, SIGNATURE_JOIN_GAME))
         
-        #not ready to be implemented
-        #self.handlers.append(GameEventHandler(self, SIGNATURE_GAME_ACTION))
+        self.handlers.append(GamePlayHandler(self, SIGNATURE_GAME_PLAY))
 
         #used for getting data from Game and sending to server
-        self.handlers.append(GameNotificationHandler(self))
+        ##self.handlers.append(GameNotificationHandler(self))
 
     def register_handlers(self, server):
         """Register handlers with the web server.
@@ -91,6 +94,9 @@ class NewGameHandler(GameRouterHandler):
         cm.add_client_to_group(client_id, game_id)
         cm.set_client_player_num(client_id, 0)
 
+        #add reference to Game object to game_router (for later Msg routing)
+        self.router.games.append((game_id, new_game))
+
         #return dict with client GUID and player number
         return {'uid': client_id, 'pNum': 0}
 
@@ -137,17 +143,57 @@ class JoinGameHandler(GameRouterHandler):  ###untested
         #return dict with client GUID and assigned player number
         return {'uid': client_id, 'pNum': pNum}
 
-        
-#not ready to implement this
-class GameEventHandler(GameRouterHandler):
-    """Handle in-game events. Break this out into smaller bits later."""
+
+#this logic needs to be handled w/in the Game object; re-encapsulate data here,
+# then call handler w/in Game; a response must be returned to here
+class GamePlayHandler(GameRouterHandler):
+    """Handle plays made (cards) during game."""
     # Overriden members
     def register(self, server):
         server.add_responder(self, self.signature)
         server.add_announcer(self)
 
     def respond(self, msg):
-        """Handle in-game actions (bid/play)"""
+        """Handle plays."""
+        #match client GUID to game and player number
+        game_id = cm.get_group_by_client(msg.source)
+        target_game = self.router.games[game_id]
+        pNum = cm.get_player_num_by_client(msg.source)
+
+        #build message with that info to send to appropos Game
+        #for each x in SIGNATURE_game_play, add {x:val} to data
+        data = dict()
+        for x in SIGNATURE_GAME_PLAY:
+            data[x] = msg.data[x]
+
+        new_msg = Message(data, source=pNum, dest=game_id)
+
+        #send message to Game / call play processing logic
+        response = target_game.handle_card_played(new_msg)
+        #response could be a dict, list of tuples, or whatnot. will use to
+        #build message(s) to be announced to server
+
+        #for each response element, get target client guid
+
+        #announce each message not specifically addressed to client
+
+        #will return error
+        ## Drew: i know we want to use return for errors, but what about PMs
+        ## to calling client; should we reuse the connection, or do the chat
+        ## approach and announce all?
+        return None
+
+
+#not ready to implement this
+class BidHandler(GameRouterHandler):
+    """Handle plays made during game."""
+    # Overriden members
+    def register(self, server):
+        server.add_responder(self, self.signature)
+        server.add_announcer(self)
+
+    def respond(self, msg):
+        """Handle bids."""
         #match client GUID to game and player number
 
         #build message with that info
@@ -158,6 +204,9 @@ class GameEventHandler(GameRouterHandler):
         #return
         return None
 
+
+##will need handler for other game actions: setting trump, ....?
+    
 
 ## TODO: need way for Game object to know to use this
 class GameNotificationHandler(GameRouterHandler):
