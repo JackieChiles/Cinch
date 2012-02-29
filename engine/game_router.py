@@ -4,6 +4,9 @@
 TODO: add threading/async capes -- mostly handled already by CometServer?
         will want to Lock() games during pre-game events to avoid race problems
 
+TODO: implement way to connect AIs into game_router; seems like the best access
+        point.
+
 """
 # All import paths are relative to the root
 from core.game import Game
@@ -12,6 +15,7 @@ from web.channel import CommChannel
 from engine.client_manager import ClientManager
 
 MAX_GAME_SIZE = 4 # Max number of players in a game
+
 # Message signatures
 SIGNATURE_NEW_GAME = ['game']
 SIGNATURE_JOIN_GAME = ['join', 'pNum']
@@ -114,9 +118,9 @@ class JoinGameHandler(GameRouterHandler):  ###untested
         ## for current version, ignore requested pNum and manually assign one
 
         # Locate available seat in game and assign to pNum
-        group_id = int(msg.data['join'])
+        game_id = int(msg.data['join'])
         cur_player_nums = set(cm.
-                              get_player_nums_in_group(group_id))
+                              get_player_nums_in_group(game_id))
 
         poss_nums = set([x for x in range(0,MAX_GAME_SIZE)])
         avail_nums = poss_nums - cur_player_nums
@@ -130,20 +134,29 @@ class JoinGameHandler(GameRouterHandler):  ###untested
         client_id = cm.create_client()
 
         #add client to game in cm
-        cm.add_client_to_group(client_id, group_id)
+        cm.add_client_to_group(client_id, game_id)
         
         #set pNum for client in client manager
         cm.set_client_player_num(client_id, pNum)
 
         #check if game is full. if so, trigger game start (after short delay)
-        if len(cm.groups[group_id]) == MAX_GAME_SIZE:
+        if len(cm.groups[game_id]) == MAX_GAME_SIZE:
             #start game
             pass
 
+        #
+        #TODO: actually need to join player to Game object (create Player)
+        # -- maybe create all players at once when game is started, to avoid
+        #       having to remove players from Game if they drop
+        
         #return dict with client GUID and assigned player number
         return {'uid': client_id, 'pNum': pNum}
 
-
+#####
+#TODO: Implement way to drop from game before/after game start
+#####
+    
+    
 #this logic needs to be handled w/in the Game object; re-encapsulate data here,
 # then call handler w/in Game; a response must be returned to here
 class GamePlayHandler(GameRouterHandler):
@@ -161,26 +174,24 @@ class GamePlayHandler(GameRouterHandler):
         pNum = cm.get_player_num_by_client(msg.source)
 
         #build message with that info to send to appropos Game
-        #for each x in SIGNATURE_game_play, add {x:val} to data
-        data = dict()
-        for x in SIGNATURE_GAME_PLAY:
-            data[x] = msg.data[x]
-
-        new_msg = Message(data, source=pNum, dest=game_id)
+        new_msg = Message(msg.data, source=pNum, dest=game_id)
 
         #send message to Game / call play processing logic
         response = target_game.handle_card_played(new_msg)
-        #response could be a dict, list of tuples, or whatnot. will use to
-        #build message(s) to be announced to server
+        
+        #response will (hopefully) be dict of game state data; will use to
+        #build message(s) to send out, eg [{'tgt':0, 'field1':'data1, ...},...]
 
-        #for each response element, get target client guid
+        #Message design depends on what the Game is doing
 
-        #announce each message not specifically addressed to client
+        #for each response element, get target client guid by pNum
+        #cm.get_client_by_player_num(game_id, pNum)
+        
+        #announce each non-error message
 
-        #will return error
-        ## Drew: i know we want to use return for errors, but what about PMs
-        ## to calling client; should we reuse the connection, or do the chat
-        ## approach and announce all?
+        #will return error to POST if needed
+        #if error: return error
+        
         return None
 
 

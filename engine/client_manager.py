@@ -1,6 +1,20 @@
 #!/usr/bin/python3
 """Client management class for web server.
 
+Client manager supports the following methods:
+
+add_client_to_group(self, client, group)
+create_client(self, name=None)
+create_group(self)
+del_client(self, ident)
+del_group(self, ident)
+get_clients_in_group(self, group)
+get_group_by_client(self, client)
+get_player_num_by_client(self, client)
+get_player_nums_in_group(self, group)
+set_client_name(self, client, name)
+set_client_player_num(self, client, playerNum)
+
 """
 import string
 import random
@@ -31,6 +45,28 @@ class ClientManager:
         self.clients = dict()
         self.groups = dict()
         
+    def add_client_to_group(self, client, group):
+        """Add client to group.
+
+        In current implementation, clients can belong to at most 1 group.
+
+        client (str): guid for client
+        group (int): id for group
+        
+        """
+        assert (client in self.clients.keys())
+        assert (group in self.groups.keys())
+
+        # Add group to client's info and reset playerNum
+        self.clients[client][CLIENT_GROUP] = group
+        self.clients[client][CLIENT_PLAYER_NUM] = None   # clear playerNum
+
+        # Add client to group's info
+        self.groups[group].append(client)
+
+        ###TODO remove this line
+        print(self.clients, self.groups)
+
     def create_client(self, name=None):
         """Create new client in internal map. Return client guid.
 
@@ -54,28 +90,6 @@ class ClientManager:
         self.clients[guid] = [name, None, None] # Initialize client
 
         return guid
-
-    def add_client_to_group(self, client, group):
-        """Add client to group.
-
-        In current implementation, clients can belong to at most 1 group.
-
-        client (str): guid for client
-        group (int): id for group
-        
-        """
-        assert (client in self.clients.keys())
-        assert (group in self.groups.keys())
-
-        # Add group to client's info and reset playerNum
-        self.clients[client][CLIENT_GROUP] = group
-        self.clients[client][CLIENT_PLAYER_NUM] = None   # clear playerNum
-
-        # Add client to group's info
-        self.groups[group].append(client)
-
-        ###TODO remove this line
-        print(self.clients, self.groups)
 
     def create_group(self):
         """Create new group and return group ID.
@@ -125,6 +139,19 @@ class ClientManager:
             del self.groups[ident]
         except KeyError:
             raise KeyError("Group {0} does not exist.".format(ident))
+
+    def get_client_by_player_num(self, group, pNum):
+        """Return client guid of player pNum from group.
+
+        group (int): id for group
+        pNum (int): local player num w/in group
+
+        """
+        for client_id in self.groups[group]:
+            if self.clients[client_id][CLIENT_PLAYER_NUM] == pNum:
+                return client_id
+
+        return None
 
     def get_clients_in_group(self, group):
         """Return list of clients associated with group.

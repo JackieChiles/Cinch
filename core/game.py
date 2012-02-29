@@ -74,24 +74,25 @@ class Game:
         # to here. Could be dict, tuple, etc. To be established
         # by Mr. Poodlepants. Following code will be modified to reflect that.
         # Game router will ensure message follows Comm Structure contract, so
-        # formatting data here IAW those guidelines is optional.
+        # formatting data here IAW those guidelines is optional but a good idea
         ###########
 
         #if play was illegal, send error response to single client
+        #    return {'err': 'Illegal play.'}
 
         #elif play was legal, return 2 GS update info set types: (router will
-        #take care of Message assembly and addressing, just need local id)
+        #take care of Message assembly and addressing)
         ##-one with private info (card removed from hand, new hand if applic)
         ##---for each private message, include the local player number
         ##-one with public info to all
-        ##--your choice: have one-size-fits-all public message and take care
-        ##      not to duplicate data in private messages, sending both; or
-        ##      send one customized private&public msg to each client
+        ##---per executive order, if there is one private message, then there
+        ##      are no public messages -- each client should only get 1
+        ##      message per player move
         #
         # this should gather all info needed to describe the new game state.
         # do end-of-hand/tricks within play processing; the client will render
         # actions in the proper order, just by sending one message (i.e. don't
-        # need different message for card play, end of trick, and new hand).
+        # use different message for card play, end of trick, and new hand).
 
         return
 
