@@ -14,19 +14,24 @@ class Player:
     """
     Define Player object with instance variables:
 
-    id (int): unique (within game) id for player object, set by Game object
+    pNum (int): unique (within game) id for player object, set by Game object
     user_id (int): placeholder for user id/user account id
     name (string): display name of player
     hand (list): array of card objects, set by Game object
     has_last_state (boolean): does client have latest game state, set by Game
     """
-    def __init__(self, game_id=0, name="test",
+    def __init__(self, pNum, game_id=0, name="test",
                  player_type=0):   #set defaults for debugging
         """
         Create new Player object.
         """
-        self.game_id = game_id
-        self.name = name
+        self.pNum = pNum
+        
+        self.game_id = game_id  #may not be needed
+        self.name = name  #player name currently lives in client manager;
+                          #do we need it here? (logging info??)
+        
+        self.hand = None
 
         if player_type == HUMAN:
             pass

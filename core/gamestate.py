@@ -1,9 +1,17 @@
 #!/usr/bin/python3
 
 #import
-import common
-import cards
 
+#this allows game.py to be ran alone from core dir AND as part of cinch.py
+# for development.
+## once final, will use only absolute imports (core.*)
+try:
+    import common
+    import cards
+except ImportError:
+    import core.common as common
+    import core.cards as cards
+    
 # Constants; these can be replaced later
 NUM_PLAYERS = 4
 TEAM_SIZE = 2

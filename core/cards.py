@@ -28,7 +28,10 @@ class Card:
 
     suit (int): card suit via Suits enum
     rank (int): card rank via Ranks enum
+    code (int): rank-suit encoding of card; only set when card dealt
     legal_play (boolean): Is this card a legal play for current game state?
+        ##is legal_play needed?
+        
     owner (int, 0-3): local player id for initial holder of card
     taker (int, 0-3): local player id for player that took trick with this
     """
@@ -70,7 +73,9 @@ class Deck(list):
         Return random card from deck and remove from self.
         Avoids need for separate 'shuffle' method.
         """
-        return self.pop(random.randint(0, len(self)-1))
+        c = self.pop(random.randint(0, len(self)-1))
+        c.code = c.encode()
+        return c
         
         
 ##tests
@@ -79,4 +84,4 @@ if __name__ == '__main__':
     for c in d:
         print(RANKS_BY_NUM[c.rank], SUITS_BY_NUM[c.suit])
     c = d.deal_one()
-    print(c, c.encode())
+    print(c, c.code)

@@ -3,25 +3,28 @@
 
 TODO: add threading/async capes -- mostly handled already by CometServer?
         will want to Lock() games during pre-game events to avoid race problems
+        (might not be an issue one game lobby implemented)
 
 TODO: implement way to connect AIs into game_router; seems like the best access
         point.
 
 """
 # All import paths are relative to the root
-from core.game import Game
+import core.common as common
+from core.game import Game, NUM_PLAYERS
 from web.message import Message
 from web.channel import CommChannel
 from engine.client_manager import ClientManager
 
-MAX_GAME_SIZE = 4 # Max number of players in a game
+MAX_GAME_SIZE = NUM_PLAYERS # Max number of players in a game
 
 # Message signatures
-SIGNATURE_NEW_GAME = ['game']
-SIGNATURE_JOIN_GAME = ['join', 'pNum']
-SIGNATURE_GAME_PLAY = ['card']
-#SIGNATURE_BID = []
-#SIGNATURE_GAME_ACTION = []
+SIGNATURE = common.enum(
+                NEW_GAME=['game'],
+                JOIN_GAME=['join', 'pNum'],
+                GAME_PLAY=['card'],
+                BID=['bid']
+                )
 
 cm = ClientManager()
 
@@ -32,14 +35,11 @@ class GameRouter:
         self.games = dict() #will be of format {gameid: game object}
         self.handlers = []
 
-        self.games = [] #list of (game_id, game_object) tuples
-
-        # Create pre-game handlers
-        self.handlers.append(NewGameHandler(self, SIGNATURE_NEW_GAME))
-        self.handlers.append(JoinGameHandler(self, SIGNATURE_JOIN_GAME))
-        
-        self.handlers.append(GamePlayHandler(self, SIGNATURE_GAME_PLAY))
-
+        # Create pre-game handlers -- these get connected to Comet Server
+        self.handlers.append(NewGameHandler(self, SIGNATURE.NEW_GAME))
+        self.handlers.append(JoinGameHandler(self, SIGNATURE.JOIN_GAME))        
+        self.handlers.append(GamePlayHandler(self, SIGNATURE.GAME_PLAY))
+        self.handlers.append(BidHandler(self, SIGNATURE.BID))
         #used for getting data from Game and sending to server
         ##self.handlers.append(GameNotificationHandler(self))
 
@@ -98,9 +98,6 @@ class NewGameHandler(GameRouterHandler):
         cm.add_client_to_group(client_id, game_id)
         cm.set_client_player_num(client_id, 0)
 
-        #add reference to Game object to game_router (for later Msg routing)
-        self.router.games.append((game_id, new_game))
-
         #return dict with client GUID and player number
         return {'uid': client_id, 'pNum': 0}
 
@@ -157,8 +154,6 @@ class JoinGameHandler(GameRouterHandler):  ###untested
 #####
     
     
-#this logic needs to be handled w/in the Game object; re-encapsulate data here,
-# then call handler w/in Game; a response must be returned to here
 class GamePlayHandler(GameRouterHandler):
     """Handle plays made (cards) during game."""
     # Overriden members
@@ -173,29 +168,47 @@ class GamePlayHandler(GameRouterHandler):
         target_game = self.router.games[game_id]
         pNum = cm.get_player_num_by_client(msg.source)
 
-        #build message with that info to send to appropos Game
-        new_msg = Message(msg.data, source=pNum, dest=game_id)
-
-        #send message to Game / call play processing logic
-        response = target_game.handle_card_played(new_msg)
+        #send info to Game / call play processing logic
+        card_num = msg.data['card']
+        response = target_game.handle_card_played(pNum, card_num)
         
-        #response will (hopefully) be dict of game state data; will use to
-        #build message(s) to send out, eg [{'tgt':0, 'field1':'data1, ...},...]
+        #response will be list of dicts of game state data; will use to
+        #build message(s) to send out.
+        outgoing_msgs = []
 
-        #Message design depends on what the Game is doing
+        #TODO: once the format Game makes messages is standardized,
+        #encapsulate the following message building code; will be reused
+        #FGJ in bid handler.
+        
+        #broadcast message to all players in game OR error message to caller
+        if len(response) == 1: #or response is not a list, just a single dict?
+                                #or response == False??
+            #if response is error message
+            #    return error message to msg.source
 
-        #for each response element, get target client guid by pNum
-        #cm.get_client_by_player_num(game_id, pNum)
+            # Broadcast message to all players in game
+            dest = cm.get_clients_in_group(game_id)
+            data = None ##***
+            outgoing_msgs.append(Message(data, source=game_id, dest_list=dest))
+
+        else:   # Private message for each client / Multi-cast
+                #TODO: if the message for multiple clients is the same,
+                #       combine the destinations into one message
+            for element in response:
+                dest_pNum = element['target'] #for example
+                dest = cm.get_client_by_player_num(game_id, dest_pNum)
+                data = None ##***
+                outgoing_msgs.append(
+                    Message(data, source=game_id, dest_list=[dest]))
         
         #announce each non-error message
-
-        #will return error to POST if needed
-        #if error: return error
+        for x in outgoing_msgs:
+            self.announce(x)
         
         return None
 
 
-#not ready to implement this
+#not ready to implement this, will follow same scheme as gameplay handler
 class BidHandler(GameRouterHandler):
     """Handle plays made during game."""
     # Overriden members
@@ -206,20 +219,23 @@ class BidHandler(GameRouterHandler):
     def respond(self, msg):
         """Handle bids."""
         #match client GUID to game and player number
+        game_id = cm.get_group_by_client(msg.source)
+        target_game = self.router.games[game_id]
+        pNum = cm.get_player_num_by_client(msg.source)
 
-        #build message with that info
+        #send message to Game
+        
+        #response = target_game.handle_bid(pNum, msg.data)
 
-        #send message to Game (perhaps with Game having internal handler
-        # a la Comet server?)
+        #interpret response from Game
 
         #return
         return None
-
-
-##will need handler for other game actions: setting trump, ....?
     
 
 ## TODO: need way for Game object to know to use this
+    # will there be any cases where Game creates data NOT in response to player
+    # action? player action includes AI action (hopefully)
 class GameNotificationHandler(GameRouterHandler):
     """Receive data from Game and package in message for server."""
     # Overriden members
