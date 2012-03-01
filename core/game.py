@@ -4,15 +4,16 @@ no comment
 """
 import random
 
-import core.common as common
-from core.player import Player
-import core.cards
-
+import common as common
+from player import Player
+import cards
+from gamestate import GameState
 
 #Constants and global variables
 STARTING_HAND_SIZE = 9
 NUM_PLAYERS = 4
 GAME_MODE = common.enum(PLAY=1, BID=2)
+TEAM_SIZE = 2
 
 # Bid constants
 BID_PASS = 0
@@ -39,7 +40,7 @@ class Game:
     def __repr__(self):
         """Return descriptive string when asked to print object."""
         return "Cinch game with players: {0}".format(
-            [p.name for p in self.players])
+            [(p.name, p.id) for p in self.players])
 
     def set_game_id(self):      #may be unneeded
         """Access external tracker to get new game id and set variable."""
@@ -50,6 +51,26 @@ class Game:
         and set internal variable.
         """
 
+    def check_play_legality(self, player, card):
+        """Check a proposed play for legality against the current gamestate.
+        Assumes that player is indeed the active player.
+        """
+        
+        if card not in player.hand:
+            return False
+        if len(self.gamestate['cards_in_play']) == 0:
+            return True # No restrictions on what cards can be led.
+        if card.suit is self.gamestate['trump']:
+            return True # Trump is always OK    
+        if card.suit is self.gamestate['cards_in_play'][0].suit:
+            return True # Not trump, but followed suit.
+        for each_card in player.hand:
+            if each_card.suit is self.gamestate['cards_in_play'][0].suit:
+                return False # Could have followed suit with a different card.
+                
+        # The above conditions should catch everything, shouldn't get here.
+        assert 0
+        
     def deal_hand(self):
         """Deal new hand to each player and set card ownership."""
         for player in self.players:
@@ -67,19 +88,33 @@ class Game:
 
         """
         player_id = play_msg.source
-        play = play_msg.data['card']
+        play = play_msg.data['card'] # will this be Card or just int?
+        # Also, if Card, will it be a copy of the actual Card created by Game?
+        # I'm a bit foggy on that right now.
 
         ###########
         # Invoke play processing logic and return game state updates
-        # to here. Could be dict, tuple, etc. To be established
-        # by Mr. Poodlepants. Following code will be modified to reflect that.
+        # to here. [We will use dicts for comm with router. JBG]
         # Game router will ensure message follows Comm Structure contract, so
         # formatting data here IAW those guidelines is optional but a good idea
         ###########
+        
+        # Does active player need to be verified in this method? Or will it be
+        # 100% handled by the router before even checking the contents of the
+        # message, as in the workflow diagram? Couldn't hurt to check twice, I
+        # guess.
 
-        #if play was illegal, send error response to single client
+        if check_play_legality(player_id, play):
+            pass # It's a legal play; do stuff here.
+        else:
+            pass # Not a legal play; chastise appropriately
+            
+            
+        #######
+        # Contruct return dicts down here after moving stuff around and marking
+        # it appropriately
+        # if play was illegal, send error response to single client
         #    return {'err': 'Illegal play.'}
-
         #elif play was legal, return 2 GS update info set types: (router will
         #take care of Message assembly and addressing)
         ##-one with private info (card removed from hand, new hand if applic)
@@ -100,8 +135,10 @@ class Game:
 if __name__ == '__main__': 
     print("Creating new game with 4 players.")
     g = Game()
-    g.players = [Player() for x in range(4)]
+    g.players = [Player(x) for x in range(4)]
     print(g)
     g.deal_hand()
     print("Undealt cards:",g.deck)
-    print("players[0].hand=",g.players[0].hand)
+    print("players[2].hand=",g.players[2].hand)
+    g.gamestate = GameState(42042)
+    print(g.check_play_legality(g.players[2],g.players[2].hand[3]))
