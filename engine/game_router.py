@@ -65,8 +65,7 @@ class GameRouter:
         # Register each handler with the Comet server
         for h in self.handlers:
             h.register(server)
-        
-    ##any other metagame management functions
+
 
 #--------------------
 # Base class for game router internal handlers
@@ -95,24 +94,23 @@ class NewGameHandler(GameRouterHandler):
 
     def respond(self, msg):
         """Handle new game request."""
-        if msg.data['game'] != '0':   #just in case
+        if msg.data['game'] != '0':
+            # May support other types of game requests in the future
             return
 
         cm = self.client_mgr
         
-        #create new game object and add to router.games and client_mgr
+        # Create new game object and add to router.games and client_mgr
         new_game = Game()
         game_id = cm.create_group()
         self.router.games[game_id] = new_game
         
-        #generate GUID for requesting client, add to cm
-        #add game to client in cm
-        #set pNum for client in cm -- setting to 0 for now
+        # Create GUID for requesting client and add entry to client_mgr
         client_id = cm.create_client()
         cm.add_client_to_group(client_id, game_id)
         cm.set_client_player_num(client_id, 0)
 
-        #return dict with client GUID and player number
+        # Return client GUID and player number via POST
         return {'uid': client_id, 'pNum': 0}
 
 
@@ -125,15 +123,14 @@ class JoinGameHandler(GameRouterHandler):  ###untested
     def respond(self, msg):
         """Handle client request to join game."""
         cm = self.client_mgr
-        
-        #TODO: inspect target game to see if requested pNum is open
-        #if not return error
-        ## for current version, ignore requested pNum and manually assign one
 
-        # Locate available seat in game and assign to pNum
+        ##########
+        ## for current version, ignore requested pNum and manually assign one
+        ##########
+        
+        # Locate available seat in game and manually assign to pNum
         game_id = int(msg.data['join'])
-        cur_player_nums = set(cm.
-                              get_player_nums_in_group(game_id))
+        cur_player_nums = set(cm.get_player_nums_in_group(game_id))
 
         poss_nums = set([x for x in range(0,MAX_GAME_SIZE)])
         avail_nums = poss_nums - cur_player_nums
@@ -143,30 +140,56 @@ class JoinGameHandler(GameRouterHandler):  ###untested
         except Exception:
             return {'err': "Game is full."}
 
-        #generate GUID for requesting client, add to cm
-        client_id = cm.create_client()
+        ############## delete preceeding block when following block becomes enabled
 
-        #add client to game in cm
+##        ############## untested
+##        # TODO: uncomment this block once client allows players to select seat
+##        #############
+##        
+##        # Check if requested seat is a valid seat
+##        requested_pNum = int(msg.data['pNum'])
+##        poss_nums = [x for x in range(0, MAX_GAME_SIZE)]
+##        if requested_pNum not in poss_nums:
+##            return {'err': "Selected seat not valid."}
+##
+##        # Get list of currently occupied seats in target game
+##        game_id = int(msg.data['join'])
+##        cur_player_nums = cm.get_player_nums_in_group(game_id)
+##
+##        # Check if game is full
+##        if len(poss_nums) == len(cur_player_nums):
+##            return {'err': "Game is full."}
+##        # Check if requested seat is occupied
+##        if requested_pNum in cur_player_nums:
+##            return {'err': "Seat {0} is already occupied.".format(
+##                                                            requested_pNum)}
+##
+##        # pNum is valid selection
+##        pNum = requested_pNum
+##        
+
+
+        # Create GUID for requesting client and add entry to client_mgr
+        client_id = cm.create_client()
         cm.add_client_to_group(client_id, game_id)
-        
-        #set pNum for client in client manager
         cm.set_client_player_num(client_id, pNum)
 
-        #check if game is full. if so, trigger and announce game start
+        # Check if game is now full. If so, trigger and announce game start
         if len(cm.groups[game_id]) == MAX_GAME_SIZE:
-            # After short delay, so last client to join can receive uid/pNum
-            # response from return statement, start game and send clients
-            # game-start info (hands, active player, etc)
+            # After short delay (so last client to join can receive uid/pNum
+            # response from return statement) start game and send clients
+            # game-start info (hands, active player, etc.)
             def launch_game(self, game_id):
                 init_data = self.router.games[game_id].start_game()
                 #for item in init_data: #uncomment once start_game() is done
-                #    m = Message()
-                #    self.announce(m)
+                #    m = Message(relevant stuff from init_data)
+                #need to register announcer if this is how we want to do this
+                #    self.announce(m) 
 
             t = Timer(START_GAME_DELAY, launch_game, args=[self, game_id])
             t.start()
 
-        #return dict with client GUID and assigned player number
+        # Return client GUID and assigned player number
         return {'uid': client_id, 'pNum': pNum}
 
 #####
@@ -185,12 +208,12 @@ class GamePlayHandler(GameRouterHandler):
         """Handle plays."""
         cm = self.client_mgr
         
-        #match client GUID to game and player number
+        # Match client GUID to game id and player number
         game_id = cm.get_group_by_client(msg.source)
         target_game = self.router.games[game_id]
         pNum = cm.get_player_num_by_client(msg.source)
 
-        #send info to Game / call play processing logic
+        # Pass info to Game to call play processing logic
         card_num = msg.data['card']
         response = target_game.handle_card_played(pNum, card_num)
         
@@ -242,7 +265,8 @@ class BidHandler(GameRouterHandler):
         """Handle bids."""
         cm = self.client_mgr
         
-        #match client GUID to game and player number
+        #match client GUID to game and player number -- inspect GamePlayHandler
+        # when done for encapsulation options
         game_id = cm.get_group_by_client(msg.source)
         target_game = self.router.games[game_id]
         pNum = cm.get_player_num_by_client(msg.source)
@@ -257,7 +281,7 @@ class BidHandler(GameRouterHandler):
         return None
     
 
-## TODO: need way for Game object to know to use this
+## TODO: need way for Game object to know to use this -- if needed!
     # will there be any cases where Game creates data NOT in response to player
     # action? player action includes AI action (hopefully)
 class GameNotificationHandler(GameRouterHandler):

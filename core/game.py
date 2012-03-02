@@ -53,12 +53,6 @@ class Game:
         """Return descriptive string when asked to print object."""
         return "Cinch game with players: {0}".format(
             [(p.name, p.pNum) for p in self.players])
-
-    def start_game(self):
-        """Start game."""
-        self.create_players()
-        #init scores?
-        #what other pre-game things need to happen?
         
     def create_players(self):
         """
@@ -156,13 +150,26 @@ class Game:
 
         return
 
+    def start_game(self):
+        """Start game."""
+        self.create_players()
+        self.deal_hand()
+        #init scores?
+        #what other pre-game things need to happen?
+
+        data = []
+
+        return data #need to return info to game_router containing init hands,
+                # active player, etc. to send starting Messages. This will be
+                # the same/similar info that is sent at start of each Hand.
+
+        
 #test
 if __name__ == '__main__': 
     print("Creating new game with 4 players.")
     g = Game()
     g.start_game()
     print(g)
-    g.deal_hand()
     print("Undealt cards:",g.deck)
     print("players[2].hand=",g.players[2].hand)
     g.gamestate = GameState(42042)
