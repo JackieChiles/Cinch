@@ -128,7 +128,7 @@ class Game:
         # formatting data here IAW those guidelines is optional but a good idea
         ###########
 
-        if check_play_legality(player_num, card_num):
+        if self.check_play_legality(self.players[player_num], card_num):
             pass # It's a legal play; do stuff here.
         else:
             pass # Not a legal play; chastise appropriately
