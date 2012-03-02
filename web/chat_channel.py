@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 """Chat engine using CommChannel class."""
+import pprint
 import web.web_config as config
 from web.channel import CommChannel
 from web.message import Message # for assertion
@@ -9,8 +10,9 @@ CHAT_SIGNATURE = ['msg']
 
 class ChatEngine(CommChannel):
     """Chat engine implementation."""
-    def __init__(self):
+    def __init__(self, guid_list_callback):
         CommChannel.__init__(self)
+        self.get_guid_list = guid_list_callback
 
     ## Overriden members.
     def register(self, server):
@@ -42,7 +44,7 @@ class ChatEngine(CommChannel):
         ## need internal reference to game router, or means of
         ## registering channels to the router a la web server
         ### should return list
-        recipients = [incoming_msg.source] #for testing purposes
+        recipients = self.get_guid_list(incoming_msg.source)
 
         # Package into Message and notify the server
         ##TODO: change where uNum comes from

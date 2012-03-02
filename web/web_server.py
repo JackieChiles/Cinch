@@ -217,7 +217,6 @@ class HttpHandler(BaseHTTPRequestHandler):
             server_lastid, msgs = res
 
             # Filter messages based on Message recipient list, requestor
-            guid = message.source
             msgs = self.server.filter_msgs(message.source, msgs)
             # Return if no messages remain after filtering
             if len(msgs) == 0:
