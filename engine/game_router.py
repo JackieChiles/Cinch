@@ -9,14 +9,16 @@ TODO: implement way to connect AIs into game_router; seems like the best access
         point.
 
 """
+from threading import Timer #for delayed start
+
 # All import paths are relative to the root
 import core.common as common
 from core.game import Game, NUM_PLAYERS
 from web.message import Message
 from web.channel import CommChannel
-from engine.client_manager import ClientManager
 
 MAX_GAME_SIZE = NUM_PLAYERS # Max number of players in a game
+START_GAME_DELAY = 5.0 # Time to wait between last player joining and starting
 
 # Message signatures
 SIGNATURE = common.enum(
@@ -26,8 +28,6 @@ SIGNATURE = common.enum(
                 BID=['bid']
                 )
 
-cm = ClientManager()
-
 
 class GameRouter:
     """Manage handlers for traffic between games and clients."""
@@ -35,7 +35,26 @@ class GameRouter:
         self.games = dict() #will be of format {gameid: game object}
         self.handlers = []
 
-        # Create pre-game handlers -- these get connected to Comet Server
+    def attach_client_manager(self, cm):
+        """Attach client manager from the engine to Game Router.
+
+        cm (ClientManager): Client Manager created at the root level
+
+        """
+        self.client_mgr = cm
+
+    def register_handlers(self, server):
+        """Create and register handlers with the web server.
+
+        Call subclasses' register() for each subclass.
+
+        server (CometServer): web server
+
+        """
+        if self.client_mgr is None:
+            raise RuntimeError("Client Manager not attached to Game Router.")
+        
+        # Create action handlers
         self.handlers.append(NewGameHandler(self, SIGNATURE.NEW_GAME))
         self.handlers.append(JoinGameHandler(self, SIGNATURE.JOIN_GAME))        
         self.handlers.append(GamePlayHandler(self, SIGNATURE.GAME_PLAY))
@@ -43,18 +62,11 @@ class GameRouter:
         #used for getting data from Game and sending to server
         ##self.handlers.append(GameNotificationHandler(self))
 
-    def register_handlers(self, server):
-        """Register handlers with the web server.
-
-        Call subclasses' register() for each subclass.
-
-        server (CometServer): web server
-
-        """
+        # Register each handler with the Comet server
         for h in self.handlers:
             h.register(server)
-
-    ##any other game management functions
+        
+    ##any other metagame management functions
 
 #--------------------
 # Base class for game router internal handlers
@@ -69,6 +81,7 @@ class GameRouterHandler(CommChannel):
 
         self.router = router
         self.signature = signature
+        self.client_mgr = router.client_mgr
 
  
 #--------------------
@@ -84,10 +97,11 @@ class NewGameHandler(GameRouterHandler):
         """Handle new game request."""
         if msg.data['game'] != '0':   #just in case
             return
+
+        cm = self.client_mgr
         
         #create new game object and add to router.games and client_mgr
-        ##new_game = Game()
-        new_game = None #TODO: change once Game works
+        new_game = Game()
         game_id = cm.create_group()
         self.router.games[game_id] = new_game
         
@@ -110,6 +124,8 @@ class JoinGameHandler(GameRouterHandler):  ###untested
 
     def respond(self, msg):
         """Handle client request to join game."""
+        cm = self.client_mgr
+        
         #TODO: inspect target game to see if requested pNum is open
         #if not return error
         ## for current version, ignore requested pNum and manually assign one
@@ -136,16 +152,20 @@ class JoinGameHandler(GameRouterHandler):  ###untested
         #set pNum for client in client manager
         cm.set_client_player_num(client_id, pNum)
 
-        #check if game is full. if so, trigger game start (after short delay)
+        #check if game is full. if so, trigger and announce game start
         if len(cm.groups[game_id]) == MAX_GAME_SIZE:
-            #start game
-            pass
+            # After short delay, so last client to join can receive uid/pNum
+            # response from return statement, start game and send clients
+            # game-start info (hands, active player, etc)
+            def launch_game(self, game_id):
+                init_data = self.router.games[game_id].start_game()
+                #for item in init_data: #uncomment once start_game() is done
+                #    m = Message()
+                #    self.announce(m)
 
-        #
-        #TODO: actually need to join player to Game object (create Player)
-        # -- maybe create all players at once when game is started, to avoid
-        #       having to remove players from Game if they drop
-        
+            t = Timer(START_GAME_DELAY, launch_game, args=[self, game_id])
+            t.start()
+
         #return dict with client GUID and assigned player number
         return {'uid': client_id, 'pNum': pNum}
 
@@ -163,6 +183,8 @@ class GamePlayHandler(GameRouterHandler):
 
     def respond(self, msg):
         """Handle plays."""
+        cm = self.client_mgr
+        
         #match client GUID to game and player number
         game_id = cm.get_group_by_client(msg.source)
         target_game = self.router.games[game_id]
@@ -218,6 +240,8 @@ class BidHandler(GameRouterHandler):
 
     def respond(self, msg):
         """Handle bids."""
+        cm = self.client_mgr
+        
         #match client GUID to game and player number
         game_id = cm.get_group_by_client(msg.source)
         target_game = self.router.games[game_id]
@@ -244,6 +268,8 @@ class GameNotificationHandler(GameRouterHandler):
 
     def respond(self, msg):
         """Package msg with appropriate destination info and send to server."""
+        cm = self.client_mgr
+        
         #expects msg with dest_list of pNums
         #source will be gameNum
         assert isinstance(msg, Message)

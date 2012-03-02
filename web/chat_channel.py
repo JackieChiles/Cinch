@@ -12,6 +12,14 @@ class ChatEngine(CommChannel):
     def __init__(self):
         CommChannel.__init__(self)
 
+    def attach_client_manager(self, cm):
+        """Attach client manager from the game engine to Chat Engine.
+
+        cm (ClientManager): Client Manager created at the root level
+
+        """
+        self.client_mgr = cm
+
     ## Overriden members.
     def register(self, server):
         """Register ChatEngine as announce and responder to the server.
@@ -34,19 +42,19 @@ class ChatEngine(CommChannel):
         """
         assert isinstance(incoming_msg, Message)
 
+        cm = self.client_mgr
+
         # Extract chat message from Message object
         chat = incoming_msg.data.get('msg', "")
 
         # Get GUIDs of clients in chat room
-        ##contact game router using incoming_msg.source to get
-        ## need internal reference to game router, or means of
-        ## registering channels to the router a la web server
-        ### should return list
-        recipients = [incoming_msg.source] #for testing purposes
+        group_id = cm.get_group_by_client(incoming_msg.source)
+        recipients = cm.get_clients_in_group(group_id)
 
         # Package into Message and notify the server
-        ##TODO: change where uNum comes from
-        msg_data = {'uNum':999, 'msg':chat}
+        ##(??) uNum is the clients ID number within the chat room (cf. pNum)
+        uNum = recipients.index(incoming_msg.source)
+        msg_data = {'uNum':uNum, 'msg':chat}
         msg = Message(msg_data,
                       source=incoming_msg.source, dest_list=recipients)
         self.announce(msg)
