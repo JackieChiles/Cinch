@@ -15,12 +15,12 @@ try:
     import common as common
     from player import Player
     import cards
-    from gamestate import GameState
+    from gs import gs
 except ImportError:
     import core.common as common
     from core.player import Player
     import core.cards as cards
-    from core.gamestate import GameState    
+    from core.gs import gs    
 
 #Constants and global variables
 STARTING_HAND_SIZE = 9
@@ -39,26 +39,20 @@ class Game:
         mode (integer): setting for game mode
         players (list): array of Player objects for players in game
         teams (dict): player id : local player num pairings (?)
-        gamestate (object): current game state
+        gs (object): current game state
         deck (object): Deck object containing Card objects
         
     """
     def __init__(self): #pass newGame params as args (??)
         self.id = 0     #TODO: have external counter for this
         self.players = []
-        self.gamestate = None
+        self.gs = None
         self.deck = cards.Deck()
 
     def __repr__(self):
         """Return descriptive string when asked to print object."""
         return "Cinch game with players: {0}".format(
             [(p.name, p.pNum) for p in self.players])
-
-    def start_game(self):
-        """Start game."""
-        self.create_players()
-        #init scores?
-        #what other pre-game things need to happen?
         
     def create_players(self):
         """
@@ -71,7 +65,7 @@ class Game:
         self.players = [Player(x) for x in range(NUM_PLAYERS)]
 
     def check_play_legality(self, player, card_num):
-        """Check a proposed play for legality against the current gamestate.
+        """Check a proposed play for legality against the current gs.
         Assumes that player is indeed the active player.
 
         player (Player): player object of player playing a play
@@ -89,14 +83,14 @@ class Game:
         if not has_card:
             return False
         
-        if len(self.gamestate['cards_in_play']) == 0:
+        if len(self.gs.cards_in_play) == 0:
             return True # No restrictions on what cards can be led.
-        if card.suit is self.gamestate['trump']:
+        if card.suit is self.gs.trump:
             return True # Trump is always OK
-        if card.suit is self.gamestate['cards_in_play'][0].suit:
+        if card.suit is self.gs.cards_in_play[0].suit:
             return True # Not trump, but followed suit.
         for each_card in player.hand:
-            if each_card.suit is self.gamestate['cards_in_play'][0].suit:
+            if each_card.suit is self.gs.cards_in_play[0].suit:
                 return False # Could have followed suit with a different card.
                 
         # The above conditions should catch everything, shouldn't get here.
@@ -110,6 +104,15 @@ class Game:
             
             for card in player.hand:
                 card.owner = player.pNum
+                
+    def log(self, msg_type, msg):
+        """Handle the game logging feature. Writes (XML?) to a specific file
+        for each game.
+        
+        msg_type (??): Type of message, used to tag appropriately
+        msg (string?): Content to write.
+        """
+        pass # A short method is an elegant method.
 
     def handle_card_played(self, player_num, card_num):
         """Invoke play processing logic on incoming play and send update to
@@ -129,15 +132,12 @@ class Game:
         ###########
 
         if self.check_play_legality(self.players[player_num], card_num):
-            pass # It's a legal play; do stuff here.
+            # It's a legal play; do stuff here.
+            self.gs.cards_in_play.append(self.players[player_num]
         else:
-            pass # Not a legal play; chastise appropriately
-                # if you like, return False here and game_router will chastise;
-                # or some other way so game_router doesn't have to read
-                # the message to decided that it's an error msg
-                # (nice b/c errors gets routed differently than other msgs)
-            
-            
+            return False # Not a legal play; return False
+                         # Game router will chastise appropriately.
+        
         #######
         # Based on earlier chats, this will return a list of dicts like:
         # [ {'target':0, ...data...}, {'target':1, ...data...}, ...]
@@ -156,15 +156,27 @@ class Game:
 
         return
 
+    def start_game(self):
+        """Start game."""
+        self.create_players()
+        self.deal_hand()
+        #init scores?
+        #what other pre-game things need to happen?
+
+        data = []
+
+        return data #need to return info to game_router containing init hands,
+                # active player, etc. to send starting Messages. This will be
+                # the same/similar info that is sent at start of each Hand.
+
 #test
 if __name__ == '__main__': 
     print("Creating new game with 4 players.")
     g = Game()
     g.start_game()
     print(g)
-    g.deal_hand()
     print("Undealt cards:",g.deck)
     print("players[2].hand=",g.players[2].hand)
-    g.gamestate = GameState(42042)
+    g.gs = gs(42042)
     print(g.check_play_legality(g.players[2],g.players[2].hand[3].code))
     print(g.check_play_legality(g.players[2],34))
