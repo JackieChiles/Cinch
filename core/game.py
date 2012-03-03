@@ -15,12 +15,12 @@ try:
     import common as common
     from player import Player
     import cards
-    from gs import gs
+    from gamestate import GameState
 except ImportError:
     import core.common as common
     from core.player import Player
     import core.cards as cards
-    from core.gs import gs    
+    from core.gamestate import GameState    
 
 #Constants and global variables
 STARTING_HAND_SIZE = 9
@@ -131,12 +131,24 @@ class Game:
         # formatting data here IAW those guidelines is optional but a good idea
         ###########
 
-        if self.check_play_legality(self.players[player_num], card_num):
-            # It's a legal play; do stuff here.
-            self.gs.cards_in_play.append(self.players[player_num]
-        else:
+        if !(self.check_play_legality(self.players[player_num], card_num)):
             return False # Not a legal play; return False
                          # Game router will chastise appropriately.
+                         
+        # Remove card from player's hand and put into play.
+        for card_pos, card in list(enumerate(players[player_num].hand:
+            if card.code == card_num:
+                a = self.players[player_num].hand.pop(card_pos)
+                self.gs.cards_in_play.append(a)
+                #self.log(Played a card.) Also message stuff.
+                
+        # End of trick logic
+        if len(self.gs.cards_in_play) < NUM_PLAYERS:
+            self.gs.next_player()
+            #message next player blah blah blah
+        
+        # End of hand logic
+        
         
         #######
         # Based on earlier chats, this will return a list of dicts like:
