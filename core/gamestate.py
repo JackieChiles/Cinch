@@ -66,7 +66,7 @@ class GameState:
         return False
         
     def trick_winner(self):
-        """Return the local player ID of the winner of the current trick.
+        """Return the Card object that won the current trick.
         Return None if not enough cards in play."""
         
         # Make sure correct number of cards are in play.
@@ -85,15 +85,18 @@ class GameState:
             if each.suit == winning_suit:
                 if each.rank > current_highest_card_rank:
                     current_highest_card_rank = each.rank
-                    current_highest_card_owner = each.owner
-        return current_highest_card_owner
+                    current_highest_card = each
+        return current_highest_card
         
     def score_hand(self):
-        """Score a completed hand and adjust scores."""
-        # Assumption is that teams are of equal size and seated alternately.
-        # Code should work for any number of teams with any (equal) number of
-        # players.
-        # This method does not verify that the hand is actually over.
+        """Score a completed hand and adjust scores.
+        Assumption is that teams are of equal size and seated alternately.
+        Code should work for any number of teams with any (equal) number of
+        players.
+        This method does not verify that the hand is actually over.
+        
+        return list of score changes for this hand, to be used for logging.
+        """
         
         # Initialize the comparison variables.
         current_high_rank = 0
@@ -131,7 +134,7 @@ class GameState:
          
          
         # All cards accounted for, now assign temp points to teams.
-        temp_points = [0, 0] # Initialize to be able to increment
+        temp_points = [0]*TEAM_SIZE # Initialize to be able to increment
         temp_points[high_holder] += 1
         temp_points[low_holder] += 1
         if jack_holder is not None:
@@ -160,7 +163,7 @@ class GameState:
         for each in range(len(self.scores)):
             self.scores[each] += temp_points[each]
             
-        return None
+        return temp_points
         
 if __name__ == "__main__":
     print("Default Game State")
@@ -168,6 +171,7 @@ if __name__ == "__main__":
     gs.dealer = 2
     gs.high_bid = 5
     gs.declarer = 0
+    gs.trump = 3
     d = cards.Deck()
     for x in range(36):
         gs.team_stacks[x%2].append(d.deal_one())
