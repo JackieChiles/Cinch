@@ -38,19 +38,20 @@ class GameState:
 
     def __init__(self, game_id):
         self.game_id = game_id
-        self.trump = 0
+        self.game_mode = 2
+        self.trump = None
         self.dealer = 0
         self.high_bid = 0
         self.declarer = 0
         self.active_player = 0
         self.cards_in_play = []
+        # This (obviously) breaks for more than two teams.
         self.scores = [0, 0]
         self.team_stacks = [[], []]
     
-    def next_player(self):
-        """Move around the table one seat to the left."""
-        self.active_player = (self.active_player + 1) % NUM_PLAYERS
-        return None
+    def next_player(self, player_num):
+        """Return the player number of the player on the left of player_num."""
+        return (player_num + 1) % NUM_PLAYERS
         
     def suit_led(self):
         """Return the suit of the first card led this trick."""
@@ -164,7 +165,6 @@ class GameState:
 if __name__ == "__main__":
     print("Default Game State")
     gs = GameState(2000)
-    gs.trump = 1
     gs.dealer = 2
     gs.high_bid = 5
     gs.declarer = 0
@@ -174,8 +174,4 @@ if __name__ == "__main__":
         gs.team_stacks[x%2][-1].owner = x % NUM_PLAYERS
     print(gs.team_stacks)
     gs.score_hand()
-    print(gs.scores)
-
-
-        
-        
+    print(gs.scores)   

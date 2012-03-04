@@ -92,9 +92,7 @@ class Game:
         for each_card in player.hand:
             if each_card.suit is self.gs.cards_in_play[0].suit:
                 return False # Could have followed suit with a different card.
-                
-        # The above conditions should catch everything, shouldn't get here.
-        assert 0
+        return True # Couldn't follow suit, throwing off.
         
     def deal_hand(self):
         """Deal new hand to each player and set card ownership."""
@@ -117,39 +115,86 @@ class Game:
     def handle_card_played(self, player_num, card_num):
         """Invoke play processing logic on incoming play and send update to
         clients, or indicate illegal play to single player.
-
+        
+        Game router will ensure message follows Comm Structure contract, so
+        formatting data here IAW those guidelines is optional but a good idea.
+        
         player_num (int): local player number
         card_num (int): integer encoding of card being played by player
 
         """
-        #check that player_num is active player
-        
-        ###########
-        # Invoke play processing logic and return game state updates
-        # to here. [We will use dicts for comm with router. JBG]
-        # Game router will ensure message follows Comm Structure contract, so
-        # formatting data here IAW those guidelines is optional but a good idea
-        ###########
+        # Check that player_num is active player.
+        if player_num is not self.gs.active_player:
+            print("Non-active player attempted to play a card.") # Debugging
+            return None # Ignore
 
-        if !(self.check_play_legality(self.players[player_num], card_num)):
+        if not (self.check_play_legality(self.players[player_num], card_num)):
             return False # Not a legal play; return False
                          # Game router will chastise appropriately.
                          
         # Remove card from player's hand and put into play.
-        for card_pos, card in list(enumerate(players[player_num].hand:
+        for card_pos, card in list(enumerate(self.players[player_num].hand)):
             if card.code == card_num:
+                if self.gs.trump is None: # First card played this hand?
+                    self.gs.trump = card.suit
+                    #TODO log Trump is:
                 a = self.players[player_num].hand.pop(card_pos)
                 self.gs.cards_in_play.append(a)
-                #self.log(Played a card.) Also message stuff.
+                #TODO self.log(Played a card.) Also message stuff.
                 
         # End of trick logic
-        if len(self.gs.cards_in_play) < NUM_PLAYERS:
-            self.gs.next_player()
-            #message next player blah blah blah
-        
+        tw = self.gs.trick_winner()
+        if tw == None:
+            # Trick is not over
+            self.gs.active_player = self.gs.next_player(self.gs.active_player)
+            #TODO message next player blah blah blah
+            return
+        self.gs.active_player = tw
+        for each in range(len(self.gs.cards_in_play)):
+            self.gs.team_stacks[tw % TEAM_SIZE].append(
+                                    self.gs.cards_in_play.pop())
+
+        # This is error checking to verify that all players have equal hand
+        # sizes. Later, we can just check players[0].hand for cards.
+        cards_left = 0
+        for player in self.players:
+            cards_left += len(player.hand)
+        if cards_left % NUM_PLAYERS != 0:
+            raise RuntimeError("Cards in hand not even.")
+        if cards_left != 0:
+            # More tricks to play
+            #TODO message new active player
+            return
+
         # End of hand logic
+        self.gs.score_hand()
+        #TODO message hand results
+        victor = False
+        for score in self.gs.scores:
+            if score >= 11:
+                victor = True
+                break
         
-        
+        # This block breaks if there are more than two teams.        
+        if victor:
+            if score[self.gs.declarer % TEAM_SIZE] >= 11:
+                #TODO log/message: declarer wins, final scores
+                pass
+            else:
+                #TODO log/message: other team wins, final scores
+                pass
+            return
+                
+        # If no victor, set up for next hand.
+        for stack in self.gs.team_stacks:
+            stack = []
+        self.gs.dealer = self.gs.next_player(self.gs.dealer)
+        self.deck = cards.Deck()
+        self.deal_hand()
+        self.gs.active_player = self.gs.next_player(self.gs.dealer)
+        self.gs.game_mode = GAME_MODE.BID
+        self.gs.trump = None
+        #TODO log/message: new hands, dealer, active player, game mode
         #######
         # Based on earlier chats, this will return a list of dicts like:
         # [ {'target':0, ...data...}, {'target':1, ...data...}, ...]
@@ -165,7 +210,6 @@ class Game:
         # actions in the proper order, just by sending one message (i.e. don't
         # use separate messages for card play, end of trick, and new hand).
         #######
-
         return
 
     def start_game(self):
@@ -188,7 +232,15 @@ if __name__ == '__main__':
     g.start_game()
     print(g)
     print("Undealt cards:",g.deck)
-    print("players[2].hand=",g.players[2].hand)
-    g.gs = gs(42042)
-    print(g.check_play_legality(g.players[2],g.players[2].hand[3].code))
-    print(g.check_play_legality(g.players[2],34))
+    g.gs = GameState(42042)
+    print("trump =",g.gs.trump)
+    for x in range(8):
+        for ii in range(4):
+            g.players[ii].hand.pop()
+    for x in range(3):
+        g.gs.cards_in_play.append(g.players[x].hand.pop())
+        print(g.gs.cards_in_play)
+    print("players[3].hand=",g.players[3].hand)
+    g.gs.active_player = 3
+    g.handle_card_played(3, g.players[3].hand[0].code)
+    print(g.gs.team_stacks)
