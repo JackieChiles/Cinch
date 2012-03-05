@@ -156,6 +156,10 @@ class Game:
         self.log.append({'type': 'trick', 'player': trick_winner,
                          'card': winning_card})
 
+
+        # Check for end of hand and handle, otherwise return.
+        #----------------------------------------------------
+        
         # This is error checking to verify that all players have equal hand
         # sizes. Later, we can just check players[0].hand for cards.
         cards_left = 0
@@ -167,9 +171,8 @@ class Game:
             # More tricks to play
             self.log.append({'type': 'active-player', 'player': trick_winner})
             return self.publish()
-
-        # Check for end of hand and handle, otherwise return.
-        #----------------------------------------------------
+            
+        # Check victory conditions and handle.
         score_changes = self.gs.score_hand()
         self.log.append({'type': 'score-chg', 'score-chg': score_changes})
         self.log.append({'type': 'scores', 'scores': self.gs.scores})
@@ -205,31 +208,75 @@ class Game:
         for player in self.players:
             self.log.append({'type': 'hand', 'player': player.pNum,
                              'cards': player.hand})
-        self.log.append({'type': 'dealer', 'dealer': self.gs.dealer})
+        self.log.append({'type': 'dealer', 'player': self.gs.dealer})
         self.log.append({'type': 'active-player',
                          'player': self.gs.active_player})
         self.log.append({'type': 'mode', 'mode': self.gs.game_mode})
         return self.publish()
 
     def publish(self):
-        pass # A short method is an elegant method.
-        return self.log
+        """Translate game actions into messages for clients."""
+        # Could optimize by adding stuff like type=trump to 1 dict and copying
+        # before going through and adding player-specific stuff?
+        output = [{'tgt': i} for i in range(NUM_PLAYERS)]
+        for entry in self.log:
         
-        #######
-        # Based on earlier chats, this will return a list of dicts like:
-        # [ {'target':0, ...data...}, {'target':1, ...data...}, ...]
-        #  (change this as you like)
-        # where ...data... will be whatever needs to be returned. Could be
-        # expressed as {..., 'data':{...data dict...} } if easier.
-        #
-        # Can create one dict for each player. Identical messages for several
-        # players can be consolidated by the game router.
-        #
-        # this should gather all info needed to describe the new game state.
-        # do end-of-hand/tricks within play processing; the client will render
-        # actions in the proper order, just by sending one message (i.e. don't
-        # use separate messages for card play, end of trick, and new hand).
-        #######
+            if entry['type'] == 'trump':
+                for message in output:
+                    message['trp'] = entry['suit']
+                # gamelog(Player X declared suit Y as trump.)
+                
+            elif entry['type'] == 'card':
+                for message in output:
+                    message['+cp'] = entry['card'].code
+                    if message['tgt'] == entry['player']:
+                        message['-cd'] = entry['card'].code
+                    else:
+                        message['-hs'] = entry['player']
+                # gamelog(Player X played card Y.)
+                
+            elif entry['type'] == 'active-player':
+                for message in output:
+                    message['apl'] = entry['player']
+                    
+            elif entry['type'] == 'trick':
+                for message in output:
+                    message['-cp'] = entry['player']
+                # gamelog(Player X won the trick with card Y.)
+                
+            elif entry['type'] == 'score-chg':
+                pass # gamelog(Going to need to handle this differently.)
+                
+            elif entry['type'] == 'scores':
+                for message in output:
+                    message['sco'] = entry['scores']
+                # gamelog(New scores: X1, X2)
+                
+            elif entry['type'] == 'winner':
+                for message in output:
+                    message['win'] = entry['team']
+                # gamelog(Team X wins!)
+                
+            elif entry['type'] == 'hand':
+                for message in output:
+                    if message['tgt'] == entry['player']:
+                        message['+cd'] = [card.code for card in entry['cards']]
+                    message['+hd'] = True # Should it be 1? Or ST._HAND_SIZE?
+            
+            elif entry['type'] == 'dealer':
+                for message in output:
+                    message['dlr'] = entry['player']
+                # gamelog(Player X deals.)
+            
+            elif entry['type'] == 'mode':
+                for message in output:
+                    message['mod'] = entry['mode']
+                    
+            else:
+                print("Warning: Unknown internal msg type {0}; ignoring.",
+                      entry['type'])
+        return output
+
 
     def start_game(self):
         """Start game."""
@@ -261,5 +308,6 @@ if __name__ == '__main__':
         print(g.gs.cards_in_play)
     print("players[3].hand=",g.players[3].hand)
     g.gs.active_player = 3
-    a = g.handle_card_played(3, g.players[3].hand[0].code)
-    print(a)
+    hats = g.handle_card_played(3, g.players[3].hand[0].code)
+    for cats in hats:
+        print(cats)

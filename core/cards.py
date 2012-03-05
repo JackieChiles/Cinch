@@ -6,6 +6,7 @@ delegate all Cinch-specific properties to higher level objects for this
 implementation.
 """
 import random
+import os
 
 
 ##Provide two-way lookup for ranks and suits by name and number.
@@ -19,7 +20,12 @@ RANKS_SHORT = {2:'2', 3:'3', 4:'4', 5:'5', 6:'6', 7:'7', 8:'8', 9:'9',
                10:'T', 11:'J', 12:'Q', 13:'K', 14:'A'}
 SUITS_BY_NUM = {0:'clubs', 1:'diamonds', 2:'hearts', 3:'spades'}
 SUITS_BY_NAME = {v:k for k, v in SUITS_BY_NUM.items()}
-SUITS_SHORT = {0:'\u2663', 1:'\u2666', 2:'\u2665', 3:'\u2660'}
+
+# Code to support deprecated/legacy development platforms:
+if os.name == 'nt':
+    SUITS_SHORT = {0:'C', 1:'D', 2:'H', 3:'S'}
+else:
+    SUITS_SHORT = {0:'\u2663', 1:'\u2666', 2:'\u2665', 3:'\u2660'}
 
 
 class Card:
