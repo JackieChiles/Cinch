@@ -9,12 +9,15 @@ create_group(self)
 del_client(self, ident)
 del_group(self, ident)
 get_client_by_player_num(self, group, pNum)
+def get_client_info(self, client)
 get_clients_in_group(self, group)
 get_group_by_client(self, client)
 get_player_num_by_client(self, client)
 get_player_nums_in_group(self, group)
 set_client_name(self, client, name)
 set_client_player_num(self, client, playerNum)
+
+FUTURE: remove unused methods
 
 """
 import string
@@ -58,19 +61,16 @@ class ClientManager:
         assert (client in self.clients.keys())
         assert (group in self.groups.keys())
 
-        # Add group to client's info and reset playerNum
+        # Add group to client's info
         self.clients[client][CLIENT_GROUP] = group
-        self.clients[client][CLIENT_PLAYER_NUM] = None   # clear playerNum
 
         # Add client to group's info
         self.groups[group].append(client)
 
-        ###TODO remove this line
-        print(self.clients, self.groups)
-
-    def create_client(self, name=None):
+    def create_client(self, name=None, pNum=-1):
         """Create new client in internal map. Return client guid.
 
+        pNum (int): player number within group [optional]
         name (str): player/user name for client [optional]
         
         """
@@ -85,10 +85,11 @@ class ClientManager:
             # Prevent infinite loops
             count += count
             if count == MAX_TRIES:
+                #may want to handle this in a way that involves the client?
                 raise RuntimeError(
                     "Too many clients. Cannot create new client.")
                
-        self.clients[guid] = [name, None, None] # Initialize client
+        self.clients[guid] = [name, None, pNum] # Initialize client
 
         return guid
 
@@ -154,6 +155,19 @@ class ClientManager:
 
         return None
 
+    def get_client_info(self, client):
+        """Return group_id, playerNum for client.
+
+        client (str): guid of client
+
+        """
+        try:
+            group = self.clients[client][CLIENT_GROUP]
+            pNum = self.clients[client][CLIENT_PLAYER_NUM]
+            return group, pNum
+        except KeyError:
+            raise KeyError("Client {0} does not exist.".format(client))
+
     def get_clients_in_group(self, group):
         """Return list of clients associated with group.
 
@@ -164,7 +178,7 @@ class ClientManager:
             return self.groups[group]
         except KeyError:
             raise KeyError("Group {0} does not exist.".format(group))
-
+        
     def get_group_by_client(self, client):
         """Return group that contains client.
 

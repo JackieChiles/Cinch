@@ -16,7 +16,7 @@ except ImportError:
 NUM_PLAYERS = 4
 TEAM_SIZE = 2
 
-class GameState(dict):
+class GameState:
     """
     Define object for GameState with class variables:
     
@@ -31,67 +31,72 @@ class GameState(dict):
     high_bid (int, 0-5): high bid on hand (5=Cinch)
     declarer (int, 0-3): local player id of player that made high bid
     active_player (int, 0-3): local player id of active player
-    cards_in_play (list): list of card objects for cards in play
+    cards_in_play (list): list of Card objects for cards in play
     scores (list of integers): score for each team
+    team_stacks (list of lists of Card objects): Cards taken this hand
     """
 
     def __init__(self, game_id):
-        self['game_id'] = game_id
-        self['trump'] = 0
-        self['dealer'] = 0
-        self['high_bid'] = 0
-        self['declarer'] = 0
-        self['active_player'] = 0
-        self['cards_in_play'] = []
-        self['scores'] = [0, 0]
-        self['team_stacks'] = [[], []]
+        self.game_id = game_id
+        self.game_mode = 2
+        self.trump = None
+        self.dealer = 0
+        self.high_bid = 0
+        self.declarer = 0
+        self.active_player = 0
+        self.cards_in_play = []
+        # This (obviously) breaks for more than two teams.
+        self.scores = [0, 0]
+        self.team_stacks = [[], []]
     
-    def next_player(self):
-        """Move around the table one seat to the left."""
-        self['active_player'] = (self['active_player'] + 1) % NUM_PLAYERS
-        return None
+    def next_player(self, player_num):
+        """Return the player number of the player on the left of player_num."""
+        return (player_num + 1) % NUM_PLAYERS
         
     def suit_led(self):
         """Return the suit of the first card led this trick."""
-        return self['cards_in_play'][0].suit
+        return self.cards_in_play[0].suit
         
     def trump_played(self):
         """Return True if at least one member of cards_in_play
         is the current trump suit."""
-        for each in self['cards_in_play']:
-            if each.suit == self['trump']:
+        for each in self.cards_in_play:
+            if each.suit == self.trump:
                 return True
         return False
         
     def trick_winner(self):
-        """Return the local player ID of the winner of the current trick.
+        """Return the Card object that won the current trick.
         Return None if not enough cards in play."""
         
         # Make sure correct number of cards are in play.
-        if len(self['cards_in_play']) != NUM_PLAYERS:
+        if len(self.cards_in_play) != NUM_PLAYERS:
             return None
             
         # Determine which suit wins the trick.
         if self.trump_played():
-            winning_suit = self['trump']
+            winning_suit = self.trump
         else:
             winning_suit = self.suit_led()
         
         # Find the winning card and determine who played it.
         current_highest_card_rank = 0
-        for each in self['cards_in_play']:
+        for each in self.cards_in_play:
             if each.suit == winning_suit:
                 if each.rank > current_highest_card_rank:
                     current_highest_card_rank = each.rank
-                    current_highest_card_owner = each.owner
-        return current_highest_card_owner
+                    current_highest_card = each
+        return current_highest_card
         
     def score_hand(self):
-        """Score a completed hand and adjust scores."""
-        # Assumption is that teams are of equal size and seated alternately.
-        # Code should work for any number of teams with any (equal) number of
-        # players.
-        # This method does not verify that the hand is actually over.
+        """Score a completed hand and adjust scores.
+        Assumption is that teams are of equal size and seated alternately.
+        Code should work for any number of teams with any (equal) number of
+        players.
+        This method does not verify that the hand is actually over.
+        
+        return list of score changes for this hand, to be used for logging.
+        """
         
         # Initialize the comparison variables.
         current_high_rank = 0
@@ -102,9 +107,9 @@ class GameState(dict):
         game_holder = None # Game not necessarily out (ties)
         
         # team_number and *_holder are indices referencing a particular team.
-        for team_number in range(len(self['team_stacks'])):
-            for card in self['team_stacks'][team_number]:
-                if card.suit == self['trump']:
+        for team_number in range(len(self.team_stacks)):
+            for card in self.team_stacks[team_number]:
+                if card.suit == self.trump:
                     if card.rank > current_high_rank:
                         current_high_rank = card.rank
                         high_holder = (card.owner % TEAM_SIZE)
@@ -129,7 +134,7 @@ class GameState(dict):
          
          
         # All cards accounted for, now assign temp points to teams.
-        temp_points = [0, 0] # Initialize to be able to increment
+        temp_points = [0]*TEAM_SIZE # Initialize to be able to increment
         temp_points[high_holder] += 1
         temp_points[low_holder] += 1
         if jack_holder is not None:
@@ -139,42 +144,38 @@ class GameState(dict):
          
         # Compare to bids and adjust scores.
          
-        declaring_team = self['declarer'] % TEAM_SIZE
+        declaring_team = self.declarer % TEAM_SIZE
          
         # Handle cinching and getting set.
          
-        if self['high_bid'] == 5: # Don't hardcode this, it's CINCH.
+        if self.high_bid == 5: # Don't hardcode this, it's CINCH.
             if temp_points[declaring_team] == 4:       # Made it.
-                if self['scores'][declaring_team] == 0:         # Auto-win.
+                if self.scores[declaring_team] == 0:         # Auto-win.
                     temp_points[declaring_team] = 11
                 else:
                     temp_points[declaring_team] = 10
             else:                                           # Ouch, set.
                 temp_points[declaring_team] = -10
         else:
-            if temp_points[declaring_team] < self['high_bid']: # Set
-                temp_points[declaring_team] = -1*self['high_bid']
+            if temp_points[declaring_team] < self.high_bid: # Set
+                temp_points[declaring_team] = -1*self.high_bid
          
-        for each in range(len(self['scores'])):
-            self['scores'][each] += temp_points[each]
+        for each in range(len(self.scores)):
+            self.scores[each] += temp_points[each]
             
-        return None
+        return temp_points
         
 if __name__ == "__main__":
     print("Default Game State")
     gs = GameState(2000)
-    gs['trump'] = 1
-    gs['dealer'] = 2
-    gs['high_bid'] = 5
-    gs['declarer'] = 0
+    gs.dealer = 2
+    gs.high_bid = 5
+    gs.declarer = 0
+    gs.trump = 3
     d = cards.Deck()
     for x in range(36):
-        gs['team_stacks'][x%2].append(d.deal_one())
-        gs['team_stacks'][x%2][-1].owner = x % NUM_PLAYERS
-    print(gs['team_stacks'])
+        gs.team_stacks[x%2].append(d.deal_one())
+        gs.team_stacks[x%2][-1].owner = x % NUM_PLAYERS
+    print(gs.team_stacks)
     gs.score_hand()
-    print(gs['scores'])
-
-
-        
-        
+    print(gs.scores)   
