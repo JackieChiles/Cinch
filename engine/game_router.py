@@ -70,6 +70,9 @@ class GameRouter:
         # Register each handler with the Comet server
         for h in self.handlers:
             h.register(server)
+            
+    def get_client_guids(self, guid):
+        return cm.get_clients_in_group(cm.get_group_by_client(guid))
 
 
 #--------------------
