@@ -35,6 +35,9 @@ ERROR_TYPE = common.enum(
     ILLEGAL_PLAY=5
     )
 
+# Global variable
+cm = None   # Used for client manager
+
 
 class GameRouter:
     """Manage handlers for traffic between games and clients."""
@@ -42,13 +45,14 @@ class GameRouter:
         self.games = dict() # key=game_id, value=game object
         self.handlers = []
 
-    def attach_client_manager(self, cm):
+    def attach_client_manager(self, client_mgr):
         """Attach client manager from the engine to Game Router.
 
-        cm (ClientManager): Client Manager created at the root level
+        client_mgr (ClientManager): Client Manager created at the root level
 
         """
-        self.client_mgr = cm
+        global cm
+        cm = client_mgr
 
     def register_handlers(self, server):
         """Create and register handlers with the web server.
@@ -58,7 +62,7 @@ class GameRouter:
         server (CometServer): web server
 
         """
-        if self.client_mgr is None:
+        if cm is None:
             raise RuntimeError("Client Manager not attached to Game Router.")
         
         # Create action handlers
@@ -88,7 +92,6 @@ class GameRouterHandler(CommChannel):
 
         self.router = router
         self.signature = signature
-        self.client_mgr = router.client_mgr
 
     def register(self, server):
         """
@@ -96,6 +99,22 @@ class GameRouterHandler(CommChannel):
         """
         server.add_responder(self, self.signature)
         server.add_announcer(self)
+
+    def announce_msgs_from_game(self, msg_list, game_id):
+        """Build Messages from Game and announce to web server."""
+        #TODO: if the message for multiple clients is the same,
+        #       combine the destinations into one message
+        for element in msg_list:
+            dest_pNum = element.pop('tgt')
+
+            # Convert pNum to uid
+            dest = cm.get_client_by_player_num(game_id, dest_pNum)
+            outgoing_msgs.append(
+                Message(element, source=game_id, dest_list=[dest]))
+    
+        # Announce each message
+        for x in outgoing_msgs:
+            self.announce(x)         
 
  
 #--------------------
@@ -114,8 +133,6 @@ class NewGameHandler(GameRouterHandler):
         # FUTURE: Set limit on # concurrent games and enforce limit here.
         #       Will make use of thread pool (where?); pool size = limit.
         ######
-
-        cm = self.client_mgr
         
         # Create new game object and add to router.games and client_mgr
         new_game = Game()
@@ -134,11 +151,9 @@ class JoinGameHandler(GameRouterHandler):  ###untested
     """React to client requests to join a game."""
     # Overriden member
     def respond(self, msg):
-        cm = self.client_mgr
-
         # TODO: inhibit join request if game started; need flag in Game
         
-##############
+############## delete following block when following block becomes enabled
 
         ##########
         ## for current version, ignore requested pNum and manually assign one
@@ -196,7 +211,8 @@ class JoinGameHandler(GameRouterHandler):  ###untested
                 init_data = self.router.games[game_id].start_game()
                 #for item in init_data: #TODO: uncomment once start_game() is done
                 #    m = Message(relevant stuff from init_data)
-                #    self.announce(m) 
+                #    self.announce(m)
+                print("Game Router: game started")
 
             t = Timer(START_GAME_DELAY, launch_game, args=[self, game_id])
             t.start()
@@ -215,29 +231,22 @@ class BidHandler(GameRouterHandler):
     """Handle plays made during game."""
     # Overriden members
     def respond(self, msg):
-        cm = self.client_mgr
-        
-        #match client GUID to game and player number -- inspect GamePlayHandler
-        # when done for encapsulation options
         game_id, pNum = cm.get_client_info(msg.source)
         target_game = self.router.games[game_id]
 
-        #send message to Game
         bid_val = int(msg.data['bid'])
-        #response = target_game.handle_bid(pNum, bid_val)
+        response = target_game.handle_bid(pNum, bid_val)
 
-        #interpret response from Game
-
-        #return
-        return None  
+        if response is False:
+            return get_error(ERROR_TYPE.ILLEGAL_BID, bid_val)
+        
+        self.announce_msgs_from_game(response, game_id)
 
 
 class GamePlayHandler(GameRouterHandler):
     """Handle plays made (cards) during game."""
     # Overriden members
     def respond(self, msg):
-        cm = self.client_mgr
-        
         # Match client GUID to game id and player number
         game_id, pNum = cm.get_client_info(msg.source)
         target_game = self.router.games[game_id]
@@ -248,40 +257,9 @@ class GamePlayHandler(GameRouterHandler):
 
         if response is False:
             return get_error(ERROR_TYPE.ILLEGAL_PLAY, card_num)
-        
-        #response will be list of dicts of game state data; will use to
-        #build message(s) to send out.
-        outgoing_msgs = []
 
-        #TODO: once the format Game makes messages is standardized,
-        #encapsulate the following message building code; will be reused
-        #FGJ in bid handler.
-        
-        #broadcast message to all players in game -- determine if this is
-        #ever needed. maybe scoreboard at EOG??
-        if len(response) == 1: #or response is not a list, just a single dict?
-            # Broadcast message to all players in game
-            dest = cm.get_clients_in_group(game_id)
-            data = None ##*** will be extracted from response
-            outgoing_msgs.append(Message(
-                data, source=game_id, dest_list=dest))
-
-        else:   # Private message for each client / Multi-cast
-                #TODO: if the message for multiple clients is the same,
-                #       combine the destinations into one message
-            for element in response:
-                dest_pNum = element['target'] #for example
-                dest = cm.get_client_by_player_num(game_id, dest_pNum)
-                data = None ##***will be extracted from response
-                outgoing_msgs.append(
-                    Message(data, source=game_id, dest_list=[dest]))
-        
-        #announce each message
-        for x in outgoing_msgs:
-            self.announce(x)
-        
-        return None
-    
+        self.announce_msgs_from_game(response, game_id)
+   
 
 def get_error(err, *args):
     """Create error dict for POST-response.
