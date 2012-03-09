@@ -2,8 +2,7 @@
 """Game router for Cinch.
 
 TODO: add threading/async capes -- mostly handled already by CometServer?
-        will want to Lock() games during pre-game events to avoid race problems
-        (might not be an issue once game lobby implemented)
+
 
 """
 from threading import Timer #for delayed start
@@ -15,7 +14,7 @@ from web.message import Message
 from web.channel import CommChannel
 
 MAX_GAME_SIZE = NUM_PLAYERS # Max number of players in a game
-START_GAME_DELAY = 5.0 # Time to wait between last player joining and starting
+START_GAME_DELAY = 3.0 # Time to wait between last player joining and starting
 DEFAULT_PNUM = 0 # pNum assigned to player who creates new game
 
 # Message signatures
@@ -82,6 +81,7 @@ class GameRouter:
 #--------------------
 # Base class for game router internal handlers
 #--------------------
+
 class GameRouterHandler(CommChannel):
     def __init__(self, router, signature=None):
         """
@@ -104,6 +104,8 @@ class GameRouterHandler(CommChannel):
         """Build Messages from Game and announce to web server."""
         #TODO: if the message for multiple clients is the same,
         #       combine the destinations into one message
+        outgoing_msgs = []
+        
         for element in msg_list:
             dest_pNum = element.pop('tgt')
 
@@ -113,10 +115,9 @@ class GameRouterHandler(CommChannel):
                 Message(element, source=game_id, dest_list=[dest]))
     
         # Announce each message
-        for x in outgoing_msgs:
-            self.announce(x)         
+        for x in outgoing_msgs:  self.announce(x)
 
- 
+
 #--------------------
 # Handlers for specific message types / actions
 #--------------------
@@ -258,7 +259,10 @@ class GamePlayHandler(GameRouterHandler):
         if response is False:
             return get_error(ERROR_TYPE.ILLEGAL_PLAY, card_num)
 
-        self.announce_msgs_from_game(response, game_id)
+        try:
+            self.announce_msgs_from_game(response, game_id)
+        except TypeError:   # handle_card_played returns None
+            return None     # when inactive player tries to play a card
    
 
 def get_error(err, *args):
