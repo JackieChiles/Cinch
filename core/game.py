@@ -278,18 +278,31 @@ class Game:
         return output
 
 
-    def start_game(self):
-        """Start game."""
+    def start_game(self, game_id=0):
+        """Start game with id game_id, deal first hands, and send msgs.
+        
+        game_id (int): Assigned by game router. Defaults to 0 for testing.
+        """
         self.create_players()
+        self.gs = GameState(game_id)
+        
+        for stack in self.gs.team_stacks:
+            stack = []
+        self.deck = cards.Deck()
         self.deal_hand()
-        #init scores?
-        #what other pre-game things need to happen?
-
-        data = []
-
-        return data #need to return info to game_router containing init hands,
-                # active player, etc. to send starting Messages. This will be
-                # the same/similar info that is sent at start of each Hand.
+        self.gs.active_player = self.gs.next_player(self.gs.dealer)
+        self.gs.game_mode = GAME_MODE.BID
+        self.gs.trump = None
+        
+        # Log/Message: new hands, dealer, active player, game mode
+        for player in self.players:
+            self.log.append({'type': 'hand', 'player': player.pNum,
+                             'cards': player.hand})
+        self.log.append({'type': 'dealer', 'player': self.gs.dealer})
+        self.log.append({'type': 'active-player',
+                         'player': self.gs.active_player})
+        self.log.append({'type': 'mode', 'mode': self.gs.game_mode})
+        return self.publish()
         
 #test
 if __name__ == '__main__': 
