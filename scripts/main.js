@@ -83,15 +83,25 @@ var Card = function(encodedCard, enabled) {
         this.jQueryObject.addClass('ui-disabled');
     }
     
-    this.getPosition = function(player) {
-        //TODO: actually find positions for other players
-    
+    this.getPosition = function(player) {    
         var x = 0;
         var y = 0;
         
-        if(player == playerEnum.south) { //The client
+        if (player == playerEnum.south) { //The client
             x = PLAY_SURFACE_WIDTH / 2 - CARD_IMAGE_WIDTH / 2;
             y = PLAY_SURFACE_HEIGHT - CARD_IMAGE_HEIGHT - CARD_EDGE_OFFSET;
+        }
+        else if (player == playerEnum.west) {
+            x = CARD_EDGE_OFFSET;
+            y = PLAY_SURFACE_HEIGHT / 2 - CARD_IMAGE_HEIGHT / 2;
+        }
+        else if (player == playerEnum.north) {
+            x = PLAY_SURFACE_WIDTH / 2 - CARD_IMAGE_WIDTH / 2;
+            y = CARD_EDGE_OFFSET;
+        }
+        else { //Should only be playerEnum.east
+            x = PLAY_SURFACE_WIDTH - CARD_IMAGE_WIDTH - CARD_EDGE_OFFSET;
+            y = PLAY_SURFACE_HEIGHT / 2 - CARD_IMAGE_HEIGHT / 2;
         }
         
         return [x, y]; 
@@ -100,6 +110,9 @@ var Card = function(encodedCard, enabled) {
     this.play = function(player) {
         //TODO: get permission from server to do this
         //For now just free-wheelin and playing cards without server confirmation
+        
+        SubmitPlay(this);
+        
         var cardPosition = this.getPosition(player);
         
         var canvas = document.getElementById('play-surface');
