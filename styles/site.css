@@ -77,6 +77,11 @@
     text-align:center;
 }
 
+.bottom-row
+{
+    height:auto!important;
+}
+
 .float-break
 {
     visibility: hidden;
@@ -111,11 +116,6 @@
 {
     overflow-y:hidden;
     width:400px;
-}
-
-.other-player
-{
-
 }
 
 .other-player > div

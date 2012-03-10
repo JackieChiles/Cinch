@@ -197,7 +197,7 @@ function HandleAddCards(cards) {
 
 function HandleChats(messages) {
     for(var ii = 0; ii < messages.length; ii++)
-        OutputMessage(messages[ii].msg);
+        OutputMessage(messages[ii].msg, playerNames[ServerToClientPNum(parseInt(messages[ii].uNum))]);
 }
 
 /////////////////////////////////////////////////////////////////
@@ -327,11 +327,20 @@ function LogDebugMessage(message) {
     $('#debug-area').val(message + '\n\n' + log);
 }
 
-function OutputMessage(text) {
+function OutputMessage(text, name) {
     $('#output-list').append(
-        $('<li>', {
-            text: text  
-        })
+        $('<li>')
+        .append(
+            $('<strong>', {
+                text: name ? name + ': ' : ''
+            })
+        )
+        .append(
+            $('<span>', {
+                text: text  
+            })
+            .css('font-weight', 'normal')
+        )
     );
     $("#output-list").listview("refresh");
 }
