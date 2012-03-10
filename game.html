@@ -65,6 +65,29 @@
                     </div>
                     <div id="hand">
                     </div>
+		    <div>
+			<fieldset data-role="controlgroup">
+			    <input type="radio" name="bid-radio" id="radio-choice-0" value="0" checked="checked" />
+			    <label for="radio-choice-0">Pass</label>
+		    
+			    <input type="radio" name="bid-radio" id="radio-choice-1" value="1"  />
+			    <label for="radio-choice-1">One</label>
+		    
+			    <input type="radio" name="bid-radio" id="radio-choice-2" value="2"  />
+			    <label for="radio-choice-2">Two</label>
+		    
+			    <input type="radio" name="bid-radio" id="radio-choice-3" value="3"  />
+			    <label for="radio-choice-3">Three</label>
+			    
+			    <input type="radio" name="bid-radio" id="radio-choice-4" value="4"  />
+			    <label for="radio-choice-4">Four</label>
+			    
+			    <input type="radio" name="bid-radio" id="radio-choice-5" value="5"  />
+			    <label for="radio-choice-5">Cinch</label>
+			    
+			    <input type="button" value="Submit bid" onclick="SubmitBid(parseInt($('input:radio[name=bid-radio]:checked').val()))"/>
+			</fieldset>
+		    </div>
                 </div>
                 <div id="right-content">
                     <input id="text-to-insert" type="text" /><br />
