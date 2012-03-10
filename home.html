@@ -10,10 +10,12 @@
         
         <script type="text/javascript" src="scripts/jquery-1.7.1.min.js"></script>
         <script type="text/javascript" src="jquery.mobile/jquery.mobile-1.0.1.min.js"></script>
+        <script type="text/javascript" src="scripts/jquery.animate-shadow-min.js"></script>
         <script type="text/javascript" src="scripts/modernizr-2.0.6.js"></script>
 	<script type="text/javascript" src="scripts/main.js"></script>
         
         <script type="text/javascript">
+            //TODO: don't use live or die, they're deprecated
             $('#game-page').live('pageinit', function () {
                 
                 //Kill the pageinit handler so it doesn't trigger more than once

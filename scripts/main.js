@@ -1,7 +1,25 @@
 /////////////////////////////////////////////////////////////////
+// jQuery extensions                                           //
+/////////////////////////////////////////////////////////////////
+$.fn.pulse = function (totalDuration, callback) {
+    //Requires jquery.animate-shadow plugin, for now
+    
+    var self = $(this);
+    var originalShadow = self.css('box-shadow');
+    var duration = totalDuration ? totalDuration / 2 : 500;
+    
+    self.animate({ boxShadow: '0 0 30px #44f'}, duration, function () {
+        self.animate({ boxShadow: originalShadow }, duration, function () {
+            if(callback) { callback(); };
+        });
+    });
+}
+
+/////////////////////////////////////////////////////////////////
 // Constants                                                   //
 /////////////////////////////////////////////////////////////////
 var GAME_MODE_NEW = 0;
+var NUM_PLAYERS = 4;
 var PLAY_SURFACE_WIDTH = 290;
 var PLAY_SURFACE_HEIGHT = 245;
 var CARD_IMAGE_WIDTH = 72;
@@ -9,6 +27,7 @@ var CARD_IMAGE_HEIGHT = 96;
 var CARD_EDGE_OFFSET = 5;
 var CARD_IMAGE_DIR = 'images/';
 var CARD_IMAGE_EXTENSION = '.png';
+var PLAYER_DIV_PREFIX = 'player-';
 var suits = ['C', 'D', 'H', 'S'];
 var ranks = ['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A'];
 var playerEnum = {
@@ -17,6 +36,12 @@ var playerEnum = {
     north: 2,
     east: 3
 };
+var playerNames = [  
+    'You',
+    'Left opponent',
+    'Your partner',
+    'Right opponent'
+];
 
 /////////////////////////////////////////////////////////////////
 // Globals                                                     //
@@ -28,7 +53,8 @@ var responseCount = 0;
 var lastChatID = 0;
 var guid = 0;
 var myPlayerNum = 0;
-var isActivePlayer = false;
+var isActivePlayer = true;
+var activePlayer = 0;
     
 //Development URL
 var serverUrl = "http://localhost:2424"
@@ -37,7 +63,7 @@ var serverUrl = "http://localhost:2424"
 // Data structures                                             //
 /////////////////////////////////////////////////////////////////
 var actions = {
-    actvP: function(playerNum) {  },
+    actvP: function(playerNum) { HandleActivePlayer(playerNum); },
     addC: function(cards) { HandleAddCards(cards); },
     err: function (errorMessage) { LogDebugMessage(errorMessage); },
     msgs: function (messages) { HandleChats(messages); },
@@ -131,10 +157,39 @@ var responseCompleteQueue = [];
 /////////////////////////////////////////////////////////////////
 // Server response handlers                                    //
 /////////////////////////////////////////////////////////////////
+function HandleActivePlayer(pNum) {
+    var playerPosition = ServerToClientPNum(pNum);
+    var wasActivePlayer = isActivePlayer;
+    
+    isActivePlayer = playerPosition === playerEnum.south;
+    activePlayer = playerPosition;
+    
+    if (wasActivePlayer && !isActivePlayer) {
+        //Active player was self, not anymore: disable hand
+        for (card in hand) {
+            if (hand.hasOwnProperty(card)) {
+                hand[card].disable();
+            }
+        }
+    }
+    else if (isActivePlayer && !wasActivePlayer) {
+        //Active player is now self: enable hand
+        for (card in hand) {
+            if (hand.hasOwnProperty(card)) {
+                hand[card].enable();
+            }
+        }
+    }
+    
+    $('#active-name').text(playerNames[playerPosition])
+    $('#' + PLAYER_DIV_PREFIX + playerPosition.toString() + '>div').pulse();
+    $('#active-player').pulse();
+}
+
 function HandleAddCards(cards) {
     //Must wait until after other handlers are called in case cards need to be removed first
     
-    responseCompleteQueue.push(function (card) {
+    responseCompleteQueue.push(function () {
         for(var ii = 0; ii < cards.length; ii++)
             AddCard(cards[ii], isActivePlayer);
     });
@@ -283,7 +338,7 @@ function OutputMessage(text) {
 
 function CardTileFactory(card, enabled, imagePath) {
     //TODO: use more reliable method of path mapping
-    //TODO: bind or "live" events instead of using "attr" ?
+    //TODO: bind events instead of using "attr" ?
     
     var tile =
         $('<div>')
@@ -301,4 +356,8 @@ function CardTileFactory(card, enabled, imagePath) {
         tile = tile.addClass('ui-disabled');
         
     return tile;
+}
+
+function ServerToClientPNum(serverNum) {
+    return (serverNum + myPlayerNum) % NUM_PLAYERS;
 }

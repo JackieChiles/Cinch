@@ -11,7 +11,20 @@
             <div data-role="content" id="game-content">
                 <div id="left-content">
                     <div>
-                        <ul data-role="listview" data-inset="true" id="scoreboard">
+			<ul data-role="listview" data-inset="true" id="active-player">
+                            <li data-role="list-divider">
+				Active player
+                            </li>
+                            <li id="active-name">
+                            </li>
+                        </ul>
+		    </div>
+                    <div id="player-2" class="other-player">
+                        <div>
+			</div>
+                    </div>
+                    <div>
+			<ul data-role="listview" data-inset="true" id="scoreboard">
                             <li>
                                 <h2>Your score</h2><br />
                                 <span>5</span>
@@ -21,15 +34,10 @@
                                 <span>8</span>
                             </li>
                         </ul>
-                    </div>
-                    <div class="other-player">
-                        <div>
-			</div>
-                    </div>
-                    <div class="no-mobile"></div>
+		    </div>
                     
                     <div class="float-break"></div>
-                    <div class="other-player">
+                    <div id="player-1" class="other-player">
                         <div>
 			</div>
                     </div>
@@ -37,7 +45,7 @@
                         <canvas id="play-surface">
                         </canvas>
                     </div>
-                    <div class="other-player">
+                    <div id="player-3" class="other-player">
                         <div>
 			</div>
                     </div>
