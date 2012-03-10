@@ -291,7 +291,11 @@ class Game:
         self.deck = cards.Deck()
         self.deal_hand()
         self.gs.active_player = self.gs.next_player(self.gs.dealer)
-        self.gs.game_mode = GAME_MODE.BID
+        
+        #TODO: Change this back to BID once bid handling is set up
+        #self.gs.game_mode = GAME_MODE.BID
+        self.gs.game_mode = GAME_MODE.PLAY
+        
         self.gs.trump = None
         
         # Log/Message: new hands, dealer, active player, game mode

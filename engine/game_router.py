@@ -210,9 +210,7 @@ class JoinGameHandler(GameRouterHandler):  ###untested
             # game-start info (hands, active player, etc.)
             def launch_game(self, game_id):
                 init_data = self.router.games[game_id].start_game()
-                #for item in init_data: #TODO: uncomment once start_game() is done
-                #    m = Message(relevant stuff from init_data)
-                #    self.announce(m)
+                self.announce_msgs_from_game(init_data, game_id)
                 print("Game Router: game started")
 
             t = Timer(START_GAME_DELAY, launch_game, args=[self, game_id])
