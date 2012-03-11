@@ -50,7 +50,7 @@ var playerNames = [
 //Development
 var responseCount = 0;
 
-var lastChatID = 0;
+var lastUpdateID = 0;
 var guid = 0;
 var myPlayerNum = 0;
 var isActivePlayer = true;
@@ -66,8 +66,6 @@ var actions = {
     actvP: function(playerNum) { HandleActivePlayer(playerNum); },
     addC: function(cards) { HandleAddCards(cards); },
     err: function (errorMessage) { LogDebugMessage(errorMessage); },
-    msgs: function (messages) { HandleChats(messages); },
-    new: function (id) { lastChatID = id; },
     pNum: function (pNum) { myPlayerNum = pNum; },
     remC: function (card) { RemoveCard(card); },
     uid: function (uid) { guid = uid; StartLongPoll(); } //Don't start long-polling until server gives valid guid
@@ -204,17 +202,43 @@ function HandleChats(messages) {
 // AJAX/Communication                                          //
 /////////////////////////////////////////////////////////////////
 function HandleResponse(result) {
-    if (result !== null)
-        for(property in result)
-            if(actions.hasOwnProperty(property))
-                actions[property](result[property]);
+    //TODO: improve chat handling
+    
+    var ii = 0;
+    var chats = [];
+    
+    if (result !== null) {
+        var updates = result.msgs;
+        var current;
+        
+        lastUpdateID = result.new; 
+        
+        for(ii = 0; ii < updates.length; ii++) {
+            current = updates[ii];
+            
+            if(current.hasOwnProperty('msg')){
+                chats.push(current);
+            }
+            else {
+                HandleUpdate(current);
+            }
+            
+            HandleChats(chats);
+        }
+    }
+}
+
+function HandleUpdate(update) {
+    for(property in update)
+        if(actions.hasOwnProperty(property))
+            actions[property](update[property]);
 }
 
 function StartLongPoll() {
     $.ajax({
         url: serverUrl,
         type: 'GET',
-        data: {'uid':guid, 'last':lastChatID},
+        data: {'uid':guid, 'last':lastUpdateID},
         dataType: 'json',
         success: function (result, testStatus, jqXHR) {
             //Development
@@ -254,7 +278,7 @@ function PostData(data) {
                 LogDebugMessage('POST response from server: ' + JSON.stringify(result));
             }, 500);
             
-            HandleResponse(result);
+            HandleUpdate(result);
         },
         error: function (jqXHR, textStatus, errorThrown) {
             LogDebugMessage('Error sending data: ' + errorThrown);

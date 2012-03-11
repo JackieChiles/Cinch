@@ -261,7 +261,7 @@ class Game:
             elif entry['type'] == 'hand':
                 for message in output:
                     if message['tgt'] == entry['player']:
-                        message['cards'] = [card.code for card in entry['cards']]
+                        message['addC'] = [card.code for card in entry['cards']]
 ##    Presence of 'cards' implies +hd
 ##                    message['+hd'] = True # Should it be 1? Or ST._HAND_SIZE?
  
