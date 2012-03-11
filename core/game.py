@@ -228,20 +228,21 @@ class Game:
                 
             elif entry['type'] == 'card':
                 for message in output:
-                    message['+cp'] = entry['card'].code
+                    message['addP'] = entry['card'].code
                     if message['tgt'] == entry['player']:
-                        message['-cd'] = entry['card'].code
-                    else:
-                        message['-hs'] = entry['player']
+                        message['remC'] = entry['card'].code
+##      Presence of 'addP' implies '-hs' for inactive players
+##                    else:
+##                        message['-hs'] = entry['player']
                 # gamelog(Player X played card Y.)
                 
             elif entry['type'] == 'active-player':
                 for message in output:
-                    message['apl'] = entry['player']
+                    message['actvP'] = entry['player']
                     
             elif entry['type'] == 'trick':
                 for message in output:
-                    message['-cp'] = entry['player']
+                    message['remP'] = entry['player']
                 # gamelog(Player X won the trick with card Y.)
                 
             elif entry['type'] == 'score-chg':
@@ -260,9 +261,10 @@ class Game:
             elif entry['type'] == 'hand':
                 for message in output:
                     if message['tgt'] == entry['player']:
-                        message['+cd'] = [card.code for card in entry['cards']]
-                    message['+hd'] = True # Should it be 1? Or ST._HAND_SIZE?
-            
+                        message['cards'] = [card.code for card in entry['cards']]
+##    Presence of 'cards' implies +hd
+##                    message['+hd'] = True # Should it be 1? Or ST._HAND_SIZE?
+ 
             elif entry['type'] == 'dealer':
                 for message in output:
                     message['dlr'] = entry['player']
@@ -270,7 +272,7 @@ class Game:
             
             elif entry['type'] == 'mode':
                 for message in output:
-                    message['mod'] = entry['mode']
+                    message['mode'] = entry['mode']
                     
             else:
                 print("Warning: Unknown internal msg type {0}; ignoring.",
