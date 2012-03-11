@@ -265,7 +265,7 @@ function StartLongPoll() {
             //Delay before polling again
             setTimeout(function() {
                 StartLongPoll();
-            }, 3000);
+            }, 500);
         }
     });
 }
