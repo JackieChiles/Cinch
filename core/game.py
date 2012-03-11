@@ -141,20 +141,20 @@ class Game:
                 
         # Check for end of trick and handle, otherwise return.
         #-----------------------------------------------------
-        try:
-            winning_card = self.gs.trick_winner() # NoneType if no winner yet.
-            trick_winner = winning_card.owner
-        except AttributeError:
+        winning_card = self.gs.trick_winner()
+        if winning_card == None:
             # Trick is not over
             self.gs.active_player = self.gs.next_player(self.gs.active_player)
             self.log.append({'type': 'active-player',
                              'player': self.gs.active_player})
             return self.publish()
-        self.gs.active_player = trick_winner
-        self.gs.team_stacks[trick_winner % TEAM_SIZE] += self.gs.cards_in_play
-        self.gs.cards_in_play = []
-        self.log.append({'type': 'trick', 'player': trick_winner,
-                         'card': winning_card})
+        else:
+            trick_winner = winning_card.owner
+            self.gs.active_player = trick_winner
+            self.gs.team_stacks[trick_winner % TEAM_SIZE] += self.gs.cards_in_play
+            self.gs.cards_in_play = []
+            self.log.append({'type': 'trick', 'player': trick_winner,
+                             'card': winning_card})
 
 
         # Check for end of hand and handle, otherwise return.
@@ -228,10 +228,10 @@ class Game:
                 
             elif entry['type'] == 'card':
                 for message in output:
-                    message['addP'] = entry['card'].code
+                    message['playC'] = entry['card'].code
                     if message['tgt'] == entry['player']:
                         message['remC'] = entry['card'].code
-##      Presence of 'addP' implies '-hs' for inactive players
+##      Presence of 'playC' implies '-hs' for inactive players
 ##                    else:
 ##                        message['-hs'] = entry['player']
                 # gamelog(Player X played card Y.)
@@ -262,7 +262,7 @@ class Game:
                 for message in output:
                     if message['tgt'] == entry['player']:
                         message['addC'] = [card.code for card in entry['cards']]
-##    Presence of 'cards' implies +hd
+##    (Length of 'hand' == 9) implies +hd (I think? -JackieChiles)
 ##                    message['+hd'] = True # Should it be 1? Or ST._HAND_SIZE?
  
             elif entry['type'] == 'dealer':
@@ -277,6 +277,10 @@ class Game:
             else:
                 print("Warning: Unknown internal msg type {0}; ignoring.",
                       entry['type'])
+        
+        #Everything in log has been handled, clear it        
+        self.log = []
+        
         return output
 
 

@@ -392,5 +392,5 @@ function CardTileFactory(card, enabled, imagePath) {
 }
 
 function ServerToClientPNum(serverNum) {
-    return (serverNum + myPlayerNum) % NUM_PLAYERS;
+    return (serverNum - myPlayerNum + NUM_PLAYERS) % NUM_PLAYERS;
 }
