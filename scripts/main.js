@@ -20,6 +20,7 @@ $.fn.pulse = function (totalDuration, callback) {
 /////////////////////////////////////////////////////////////////
 var GAME_MODE_NEW = 0;
 var NUM_PLAYERS = 4;
+var TEAM_SIZE = 2;
 var PLAY_SURFACE_WIDTH = 290;
 var PLAY_SURFACE_HEIGHT = 245;
 var CARD_IMAGE_WIDTH = 72;
@@ -55,6 +56,7 @@ var guid = 0;
 var myPlayerNum = 0;
 var isActivePlayer = true;
 var activePlayer = 0;
+var gameScores = [0, 0];
     
 //Development URL
 var serverUrl = "http://localhost:2424"
@@ -63,12 +65,14 @@ var serverUrl = "http://localhost:2424"
 // Data structures                                             //
 /////////////////////////////////////////////////////////////////
 var actions = {
-    actvP: function(playerNum) { HandleActivePlayer(playerNum); },
-    addC: function(cards) { HandleAddCards(cards); },
+    actvP: function (playerNum) { HandleActivePlayer(playerNum); },
+    addC: function (cards) { HandleAddCards(cards); },
     err: function (errorMessage) { LogDebugMessage(errorMessage); },
     playC: function (card) { var c = new Card(card, true); c.play(activePlayer); },
-    pNum: function (pNum) { myPlayerNum = pNum; },
+    pNum: function (playerNum) { myPlayerNum = playerNum; },
     remC: function (card) { RemoveCard(card); },
+    remP: function (playerNum) { HandleEndTrick(playerNum); },
+    sco: function (scores) { HandleScores(scores); },
     uid: function (uid) { guid = uid; StartLongPoll(); } //Don't start long-polling until server gives valid guid
 };
 
@@ -133,11 +137,6 @@ var Card = function(encodedCard, enabled) {
     }
     
     this.play = function(player) {
-        //TODO: get permission from server to do this
-        //For now just free-wheelin and playing cards without server confirmation
-        
-        SubmitPlay(this);
-        
         var cardPosition = this.getPosition(player);
         
         var canvas = document.getElementById('play-surface');
@@ -148,6 +147,10 @@ var Card = function(encodedCard, enabled) {
             context.drawImage(cardImage, cardPosition[0], cardPosition[1]);
         };
     }
+    
+    this.submit = function() {
+        SubmitPlay(this);
+    }
 };
 
 var hand = [];
@@ -156,6 +159,13 @@ var responseCompleteQueue = [];
 /////////////////////////////////////////////////////////////////
 // Server response handlers                                    //
 /////////////////////////////////////////////////////////////////
+function ClearTable(){
+    var canvas = document.getElementById('play-surface');
+    var context = canvas.getContext('2d');
+    
+    context.clearRect(0, 0, PLAY_SURFACE_WIDTH, PLAY_SURFACE_HEIGHT);
+}
+
 function HandleActivePlayer(pNum) {
     //Must wait until 'playC' is handled- needs previous active player
     
@@ -203,13 +213,47 @@ function HandleChats(messages) {
         OutputMessage(messages[ii].msg, playerNames[ServerToClientPNum(parseInt(messages[ii].uNum))]);
 }
 
+function HandleEndTrick(playerNum) {
+    //Must wait until 'playC' is handled
+    
+    //TODO: lock down active player from playing until board is cleared
+    responseCompleteQueue.push(function () {
+        //Wait a bit so the ending play can be seen
+        setTimeout(function () {
+            //TODO: some flashy thing
+            ClearTable();
+        }, 2000);
+    });
+}
+
+function HandleScores(scores) {
+    var i = 0;
+    
+    //TODO: throw error when these don't divide evenly? Low priority...
+    //Also, this will need to be updated for games with more than two teams
+    for (i = 0; i < NUM_PLAYERS / TEAM_SIZE; i++) {
+        if (scores[i] !== gameScores[i]) {
+            //Score for team 'i' changed
+            
+            if(myPlayerNum % TEAM_SIZE === i) {
+                $('#score-you').text(scores[i]).pulse();
+            }
+            else {
+                $('#score-them').text(scores[i]).pulse();
+            }
+        }
+    }
+    
+    gameScores = scores;
+}
+
 /////////////////////////////////////////////////////////////////
 // AJAX/Communication                                          //
 /////////////////////////////////////////////////////////////////
 function HandleResponse(result) {
     //TODO: improve chat handling
     
-    var ii = 0;
+    var i = 0;
     var chats = [];
     
     if (result !== null) {
@@ -218,8 +262,8 @@ function HandleResponse(result) {
         
         lastUpdateID = result.new; 
         
-        for(ii = 0; ii < updates.length; ii++) {
-            current = updates[ii];
+        for(i = 0; i < updates.length; i++) {
+            current = updates[i];
             
             if(current.hasOwnProperty('msg')){
                 chats.push(current);
@@ -257,15 +301,14 @@ function StartLongPoll() {
         },
         complete: function (jqXHR, textStatus) {
             //Take care of any queued items
-            for(var ii = 0; ii < responseCompleteQueue.length; ii++)
-                responseCompleteQueue[ii]();
+            for(var i = 0; i < responseCompleteQueue.length; i++)
+                responseCompleteQueue[i]();
                 
             responseCompleteQueue.length = 0;
             
-            //Delay before polling again
-            setTimeout(function() {
-                StartLongPoll();
-            }, 500);
+            //No longer delaying this, but there MUST remain a time-out on the server
+            //so clients don't poll rapidly when nothing is being returned
+            StartLongPoll();
         }
     });
 }
@@ -297,8 +340,7 @@ function SubmitBid(bid) {
     PostData({'uid': guid, 'bid': bid});
 }
 
-//TODO: handle message IDs and player numbers
-//This can be done once server is set up to assign them
+//TODO: handle message IDs (may not be necessary- received in order)
 function SubmitChat() {
     var messageText = $('#text-to-insert').val();
 
@@ -346,8 +388,8 @@ function RemoveCard(cardNum) {
 }
 
 function EnablePlaying() {
-    for(var ii = 0; ii < hand.length; ii++)
-        hand[ii].enable();
+    for(var i = 0; i < hand.length; i++)
+        hand[i].enable();
 }
 
 //Development
@@ -382,7 +424,7 @@ function CardTileFactory(card, enabled, imagePath) {
         $('<div>')
         .attr('data-role', 'button')
         .attr('data-card', card)
-        .attr('onclick', "hand[$(this).data('card')].play(0)")
+        .attr('onclick', "hand[$(this).data('card')].submit()")
         .addClass('tile-button')
         .append(
             $('<div>')

@@ -25,13 +25,20 @@
                     </div>
                     <div>
 			<ul data-role="listview" data-inset="true" id="scoreboard">
-                            <li>
-                                <h2>Your score</h2><br />
-                                <span>5</span>
+			    <li data-theme="a">
+				Score
                             </li>
-                            <li>
-                                <h2>Their score</h2><br />
-                                <span>8</span>
+                            <li data-role="list-divider">
+				You
+                            </li>
+                            <li id="score-you">
+				0
+                            </li>
+			    <li data-role="list-divider">
+				Them
+                            </li>
+                            <li id="score-them">
+				0
                             </li>
                         </ul>
 		    </div>
