@@ -66,6 +66,7 @@ var actions = {
     actvP: function(playerNum) { HandleActivePlayer(playerNum); },
     addC: function(cards) { HandleAddCards(cards); },
     err: function (errorMessage) { LogDebugMessage(errorMessage); },
+    playC: function (card) { var c = new Card(card, true); c.play(activePlayer); },
     pNum: function (pNum) { myPlayerNum = pNum; },
     remC: function (card) { RemoveCard(card); },
     uid: function (uid) { guid = uid; StartLongPoll(); } //Don't start long-polling until server gives valid guid
@@ -156,32 +157,36 @@ var responseCompleteQueue = [];
 // Server response handlers                                    //
 /////////////////////////////////////////////////////////////////
 function HandleActivePlayer(pNum) {
-    var playerPosition = ServerToClientPNum(pNum);
-    var wasActivePlayer = isActivePlayer;
+    //Must wait until 'playC' is handled- needs previous active player
     
-    isActivePlayer = playerPosition === playerEnum.south;
-    activePlayer = playerPosition;
-    
-    if (wasActivePlayer && !isActivePlayer) {
-        //Active player was self, not anymore: disable hand
-        for (card in hand) {
-            if (hand.hasOwnProperty(card)) {
-                hand[card].disable();
+    responseCompleteQueue.push(function () {
+        var playerPosition = ServerToClientPNum(pNum);
+        var wasActivePlayer = isActivePlayer;
+        
+        isActivePlayer = playerPosition === playerEnum.south;
+        activePlayer = playerPosition;
+        
+        if (wasActivePlayer && !isActivePlayer) {
+            //Active player was self, not anymore: disable hand
+            for (card in hand) {
+                if (hand.hasOwnProperty(card)) {
+                    hand[card].disable();
+                }
             }
         }
-    }
-    else if (isActivePlayer && !wasActivePlayer) {
-        //Active player is now self: enable hand
-        for (card in hand) {
-            if (hand.hasOwnProperty(card)) {
-                hand[card].enable();
+        else if (isActivePlayer && !wasActivePlayer) {
+            //Active player is now self: enable hand
+            for (card in hand) {
+                if (hand.hasOwnProperty(card)) {
+                    hand[card].enable();
+                }
             }
         }
-    }
-    
-    $('#active-name').text(playerNames[playerPosition])
-    $('#' + PLAYER_DIV_PREFIX + playerPosition.toString() + '>div').pulse();
-    $('#active-player').pulse();
+        
+        $('#active-name').text(playerNames[playerPosition])
+        $('#' + PLAYER_DIV_PREFIX + playerPosition.toString() + '>div').pulse();
+        $('#active-player').pulse();
+    });
 }
 
 function HandleAddCards(cards) {

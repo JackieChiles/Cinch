@@ -262,7 +262,7 @@ class Game:
                 for message in output:
                     if message['tgt'] == entry['player']:
                         message['addC'] = [card.code for card in entry['cards']]
-##    (Length of 'hand' == 9) implies +hd (I think? -JackieChiles)
+##    Presence of 'addC' implies +hd
 ##                    message['+hd'] = True # Should it be 1? Or ST._HAND_SIZE?
  
             elif entry['type'] == 'dealer':
