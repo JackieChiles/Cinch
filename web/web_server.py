@@ -218,8 +218,9 @@ class HttpHandler(BaseHTTPRequestHandler):
 
             # Filter messages based on Message recipient list, requestor
             msgs = self.server.filter_msgs(message.source, msgs)
-            # Return if no messages remain after filtering
+            # Return only lastid if no messages remain after filtering
             if len(msgs) == 0:
+                self.send_message({config.COMET_LATEST_KEY: server_lastid})
                 return
             
             # Stringify message block
