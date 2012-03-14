@@ -257,11 +257,17 @@ function HandleResponse(result) {
     var chats = [];
     
     if (result !== null) {
-        var updates = result.msgs;
         var current;
         
-        lastUpdateID = result.new; 
-        
+        lastUpdateID = result.new;
+		
+		if (result.hasOwnProperty('msgs')) {
+		    var updates = result.msgs;
+		}
+		else {
+			return;
+		}
+
         for(i = 0; i < updates.length; i++) {
             current = updates[i];
             
@@ -298,6 +304,7 @@ function StartLongPoll() {
         },
         error: function (jqXHR, textStatus, errorThrown) {
             LogDebugMessage('Error starting long poll: ' + errorThrown);
+			StartLongPoll = 0;
         },
         complete: function (jqXHR, textStatus) {
             //Take care of any queued items

@@ -39,6 +39,10 @@ class CometServer(ThreadingMixIn, HTTPServer):
         self.lock = Lock()  #thread control
         self.responders = []
 
+##    def log_message(self, format, *args):
+##        """Silence server output (from GET/POST connections)."""
+##        return
+
     def run_server(self):
         try:
             self.serve_forever()
@@ -76,20 +80,6 @@ class CometServer(ThreadingMixIn, HTTPServer):
         assert isinstance(signature, list)
         
         self.responders.append({'channel':channel, 'signature':signature})
-
-    def filter_msgs(self, guid, msgs):
-        """Filter out all Messages in msgs not intended for user guid.
-        
-        guid: guid value of client requesting message block
-        msgs (list): block of candidate messages to be sent out
-
-        """
-        tmp = []
-        for msg in msgs:
-            if guid in msg.dest_list:
-                tmp.append(msg)
-
-        return tmp
 
     def get_responder(self, msg):
         """Checks server for registered response channel for msg.
@@ -154,10 +144,14 @@ class CometServer(ThreadingMixIn, HTTPServer):
             event = Event()
             self.events.append(event)
 
-        # Current event queue empty, so wait for new message
+        # No unseen messages, so wait for new message
         event.wait(timeout)
         if event.is_set():
-            return (True, (self.lastid, [self.queue[-1]]))
+            #seems to exist a race condition between args 2.1 and 2.2
+##            return (True, (self.lastid, [self.queue[-1]]))
+            # New message(s) received during timeout, so go get them
+            # This preserves the connection and avoids race condition
+            return self.retrieve(lastid, timeout) 
         else:
             return (False, None)
 
@@ -175,7 +169,7 @@ class CometServer(ThreadingMixIn, HTTPServer):
             self.queue.append(msg)
 
             # thread management
-            for event in self.events: #frees all events created by notify
+            for event in self.events: #frees all events created by retrieve
                 event.set()
             self.events = []
 
@@ -191,6 +185,7 @@ class HttpHandler(BaseHTTPRequestHandler):
         - last: # of last message received (-1 if no messages received yet)
         
         """
+        #TODO optimize: remove Message packing on input
         ## Interpret request
         parsed_path = urlparse(self.path)
         self.raw_query = parsed_path.query  #reevaluate this flow
@@ -210,26 +205,26 @@ class HttpHandler(BaseHTTPRequestHandler):
             return  #or other option for non-Comet GETs
         else:
             client_lastid = int(client_lastid)
-            
+    
         success, res = self.server.retrieve(client_lastid,
                                             config.COMET_TIMEOUT)
+
         if success:
             server_lastid, msgs = res
 
             # Filter messages based on Message recipient list, requestor
-            msgs = self.server.filter_msgs(message.source, msgs)
+            msgs = [x for x in msgs if message.source in x.dest_list]
             # Return only lastid if no messages remain after filtering
             if len(msgs) == 0:
                 self.send_message({config.COMET_LATEST_KEY: server_lastid})
-                return
-            
-            # Stringify message block
-            msgs_data = []
-            for msg in msgs:
-                msgs_data.append(msg.data)
+            else:            
+                # Assemble message block
+                msgs_data = []
+                for msg in msgs:
+                    msgs_data.append(msg.data)
 
-            self.send_message({config.COMET_LATEST_KEY: server_lastid,
-                               config.COMET_MESSAGE_BLOCK_KEY: msgs_data})
+                self.send_message({config.COMET_LATEST_KEY: server_lastid,
+                                   config.COMET_MESSAGE_BLOCK_KEY: msgs_data})
 
     def do_POST(self):
         """Process POST requests for Cinch application.
