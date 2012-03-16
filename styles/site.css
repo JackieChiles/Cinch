@@ -82,6 +82,16 @@
     height:auto!important;
 }
 
+.condensed-list
+{
+    margin:0!important;
+}
+
+.condensed-list li
+{
+    padding:5px!important;
+}
+
 .float-break
 {
     visibility: hidden;

@@ -30,6 +30,7 @@ var CARD_IMAGE_DIR = 'images/';
 var CARD_IMAGE_EXTENSION = '.png';
 var PLAYER_DIV_PREFIX = 'player-';
 var suits = ['C', 'D', 'H', 'S'];
+var suitNames = ['Clubs', 'Diamonds', 'Hearts', 'Spades'];
 var ranks = ['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A'];
 var playerEnum = {
     south: 0,
@@ -67,12 +68,14 @@ var serverUrl = "http://localhost:2424"
 var actions = {
     actvP: function (playerNum) { HandleActivePlayer(playerNum); },
     addC: function (cards) { HandleAddCards(cards); },
+    dlr: function(playerNum) { $('#dealer-name').text(playerNames[ServerToClientPNum(playerNum)]); $('#dealer').pulse(); },
     err: function (errorMessage) { LogDebugMessage(errorMessage); },
     playC: function (card) { var c = new Card(card, true); c.play(activePlayer); },
     pNum: function (playerNum) { myPlayerNum = playerNum; },
     remC: function (card) { RemoveCard(card); },
     remP: function (playerNum) { HandleEndTrick(playerNum); },
     sco: function (scores) { HandleScores(scores); },
+    trp: function (suit) { $('#trump-name').text(suitNames[suit]); $('#trump').pulse(); },
     uid: function (uid) { guid = uid; StartLongPoll(); } //Don't start long-polling until server gives valid guid
 };
 
@@ -261,12 +264,12 @@ function HandleResponse(result) {
         
         lastUpdateID = result.new;
 		
-		if (result.hasOwnProperty('msgs')) {
-		    var updates = result.msgs;
-		}
-		else {
-			return;
-		}
+        if (result.hasOwnProperty('msgs')) {
+            var updates = result.msgs;
+        }
+        else {
+                return;
+        }
 
         for(i = 0; i < updates.length; i++) {
             current = updates[i];

@@ -11,11 +11,25 @@
             <div data-role="content" id="game-content">
                 <div id="left-content">
                     <div>
-			<ul data-role="listview" data-inset="true" id="active-player">
+			<ul data-role="listview" data-inset="true" id="active-player" class="condensed-list">
                             <li data-role="list-divider">
 				Active player
                             </li>
                             <li id="active-name">
+                            </li>
+                        </ul>
+			<ul data-role="listview" data-inset="true" id="dealer" class="condensed-list">
+                            <li data-role="list-divider">
+				Dealer
+                            </li>
+                            <li id="dealer-name">
+                            </li>
+                        </ul>
+			<ul data-role="listview" data-inset="true" id="trump" class="condensed-list">
+                            <li data-role="list-divider">
+				Trump
+                            </li>
+                            <li id="trump-name">
                             </li>
                         </ul>
 		    </div>
@@ -24,7 +38,7 @@
 			</div>
                     </div>
                     <div>
-			<ul data-role="listview" data-inset="true" id="scoreboard">
+			<ul data-role="listview" data-inset="true" id="scoreboard" class="condensed-list">
 			    <li data-theme="a">
 				Score
                             </li>
