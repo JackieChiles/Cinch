@@ -59,8 +59,12 @@ var isActivePlayer = true;
 var activePlayer = 0;
 var gameScores = [0, 0];
     
-//Development URL
-var serverUrl = "http://localhost:2424"
+if (window.location.href.indexOf("ravenholm") > -1) {
+	var serverUrl = "http://ravenholm.dyndns.tv:2424"	// Legend url
+}
+else {
+	var serverUrl = "http://localhost:2424"	//Development URL
+}
 
 /////////////////////////////////////////////////////////////////
 // Data structures                                             //
