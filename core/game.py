@@ -65,6 +65,16 @@ class Game:
         #remove this method.
         self.players = [Player(x) for x in range(NUM_PLAYERS)]
 
+    def check_bid_legality(self, player, bid):
+        """Check a proposed bid for legality against the current gs. Assumes
+        that player is indeed the active player.
+
+        player (Player): player object of player making bid (may replace w/ pNum)
+        bid (int): integer [0-5] value of bid; BID.PASS=0, BID.CINCH=5
+
+        """
+        return false
+
     def check_play_legality(self, player, card_num):
         """Check a proposed play for legality against the current gs.
         Assumes that player is indeed the active player.
@@ -112,6 +122,17 @@ class Game:
         bid (int): integer [0-5] of bid being made
 
         """
+        # Check that player_num is active player.
+        #----------------------------------------
+        if player_num is not self.gs.active_player:
+            print("Non-active player attempted to play a card.") # Debugging
+            return None # Ignore
+
+        if not (self.check_bid_legality(self.players[player_num], bid)):
+            return False # Not a legal bid; return False
+                         # Game router will chastise appropriately.
+
+        # Legal bid was made; update game state and log/publish.
         raise NotImplementedError("Bid handling incomplete")
                 
     def handle_card_played(self, player_num, card_num):
