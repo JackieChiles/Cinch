@@ -225,7 +225,6 @@ class JoinGameHandler(GameRouterHandler):  ###untested
 #####
 
 
-#not ready to implement this, will follow same scheme as gameplay handler
 class BidHandler(GameRouterHandler):
     """Handle plays made during game."""
     # Overriden members
@@ -239,7 +238,10 @@ class BidHandler(GameRouterHandler):
         if response is False:
             return get_error(ERROR_TYPE.ILLEGAL_BID, bid_val)
         
-        self.announce_msgs_from_game(response, game_id)
+        try:
+            self.announce_msgs_from_game(response, game_id)
+        except TypeError:
+            return None # handle_bid = None if inactive player tries to bid
 
 
 class GamePlayHandler(GameRouterHandler):

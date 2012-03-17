@@ -103,6 +103,16 @@ class Game:
             
             for card in player.hand:
                 card.owner = player.pNum
+
+    def handle_bid(self, player_num, bid):
+        """Invoke bid processing logic on incoming bid and send update to
+        clients, or indicate illegal bid to single player.
+
+        player_num (int): local player number
+        bid (int): integer [0-5] of bid being made
+
+        """
+        raise NotImplementedError("Bid handling incomplete")
                 
     def handle_card_played(self, player_num, card_num):
         """Invoke play processing logic on incoming play and send update to
