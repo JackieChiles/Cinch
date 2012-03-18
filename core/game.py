@@ -149,11 +149,12 @@ class Game:
         elif bid_status is 'high':
             self.gs.high_bid = bid
             self.gs.declarer = player_num
-            self.log.append({'type': 'bid', 'bid': self.gs.high_bid})
         elif bid_status is 'cntr':
             self.gs.declarer = player_num # Set declarer; bid already cinch.
             self.log.append({'type': 'counter', 'dealer': self.gs.dealer})
             # Not adding 'bid' message because high_bid has not changed.
+            
+        self.log.append({'type': 'bid', 'bid': bid})
             
         # Is bidding over? Either way, publish and return.
         if self.gs.active_player == self.gs.dealer: # Dealer always last to bid
