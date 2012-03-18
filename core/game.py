@@ -67,17 +67,28 @@ class Game:
 
     def check_bid_legality(self, player, bid):
         """Check a proposed bid for legality against the current gs. Assumes
-        that player is indeed the active player.
+        that player is indeed the active player. Returns a string indicating
+        the bid type, or False if illegal bid.
 
-        player (Player): player object of player making bid (may replace w/ pNum)
+        player (Player): player object of player making bid (replace w/ pNum?)
         bid (int): integer [0-5] value of bid; BID.PASS=0, BID.CINCH=5
 
         """
-        return false
+        if bid == BID.PASS:
+            return 'pass'   # Always legal to pass.
+        if bid < BID.PASS:
+            return False    # Bid outside legal range.
+        if bid > BID.CINCH:
+            return False    # Bid outside legal range.
+        if bid > self.gs.high_bid:
+            return 'high'   # New high bid; legal.
+        if (bid == BID.CINCH & player.pNum == self.gs.dealer):
+            return 'cntr'   # Dealer has option to counter-cinch.
+        return False        # If we get here, no legal options left.
 
     def check_play_legality(self, player, card_num):
         """Check a proposed play for legality against the current gs.
-        Assumes that player is indeed the active player.
+        Assumes that player is indeed the active player. Returns boolean.
 
         player (Player): player object of player playing a play
         card_num (int): encoding of card to be played by player
@@ -125,15 +136,40 @@ class Game:
         # Check that player_num is active player.
         #----------------------------------------
         if player_num is not self.gs.active_player:
-            print("Non-active player attempted to play a card.") # Debugging
+            print("Non-active player attempted to bid.") # Debugging
             return None # Ignore
-
-        if not (self.check_bid_legality(self.players[player_num], bid)):
+        bid_status = self.check_bid_legality(self.players[player_num], bid)
+        if bid_status is False:
             return False # Not a legal bid; return False
                          # Game router will chastise appropriately.
-
         # Legal bid was made; update game state and log/publish.
-        raise NotImplementedError("Bid handling incomplete")
+        #-------------------------------------------------------
+        elif bid_status is 'pass':
+            pass    # Couldn't resist.
+        elif bid_status is 'high':
+            self.gs.high_bid = bid
+            self.gs.declarer = player_num
+            self.log.append({'type': 'bid', 'bid': self.gs.high_bid})
+        elif bid_status is 'cntr':
+            self.gs.declarer = player_num # Set declarer; bid already cinch.
+            self.log.append({'type': 'counter', 'dealer': self.gs.dealer})
+            # Not adding 'bid' message because high_bid has not changed.
+            
+        # Is bidding over? Either way, publish and return.
+        if self.gs.active_player == self.gs.dealer: # Dealer always last to bid
+            self.gs.active_player = self.gs.declarer
+            self.gs.game_mode = GAME_MODE.PLAY
+            self.log.append({'type': 'active-player',
+                             'player': self.gs.active_player})
+            self.log.append({'type': 'mode', 'mode': self.gs.game_mode})
+            return self.publish()
+        else:
+            self.gs.active_player = self.gs.next_player(self.gs.active_player)
+            self.log.append({'type': 'active-player',
+                             'player': self.gs.active_player})
+            return self.publish()
+            
+        raise NotImplementedError("Bid handling incomplete") # Debugging.
                 
     def handle_card_played(self, player_num, card_num):
         """Invoke play processing logic on incoming play and send update to
@@ -182,7 +218,8 @@ class Game:
         else:
             trick_winner = winning_card.owner
             self.gs.active_player = trick_winner
-            self.gs.team_stacks[trick_winner % TEAM_SIZE] += self.gs.cards_in_play
+            self.gs.team_stacks[trick_winner 
+                                % TEAM_SIZE] += self.gs.cards_in_play
             self.gs.cards_in_play = []
             self.log.append({'type': 'trick', 'player': trick_winner,
                              'card': winning_card})
@@ -248,7 +285,8 @@ class Game:
     def publish(self):
         """Translate game actions into messages for clients."""
         # Could optimize by adding stuff like type=trump to 1 dict and copying
-        # before going through and adding player-specific stuff?
+        # before going through and adding player-specific stuff.
+        # Also order switch statement from most-used to least.
         output = [{'tgt': i} for i in range(NUM_PLAYERS)]
         for entry in self.log:
         
@@ -262,10 +300,11 @@ class Game:
                     message['playC'] = entry['card'].code
                     if message['tgt'] == entry['player']:
                         message['remC'] = entry['card'].code
-##      Presence of 'playC' implies '-hs' for inactive players
-##                    else:
-##                        message['-hs'] = entry['player']
                 # gamelog(Player X played card Y.)
+                
+            elif entry['type'] == 'bid':
+                for message in output:
+                    message['bid'] = entry['bid']
                 
             elif entry['type'] == 'active-player':
                 for message in output:
@@ -292,10 +331,9 @@ class Game:
             elif entry['type'] == 'hand':
                 for message in output:
                     if message['tgt'] == entry['player']:
-                        message['addC'] = [card.code for card in entry['cards']]
-##    Presence of 'addC' implies +hd
-##                    message['+hd'] = True # Should it be 1? Or ST._HAND_SIZE?
- 
+                        message['addC'] = [card.code for
+                                           card in entry['cards']]
+                        
             elif entry['type'] == 'dealer':
                 for message in output:
                     message['dlr'] = entry['player']
@@ -304,6 +342,10 @@ class Game:
             elif entry['type'] == 'mode':
                 for message in output:
                     message['mode'] = entry['mode']
+                    
+            elif entry['type'] == 'counter':
+                # gamelog(Dealer, Player entry['player'], counter-cinches!)
+                pass
                     
             else:
                 print("Warning: Unknown internal msg type {0}; ignoring.",
@@ -328,10 +370,7 @@ class Game:
         self.deck = cards.Deck()
         self.deal_hand()
         self.gs.active_player = self.gs.next_player(self.gs.dealer)
-        
-        #TODO: Change this back to BID once bid handling is set up
-        #self.gs.game_mode = GAME_MODE.BID
-        self.gs.game_mode = GAME_MODE.PLAY
+        self.gs.game_mode = GAME_MODE.BID
         
         self.gs.trump = None
         
@@ -349,10 +388,10 @@ class Game:
 if __name__ == '__main__': 
     print("Creating new game with 4 players.")
     g = Game()
-    g.start_game()
+    g.start_game(4000)
     print(g)
     print("Undealt cards:",g.deck)
-    g.gs = GameState(42042)
+    '''
     print("trump =",g.gs.trump)
     for x in range(8):
         for ii in range(4):
@@ -365,3 +404,8 @@ if __name__ == '__main__':
     hats = g.handle_card_played(3, g.players[3].hand[0].code)
     for cats in hats:
         print(cats)
+        '''
+    print("High bid:", g.gs.high_bid)
+    print("Active player:", g.gs.active_player)
+    print(g.handle_bid(g.gs.active_player, 0))
+    print("High bid:", g.gs.high_bid)
