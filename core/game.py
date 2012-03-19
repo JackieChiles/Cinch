@@ -267,6 +267,7 @@ class Game:
         for stack in self.gs.team_stacks:
             stack = []
         self.gs.dealer = self.gs.next_player(self.gs.dealer)
+        self.gs.declarer = self.gs.dealer
         self.deck = cards.Deck()
         self.deal_hand()
         self.gs.active_player = self.gs.next_player(self.gs.dealer)
