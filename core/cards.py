@@ -9,9 +9,7 @@ import random
 import os
 
 
-##Provide two-way lookup for ranks and suits by name and number.
-##Placed outside Card class to avoid wasted memory
-##(don't need 52 copies of these dictionaries).
+# Provide two-way lookup for ranks and suits by name and number.
 RANKS_BY_NUM = {2:'two', 3:'three', 4:'four', 5:'five', 6:'six', 7:'seven',
                 8:'eight', 9:'nine', 10:'ten', 11:'jack', 12:'queen',
                 13:'king', 14:'ace'}
@@ -20,6 +18,9 @@ RANKS_SHORT = {2:'2', 3:'3', 4:'4', 5:'5', 6:'6', 7:'7', 8:'8', 9:'9',
                10:'T', 11:'J', 12:'Q', 13:'K', 14:'A'}
 SUITS_BY_NUM = {0:'clubs', 1:'diamonds', 2:'hearts', 3:'spades'}
 SUITS_BY_NAME = {v:k for k, v in SUITS_BY_NUM.items()}
+
+NUM_RANKS = 13
+NUM_SUITS = 4
 
 # Code to support deprecated/legacy development platforms:
 if os.name == 'nt':
@@ -53,7 +54,7 @@ class Card:
         
     def encode(self):
         """Encode (rank, suit) into integer in range 1-52."""
-        return (self.rank-1) + (self.suit*len(RANKS_BY_NUM))
+        return (self.rank-1) + (self.suit*NUM_RANKS)
 
 
 class Deck(list):
@@ -82,12 +83,15 @@ class Deck(list):
         c = self.pop(random.randint(0, len(self)-1))
         c.code = c.encode()
         return c
-        
-        
-##tests
-if __name__ == '__main__':    
-    d = Deck()
-    for c in d:
-        print(RANKS_BY_NUM[c.rank], SUITS_BY_NUM[c.suit])
-    c = d.deal_one()
-    print(c, c.code)
+
+
+SUIT_TERMS = [NUM_RANKS*x for x in range(NUM_SUITS)]
+def decode(card_code):
+    """Decode card encoding into (rank, suit) pair."""
+    val = card_code+1
+    for term in SUIT_TERMS:
+        if val - term in RANKS_BY_NUM:
+            return (val-term, int(term/NUM_RANKS))
+
+    return 0, 0
+
