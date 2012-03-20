@@ -2,7 +2,7 @@
 """
 Configuration settings for server.py.
 """
-HOSTNAME = "localhost"
+HOSTNAME = ""
 PORT = 2424        # integer
 
 # HTTP Header constants
