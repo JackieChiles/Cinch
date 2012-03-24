@@ -18,6 +18,7 @@ $.fn.pulse = function (totalDuration, callback) {
 /////////////////////////////////////////////////////////////////
 // Constants                                                   //
 /////////////////////////////////////////////////////////////////
+var DOES_JACKIE_CHILES_USEFULLY_COMMENT_HIS_CODE = false;
 var GAME_MODE_NEW = 0;
 var NUM_PLAYERS = 4;
 var TEAM_SIZE = 2;
@@ -54,13 +55,13 @@ var responseCount = 0;
 
 var lastUpdateID = 0;
 var guid = 0;
-var myPlayerNum = 0;
+var myPlayerNum = 0; //Player num assigned by server (self is always playerEnum.south)
 var isActivePlayer = true;
-var activePlayer = 0;
+var activePlayer = 0; //Relative to client (self is always playerEnum.south)
 var gameScores = [0, 0];
     
 if (window.location.href.indexOf("ravenholm") > -1) {
-	var serverUrl = "http://ravenholm.dyndns.tv:2424"	// Legend url
+	var serverUrl = "http://ravenholm.dyndns.tv:2424"	//Legend url
 }
 else {
 	var serverUrl = "http://localhost:2424"	//Development URL
@@ -72,15 +73,22 @@ else {
 var actions = {
     actvP: function (playerNum) { HandleActivePlayer(playerNum); },
     addC: function (cards) { HandleAddCards(cards); },
-    dlr: function(playerNum) { $('#dealer-name').text(playerNames[ServerToClientPNum(playerNum)]); $('#dealer').pulse(); },
+    dlr: function(playerNum) { 
+		$('#dealer-name').text(playerNames[ServerToClientPNum(playerNum)]);
+		$('#dealer').pulse();
+		},
     err: function (errorMessage) { LogDebugMessage(errorMessage); },
-    playC: function (card) { var c = new Card(card, true); c.play(activePlayer); },
+    playC: function (card) { 
+		var c = new Card(card, true); 
+		c.play(activePlayer); //previous activePlayer; actvP handled at end of update
+		if (activePlayer == playerEnum.south) { RemoveCard(card); }
+		},
     pNum: function (playerNum) { myPlayerNum = playerNum; },
-    remC: function (card) { RemoveCard(card); },
     remP: function (playerNum) { HandleEndTrick(playerNum); },
     sco: function (scores) { HandleScores(scores); },
     trp: function (suit) { $('#trump-name').text(suitNames[suit]); $('#trump').pulse(); },
-    uid: function (uid) { guid = uid; StartLongPoll(); } //Don't start long-polling until server gives valid guid
+	//Don't start long-polling until server gives valid guid
+    uid: function (uid) { guid = uid; StartLongPoll(); } 
 };
 
 var Card = function(encodedCard, enabled) {
@@ -178,8 +186,8 @@ function HandleActivePlayer(pNum) {
     
     responseCompleteQueue.push(function () {
         var playerPosition = ServerToClientPNum(pNum);
-        var wasActivePlayer = isActivePlayer;
-        
+        var wasActivePlayer = isActivePlayer;        
+		
         isActivePlayer = playerPosition === playerEnum.south;
         activePlayer = playerPosition;
         
@@ -453,5 +461,6 @@ function CardTileFactory(card, enabled, imagePath) {
 }
 
 function ServerToClientPNum(serverNum) {
+	//Adjusts serverNum to match "client is South" perspective
     return (serverNum - myPlayerNum + NUM_PLAYERS) % NUM_PLAYERS;
 }
