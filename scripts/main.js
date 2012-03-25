@@ -59,12 +59,14 @@ var myPlayerNum = 0; //Player num assigned by server (self is always playerEnum.
 var isActivePlayer = true;
 var activePlayer = 0; //Relative to client (self is always playerEnum.south)
 var gameScores = [0, 0];
+var cardImagesInPlay = [];  //Tracks card images for animation purposes
+var trickWinner = -1;
     
 if (window.location.href.indexOf("ravenholm") > -1) {
-	var serverUrl = "http://ravenholm.dyndns.tv:2424"	//Legend url
+    var serverUrl = "http://ravenholm.dyndns.tv:2424"    //Legend url
 }
 else {
-	var serverUrl = "http://localhost:2424"	//Development URL
+    var serverUrl = "http://localhost:2424"    //Development URL
 }
 
 /////////////////////////////////////////////////////////////////
@@ -74,20 +76,20 @@ var actions = {
     actvP: function (playerNum) { HandleActivePlayer(playerNum); },
     addC: function (cards) { HandleAddCards(cards); },
     dlr: function(playerNum) { 
-		$('#dealer-name').text(playerNames[ServerToClientPNum(playerNum)]);
-		$('#dealer').pulse();
-		},
+        $('#dealer-name').text(playerNames[ServerToClientPNum(playerNum)]);
+        $('#dealer').pulse();
+        },
     err: function (errorMessage) { LogDebugMessage(errorMessage); },
     playC: function (card) { 
-		var c = new Card(card, true); 
-		c.play(activePlayer); //previous activePlayer; actvP handled at end of update
-		if (activePlayer == playerEnum.south) { RemoveCard(card); }
-		},
+        var c = new Card(card, true); 
+        c.play(activePlayer); //previous activePlayer; actvP handled at end of update
+        if (activePlayer == playerEnum.south) { RemoveCard(card); }
+        },
     pNum: function (playerNum) { myPlayerNum = playerNum; },
     remP: function (playerNum) { HandleEndTrick(playerNum); },
     sco: function (scores) { HandleScores(scores); },
     trp: function (suit) { $('#trump-name').text(suitNames[suit]); $('#trump').pulse(); },
-	//Don't start long-polling until server gives valid guid
+    //Don't start long-polling until server gives valid guid
     uid: function (uid) { guid = uid; StartLongPoll(); } 
 };
 
@@ -127,40 +129,17 @@ var Card = function(encodedCard, enabled) {
         this.jQueryObject.addClass('ui-disabled');
     }
     
-    this.getPosition = function(player) {    
-        var x = 0;
-        var y = 0;
-        
-        if (player == playerEnum.south) { //The client
-            x = PLAY_SURFACE_WIDTH / 2 - CARD_IMAGE_WIDTH / 2;
-            y = PLAY_SURFACE_HEIGHT - CARD_IMAGE_HEIGHT - CARD_EDGE_OFFSET;
-        }
-        else if (player == playerEnum.west) {
-            x = CARD_EDGE_OFFSET;
-            y = PLAY_SURFACE_HEIGHT / 2 - CARD_IMAGE_HEIGHT / 2;
-        }
-        else if (player == playerEnum.north) {
-            x = PLAY_SURFACE_WIDTH / 2 - CARD_IMAGE_WIDTH / 2;
-            y = CARD_EDGE_OFFSET;
-        }
-        else { //Should only be playerEnum.east
-            x = PLAY_SURFACE_WIDTH - CARD_IMAGE_WIDTH - CARD_EDGE_OFFSET;
-            y = PLAY_SURFACE_HEIGHT / 2 - CARD_IMAGE_HEIGHT / 2;
-        }
-        
-        return [x, y]; 
-    }
-    
     this.play = function(player) {
-        var cardPosition = this.getPosition(player);
+        var cardStartPosition = getStartPosition(player);
+        var cardEndPosition = getEndPosition(player);
         
         var canvas = document.getElementById('play-surface');
         var context = canvas.getContext('2d');
         var cardImage = new Image();
         cardImage.src = this.imagePath;
-        cardImage.onload = function () {
-            context.drawImage(cardImage, cardPosition[0], cardPosition[1]);
-        };
+
+        var cardGfx = new CardAnimation(cardImage, player);
+        cardImagesInPlay[player] = cardGfx;
     }
     
     this.submit = function() {
@@ -174,11 +153,12 @@ var responseCompleteQueue = [];
 /////////////////////////////////////////////////////////////////
 // Server response handlers                                    //
 /////////////////////////////////////////////////////////////////
-function ClearTable(){
-    var canvas = document.getElementById('play-surface');
-    var context = canvas.getContext('2d');
+function ClearTable(playerNum){
+    trickWinner = ServerToClientPNum(playerNum);
+    //Allow all cards in play to finish animating
+    finishDrawingCards();
     
-    context.clearRect(0, 0, PLAY_SURFACE_WIDTH, PLAY_SURFACE_HEIGHT);
+    //Process is completed from within animation.js
 }
 
 function HandleActivePlayer(pNum) {
@@ -187,7 +167,7 @@ function HandleActivePlayer(pNum) {
     responseCompleteQueue.push(function () {
         var playerPosition = ServerToClientPNum(pNum);
         var wasActivePlayer = isActivePlayer;        
-		
+        
         isActivePlayer = playerPosition === playerEnum.south;
         activePlayer = playerPosition;
         
@@ -232,12 +212,12 @@ function HandleEndTrick(playerNum) {
     //Must wait until 'playC' is handled
     
     //TODO: lock down active player from playing until board is cleared
+    //Still a TODO after animation coding update.
     responseCompleteQueue.push(function () {
         //Wait a bit so the ending play can be seen
         setTimeout(function () {
-            //TODO: some flashy thing
-            ClearTable();
-        }, 2000);
+            ClearTable(playerNum);
+        }, 1200);
     });
 }
 
@@ -275,7 +255,7 @@ function HandleResponse(result) {
         var current;
         
         lastUpdateID = result.new;
-		
+        
         if (result.hasOwnProperty('msgs')) {
             var updates = result.msgs;
         }
@@ -319,7 +299,7 @@ function StartLongPoll() {
         },
         error: function (jqXHR, textStatus, errorThrown) {
             LogDebugMessage('Error starting long poll: ' + errorThrown);
-			StartLongPoll = 0;
+            StartLongPoll = 0;
         },
         complete: function (jqXHR, textStatus) {
             //Take care of any queued items
@@ -461,6 +441,6 @@ function CardTileFactory(card, enabled, imagePath) {
 }
 
 function ServerToClientPNum(serverNum) {
-	//Adjusts serverNum to match "client is South" perspective
+    //Adjusts serverNum to match "client is South" perspective
     return (serverNum - myPlayerNum + NUM_PLAYERS) % NUM_PLAYERS;
 }
