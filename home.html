@@ -58,6 +58,65 @@
                 </div>
             </div>
         </div>
+        
+        <div data-role="page" id="bidding-page">
+	    <div data-role="header">
+		<h1>Bidding</h1>
+	    </div><!-- /header -->
+	    <div data-role="content">
+                <ul data-role="listview" data-inset="true" id="bid-list" class="condensed-list">
+                    <li data-theme="a">
+                        Bids
+                    </li>
+                    <li data-role="list-divider">
+                        Left opponent
+                    </li>
+                    <li id="bid-1">
+                        -
+                    </li>
+                    <li data-role="list-divider">
+                        Right opponent
+                    </li>
+                    <li id="bid-3">
+                        -
+                    </li>
+                    <li data-role="list-divider">
+                        Partner
+                    </li>
+                    <li id="bid-2">
+                        -
+                    </li>
+                </ul>
+                
+		<fieldset data-role="controlgroup" id="bid-controls">
+		    <input type="radio" name="bid-radio" id="radio-choice-0" value="0" />
+		    <label for="radio-choice-0">Pass</label>
+	    
+		    <input type="radio" name="bid-radio" id="radio-choice-1" value="1" />
+		    <label for="radio-choice-1">One</label>
+	    
+		    <input type="radio" name="bid-radio" id="radio-choice-2" value="2" />
+		    <label for="radio-choice-2">Two</label>
+	    
+		    <input type="radio" name="bid-radio" id="radio-choice-3" value="3" />
+		    <label for="radio-choice-3">Three</label>
+		    
+		    <input type="radio" name="bid-radio" id="radio-choice-4" value="4" />
+		    <label for="radio-choice-4">Four</label>
+		    
+		    <input type="radio" name="bid-radio" id="radio-choice-5" value="5" />
+		    <label for="radio-choice-5">Cinch</label>
+		    
+		    <input type="button" id="bid-submit" value="Submit bid" onclick="SubmitBid(parseInt($('input:radio[name=bid-radio]:checked').val()))"/>
+		</fieldset>
+                
+                <strong>
+                    Your hand:
+                </strong>
+                
+                <div id="bid-hand"></div>
+	    </div>
+	</div><!-- /bidding page -->
     </body>
     
 </html>

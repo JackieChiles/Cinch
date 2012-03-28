@@ -18,7 +18,6 @@ $.fn.pulse = function (totalDuration, callback) {
 /////////////////////////////////////////////////////////////////
 // Constants                                                   //
 /////////////////////////////////////////////////////////////////
-var DOES_JACKIE_CHILES_USEFULLY_COMMENT_HIS_CODE = false;
 var GAME_MODE_NEW = 0;
 var NUM_PLAYERS = 4;
 var TEAM_SIZE = 2;
@@ -33,12 +32,32 @@ var PLAYER_DIV_PREFIX = 'player-';
 var suits = ['C', 'D', 'H', 'S'];
 var suitNames = ['Clubs', 'Diamonds', 'Hearts', 'Spades'];
 var ranks = ['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A'];
+var bidEnum = {
+    pass: 0,
+    one: 1,
+    two: 2,
+    three: 3,
+    four: 4,
+    cinch: 5
+};
+var gameModeEnum = {
+    play: 1,
+    bid: 2
+};
 var playerEnum = {
     south: 0,
     west: 1,
     north: 2,
     east: 3
 };
+var bidNames = [
+    'Pass',
+    'One',
+    'Two',
+    'Three',
+    'Four',
+    'Cinch'
+];
 var playerNames = [  
     'You',
     'Left opponent',
@@ -56,11 +75,15 @@ var responseCount = 0;
 var lastUpdateID = 0;
 var guid = 0;
 var myPlayerNum = 0; //Player num assigned by server (self is always playerEnum.south)
-var isActivePlayer = true;
-var activePlayer = 0; //Relative to client (self is always playerEnum.south)
+var isActivePlayer = false;
+var activePlayer = -1; //Relative to client (self is always playerEnum.south)
 var gameScores = [0, 0];
 var cardImagesInPlay = [];  //Tracks card images for animation purposes
-var trickWinner = -1;
+var trickWinner = -1; //Relative to client (self is always playerEnum.south)
+var currentGameMode = 0;
+var isGameStarted = false; //Flipped to true when first 'mode' response is received
+var dealer = -1; //Relative to client (self is always playerEnum.south)
+var highBid = 0;
     
 if (window.location.href.indexOf("ravenholm") > -1) {
     var serverUrl = "http://ravenholm.dyndns.tv:2424"    //Legend url
@@ -75,16 +98,19 @@ else {
 var actions = {
     actvP: function (playerNum) { HandleActivePlayer(playerNum); },
     addC: function (cards) { HandleAddCards(cards); },
-    dlr: function(playerNum) { 
-        $('#dealer-name').text(playerNames[ServerToClientPNum(playerNum)]);
+    bid: function (bid) { HandleBid(bid); },
+    dlr: function(playerNum) {
+        dealer = ServerToClientPNum(playerNum);
+        $('#dealer-name').text(playerNames[dealer]);
         $('#dealer').pulse();
-        },
+    },
     err: function (errorMessage) { LogDebugMessage(errorMessage); },
+    mode: function (mode) { HandleMode(mode); },
     playC: function (card) { 
         var c = new Card(card, true); 
         c.play(activePlayer); //previous activePlayer; actvP handled at end of update
         if (activePlayer == playerEnum.south) { RemoveCard(card); }
-        },
+    },
     pNum: function (playerNum) { myPlayerNum = playerNum; },
     remP: function (playerNum) { HandleEndTrick(playerNum); },
     sco: function (scores) { HandleScores(scores); },
@@ -112,7 +138,7 @@ var Card = function(encodedCard, enabled) {
     
     //Add to DOM
     this.addToHand = function() {
-        $('#hand').append(this.jQueryObject).trigger("create");
+        $('#hand').append(this.jQueryObject).trigger('create');
     }
     
     this.remove = function() {
@@ -162,35 +188,72 @@ function ClearTable(playerNum){
 }
 
 function HandleActivePlayer(pNum) {
-    //Must wait until 'playC' is handled- needs previous active player
+    //Must wait until 'playC' or 'bid' is handled- needs previous active player
     
     responseCompleteQueue.push(function () {
         var playerPosition = ServerToClientPNum(pNum);
-        var wasActivePlayer = isActivePlayer;        
+        var wasActivePlayer = isActivePlayer;
+        var i = 0;
+        var bidInputs;
+        var currentBidInput;
         
         isActivePlayer = playerPosition === playerEnum.south;
         activePlayer = playerPosition;
         
-        if (wasActivePlayer && !isActivePlayer) {
-            //Active player was self, not anymore: disable hand
-            for (card in hand) {
-                if (hand.hasOwnProperty(card)) {
-                    hand[card].disable();
+        if(currentGameMode == gameModeEnum.bid) {
+            bidInputs = $('input[name=bid-radio]:radio');
+            
+            if(isActivePlayer) {
+                $('#bid-controls').pulse();
+                $('#bid-submit').button('enable');
+                
+                //Pass is always valid (if not dealer)
+                bidInputs.eq(bidEnum.pass).checkboxradio('enable');
+                
+                for(i = highBid + 1; i <= bidEnum.cinch; i++) {
+                    bidInputs.eq(i).checkboxradio('enable');
+                }
+                
+                if(dealer === playerEnum.south) {
+                    if(highBid === bidEnum.pass) {
+                        //Dealer can't pass if no one else has bid
+                        bidInputs.eq(bidEnum.pass).checkboxradio('disable');
+                    }
+                    
+                    //Dealer can always bid Cinch
+                    bidInputs.eq(bidEnum.cinch).checkboxradio('enable');
                 }
             }
-        }
-        else if (isActivePlayer && !wasActivePlayer) {
-            //Active player is now self: enable hand
-            for (card in hand) {
-                if (hand.hasOwnProperty(card)) {
-                    hand[card].enable();
-                }
+            else {
+                $('#bid-submit').button('disable');
+                
+                bidInputs.each(function() {
+                   $(this).checkboxradio('disable');
+                });
             }
         }
-        
-        $('#active-name').text(playerNames[playerPosition])
-        $('#' + PLAYER_DIV_PREFIX + playerPosition.toString() + '>div').pulse();
-        $('#active-player').pulse();
+        else { //Should only be play mode
+            if (wasActivePlayer && !isActivePlayer) {
+                //TODO: fix false positive here when self was last bidding player
+                //and not first playing player (cards will already be disabled,
+                //so no need to disable them again). Low priority.
+                
+                //Active player was self, not anymore: disable hand
+                for (card in hand) {
+                    if (hand.hasOwnProperty(card)) {
+                        hand[card].disable();
+                    }
+                }
+            }
+            else if (isActivePlayer) {
+                //Active player is now self: enable hand
+                EnablePlaying();
+            }
+            
+            $('#active-name').text(playerNames[playerPosition])
+            $('#' + PLAYER_DIV_PREFIX + playerPosition.toString() + '>div').pulse();
+            $('#active-player').pulse();
+        }
     });
 }
 
@@ -198,9 +261,27 @@ function HandleAddCards(cards) {
     //Must wait until after other handlers are called in case cards need to be removed first
     
     responseCompleteQueue.push(function () {
-        for(var ii = 0; ii < cards.length; ii++)
-            AddCard(cards[ii], isActivePlayer);
+        for(var ii = 0; ii < cards.length; ii++) {
+            AddCard(cards[ii], isActivePlayer && currentGameMode == gameModeEnum.play);
+        }
+        
+        //Draw card images in bid popup
+        for (card in hand) {
+            if (hand.hasOwnProperty(card)) {
+                $('#bid-hand')
+                .append($('<img />')
+                    .attr('src', hand[card].imagePath)
+                );
+            }
+        }
     });
+}
+
+function HandleBid(bid) {
+    //Still previous active player
+    $('#bid-' + activePlayer.toString()).text(bidNames[bid]).pulse();
+    
+    highBid = bid > highBid ? bid : highBid;
 }
 
 function HandleChats(messages) {
@@ -219,6 +300,34 @@ function HandleEndTrick(playerNum) {
             ClearTable(playerNum);
         }, 1200);
     });
+}
+
+function HandleMode(mode) {
+    currentGameMode = mode;
+    
+    if(!isGameStarted) {
+        $('#waiting-message').fadeOut();
+        $('#left-content').fadeIn();
+        isGameStarted = true;
+    }
+    
+    if(currentGameMode == gameModeEnum.bid) {
+        //Reset bid items
+        highBid = 0;
+        $('#bid-hand').empty();
+        ResetBids();
+        
+        //Open bid dialog
+        $('<a />')
+        .attr('href', '#bidding-page')
+        .attr('data-rel', 'dialog')
+        .appendTo('body')
+        .click()
+        .remove();
+    }
+    else {
+        $('#bidding-page').dialog('close');
+    }
 }
 
 function HandleScores(scores) {
@@ -260,7 +369,7 @@ function HandleResponse(result) {
             var updates = result.msgs;
         }
         else {
-                return;
+            return;
         }
 
         for(i = 0; i < updates.length; i++) {
@@ -338,6 +447,15 @@ function PostData(data) {
     });
 }
 
+function ResetBids() {
+    var i = 0;
+    
+    //No container for own bid (#bid-0 doesn't exist)
+    for(i = 1; i < NUM_PLAYERS; i++) {
+        $('#bid-' + i).val('-');
+    }
+}
+
 function SubmitBid(bid) {
     PostData({'uid': guid, 'bid': bid});
 }
@@ -390,8 +508,11 @@ function RemoveCard(cardNum) {
 }
 
 function EnablePlaying() {
-    for(var i = 0; i < hand.length; i++)
-        hand[i].enable();
+    for (card in hand) {
+        if (hand.hasOwnProperty(card)) {
+            hand[card].enable();
+        }
+    }
 }
 
 //Development

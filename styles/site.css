@@ -17,8 +17,33 @@
 }
 
 /*****************************************
+** Bidding                              **
+*****************************************/
+
+#bidding-page .ui-header .ui-btn-icon-notext
+{
+    display:none;
+}
+
+#bidding-page.ui-dialog .ui-header
+{
+    margin:15px auto;
+}
+
+#bid-hand > img
+{
+    padding:3px;
+}
+
+/*****************************************
 ** Game page                            **
 *****************************************/
+
+#hand
+{
+    height:auto!important;
+    width:auto!important;
+}
 
 #right-content
 {
@@ -51,6 +76,7 @@
 
 #left-content
 {
+    display:none;
     float:left;
 }
 
@@ -74,6 +100,12 @@
 
 #scoreboard *
 {
+    text-align:center;
+}
+
+#waiting-message
+{
+    font-weight:bold;
     text-align:center;
 }
 

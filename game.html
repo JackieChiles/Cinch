@@ -4,7 +4,7 @@
         <title>Cinch</title>
     </head>
     <body>
-        <div data-role="page" id="game-page">
+        <div data-role="page" data-dom-cache="true" id="game-page">
             <div data-role="header">
             <h1>Cinch</h1>
             </div><!-- /header -->
@@ -72,35 +72,15 @@
                     </div>
                     
                     <div class="float-break"></div>
-                    <div class="bottom-row">
-			<fieldset data-role="controlgroup">
-			    <input type="radio" name="bid-radio" id="radio-choice-0" value="0" checked="checked" />
-			    <label for="radio-choice-0">Pass</label>
-		    
-			    <input type="radio" name="bid-radio" id="radio-choice-1" value="1"  />
-			    <label for="radio-choice-1">One</label>
-		    
-			    <input type="radio" name="bid-radio" id="radio-choice-2" value="2"  />
-			    <label for="radio-choice-2">Two</label>
-		    
-			    <input type="radio" name="bid-radio" id="radio-choice-3" value="3"  />
-			    <label for="radio-choice-3">Three</label>
-			    
-			    <input type="radio" name="bid-radio" id="radio-choice-4" value="4"  />
-			    <label for="radio-choice-4">Four</label>
-			    
-			    <input type="radio" name="bid-radio" id="radio-choice-5" value="5"  />
-			    <label for="radio-choice-5">Cinch</label>
-			    
-			    <input type="button" value="Submit bid" onclick="SubmitBid(parseInt($('input:radio[name=bid-radio]:checked').val()))"/>
-			</fieldset>
+                    <div id="hand">
                     </div>
-                    <div id="hand" class="bottom-row">
-                    </div>
-		    <div class="bottom-row no-mobile"></div>
                 </div>
                 <div id="right-content">
-                    <input id="text-to-insert" type="text" /><br />
+		    <div id="waiting-message">
+			Waiting for other players <img src="images/loading.gif" />
+		    </div>
+		    
+		    <input id="text-to-insert" type="text" /><br />
                     <button id="submit-button" onclick="SubmitChat()">Submit</button>
                     <ul data-role="listview" data-inset="true" id="output-list">
                         <li data-role="list-divider">Messages</li>
