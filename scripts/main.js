@@ -452,7 +452,7 @@ function ResetBids() {
     
     //No container for own bid (#bid-0 doesn't exist)
     for(i = 1; i < NUM_PLAYERS; i++) {
-        $('#bid-' + i).val('-');
+        $('#bid-' + i).text('-');
     }
 }
 
