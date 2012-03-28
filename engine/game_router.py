@@ -130,6 +130,23 @@ class NewGameHandler(GameRouterHandler):
             # May support other types of game requests in the future
             return None
 
+        # TODO: remove this code block; in place for debugging
+
+        # Purge existing game -- allow us to restart game w/o restarting server
+        # while working in single-game development mode (game # 0)
+        # This can result in some (non-fatal) errors for the server, but
+        # that's okay; this is a hack for development
+        try:
+            old_game = self.router.games.pop(0)
+            del old_game
+            cm.groups.pop(0)
+            
+            #should remove old client GUIDs, but I don't care.
+        except KeyError: # no game 0 created yet
+            pass
+
+        ###### remove to here
+
         ######
         # FUTURE: Set limit on # concurrent games and enforce limit here.
         #       Will make use of thread pool (where?); pool size = limit.
