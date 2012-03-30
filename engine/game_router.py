@@ -108,11 +108,11 @@ class GameRouterHandler(CommChannel):
         
         for element in msg_list:
             dest_pNum = element.pop('tgt')
-
-            # Convert pNum to uid
-            dest = cm.get_client_by_player_num(game_id, dest_pNum)
-            outgoing_msgs.append(
-                Message(element, source=game_id, dest_list=[dest]))
+            for target in dest_pNum:
+                # Convert pNum to uid
+                dest = cm.get_client_by_player_num(game_id, target)
+                outgoing_msgs.append(
+                    Message(element, source=game_id, dest_list=[dest]))
     
         # Announce each message
         for x in outgoing_msgs:  self.announce(x)
@@ -123,7 +123,7 @@ class GameRouterHandler(CommChannel):
 #--------------------
 class NewGameHandler(GameRouterHandler):
     """React to New Game requests from server."""
-    # Overriden member
+    # Overridden member
     def respond(self, msg):
         
         if msg.data['game'] != '0':
