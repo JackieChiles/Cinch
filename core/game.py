@@ -278,7 +278,7 @@ class Game:
         gamelog = open('logs/'+str(self.gs.game_id)+'.log', 'a')
         message = {'actvP': self.gs.active_player}
         
-        if status in ['eob', 'eoh']:
+        if status in ['sog', 'eob', 'eoh']:
             # Handle switching game modes first.
             message['mode'] = self.gs.game_mode
             
@@ -368,7 +368,7 @@ class Game:
                                   file=gamelog)
                             print(", ".join(str(card) for card in player.hand),
                                   file=gamelog)
-                            message['tgt'] = player.pNum
+                            output[player.pNum]['tgt'] = [player.pNum]
             
         elif status in ['bid', 'eob']:
             message['bid'] = data
@@ -406,7 +406,7 @@ class Game:
                       file=gamelog)
                 print(", ".join(str(card) for card in player.hand),
                       file=gamelog)
-                message['tgt'] = [player.pNum]        
+                output[player.pNum]['tgt'] = [player.pNum]        
             
         # Note: New hands are handled differently from all others because they
         # are the only ones dealing with private information. If status is
