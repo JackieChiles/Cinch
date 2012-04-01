@@ -183,16 +183,4 @@ class GameState:
         return
         
 if __name__ == "__main__":
-    print("Default Game State")
-    gs = GameState(2000)
-    gs.dealer = 2
-    gs.high_bid = 5
-    gs.declarer = 0
-    gs.trump = 3
-    d = cards.Deck()
-    for x in range(36):
-        gs.team_stacks[x%2].append(d.deal_one())
-        gs.team_stacks[x%2][-1].owner = x % NUM_PLAYERS
-    print(gs.team_stacks)
-    gs.score_hand()
-    print(gs.scores)   
+    print("Are your cats old enough to learn about Jesus?")  

@@ -75,7 +75,7 @@ class Game:
             return False    # Bid outside legal range.
         if bid > self.gs.high_bid:
             return 'high'   # New high bid; legal.
-        if (bid == BID.CINCH & player.pNum == self.gs.dealer):
+        if (bid == BID.CINCH) & (player.pNum == self.gs.dealer):
             return 'cntr'   # Dealer has option to counter-cinch.
         return False        # If we get here, no legal options left.
 
@@ -146,7 +146,6 @@ class Game:
         elif bid_status is 'cntr':
             self.gs.declarer = player_num # Set declarer; bid already cinch.
             self.gs.countercinch = True
-            # Not adding 'bid' message because high_bid has not changed.
             
         # Is bidding over? Either way, publish and return.
         if self.gs.active_player == self.gs.dealer: # Dealer always last to bid
@@ -232,17 +231,14 @@ class Game:
         
         # This block breaks if there are more than two teams.        
         if victor:
-            if score[self.gs.declarer % TEAM_SIZE] >= 11:
-                self.winner = self.gs.declarer % TEAM_SIZE
-                pass
+            if self.gs.scores[self.gs.declarer % TEAM_SIZE] >= 11:
+                self.gs.winner = self.gs.declarer % TEAM_SIZE
             else:
-                self.winner = (self.gs.declarer + 1) % TEAM_SIZE
-                pass
+                self.gs.winner = (self.gs.declarer + 1) % TEAM_SIZE
             return self.publish('eog', player_num, card)
                 
         # If no victor, set up for next hand.
-        for stack in self.gs.team_stacks:
-            stack = []
+        self.gs.team_stacks = [[] for _ in range(NUM_TEAMS)]
         self.gs.dealer = self.gs.next_player(self.gs.dealer)
         self.gs.declarer = self.gs.dealer
         self.deck = cards.Deck()
@@ -353,8 +349,10 @@ class Game:
                     if status is 'eog':
                         message['win'] = self.gs.winner
                         # Team TeamW wins!
-                        print("Team", self.players[self.gs.winner], "wins!",
-                              file=gamelog)
+                        print("Team", self.players[self.gs.winner].name,
+                              "wins!", file=gamelog)
+                        print(datetime.now(timezone.utc), file=gamelog)
+                        print("################################", file=gamelog)
                     else: # Status must be 'eoh': Set up for next hand.
                         message['dlr'] = self.gs.dealer
                         # Player deals.
@@ -422,9 +420,9 @@ class Game:
         gamelog.close()
         
         # TODO These print statements for debugging/testing only.
-        print("************",
-              self.players[self.gs.active_player].name, "is next to act.",
-              "************")
+        #print("************",
+        #      self.players[self.gs.active_player].name, "is next to act.",
+        #      "************")
         
         return output
 
@@ -437,9 +435,6 @@ class Game:
         self.players = [Player(x, game_id, "Test"+str(x))
                         for x in range(NUM_PLAYERS)]
         self.gs = GameState(game_id)
-        
-        for stack in self.gs.team_stacks:
-            stack = []
         self.deck = cards.Deck()
         self.deal_hand()
         self.gs.active_player = self.gs.next_player(self.gs.dealer)
