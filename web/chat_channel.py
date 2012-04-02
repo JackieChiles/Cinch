@@ -2,7 +2,7 @@
 """Chat engine using CommChannel class."""
 import web.web_config as config
 from web.channel import CommChannel
-from web.message import Message # for assertion
+from web.message import Message # For assertion
 
 CHAT_SIGNATURE = ['msg']
 
@@ -52,12 +52,11 @@ class ChatEngine(CommChannel):
         recipients = cm.get_clients_in_group(group_id)
 
         # Package into Message and notify the server
-        ##(??) uNum is the clients ID number within the chat room (cf. pNum)
+        ## uNum is the clients ID number within the chat room (cf. pNum)
         uNum = recipients.index(incoming_msg.source)
         msg_data = {'uNum':uNum, 'msg':chat}
-        msg = Message(msg_data,
-                      source=incoming_msg.source, dest_list=recipients)
-        self.announce(msg)
-
+        for r in recipients:
+            self.announce(Message(msg_data, r))
+        
         # No error conditions exist for chat, so return None
         return None

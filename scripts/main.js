@@ -72,7 +72,6 @@ var playerNames = [
 //Development
 var responseCount = 0;
 
-var lastUpdateID = 0;
 var guid = 0;
 var myPlayerNum = 0; //Player num assigned by server (self is always playerEnum.south)
 var isActivePlayer = false;
@@ -363,8 +362,6 @@ function HandleResponse(result) {
     if (result !== null) {
         var current;
         
-        lastUpdateID = result.new;
-        
         if (result.hasOwnProperty('msgs')) {
             var updates = result.msgs;
         }
@@ -397,9 +394,9 @@ function StartLongPoll() {
     $.ajax({
         url: serverUrl,
         type: 'GET',
-        data: {'uid':guid, 'last':lastUpdateID},
+        data: {'uid':guid},
         dataType: 'json',
-        success: function (result, testStatus, jqXHR) {
+        success: function (result, textStatus, jqXHR) {
             //Development
             responseCount++;
             LogDebugMessage('Long poll response ' + responseCount + ' received from server: ' + JSON.stringify(result));
@@ -408,7 +405,7 @@ function StartLongPoll() {
         },
         error: function (jqXHR, textStatus, errorThrown) {
             LogDebugMessage('Error starting long poll: ' + errorThrown);
-            StartLongPoll = 0;
+            StartLongPoll = function() {;};
         },
         complete: function (jqXHR, textStatus) {
             //Take care of any queued items

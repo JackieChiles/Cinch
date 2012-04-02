@@ -101,21 +101,24 @@ class GameRouterHandler(CommChannel):
         server.add_announcer(self)
 
     def announce_msgs_from_game(self, msg_list, game_id):
-        """Build Messages from Game and announce to web server."""
-        #TODO: if the message for multiple clients is the same,
-        #       combine the destinations into one message
+        """Build Messages from Game and announce to web server.
+
+        msg_list (list of dicts): outgoing data; one element per destination
+        game_id (int): id num of related Game
+
+        """
         outgoing_msgs = []
-        
         for element in msg_list:
             dest_pNum = element.pop('tgt')
             for target in dest_pNum:
                 # Convert pNum to uid
                 dest = cm.get_client_by_player_num(game_id, target)
                 outgoing_msgs.append(
-                    Message(element, source=game_id, dest_list=[dest]))
+                    Message(element, target=dest, source=game_id))
     
         # Announce each message
-        for x in outgoing_msgs:  self.announce(x)
+        for m in outgoing_msgs:
+            self.announce(m)
 
 
 #--------------------
@@ -149,7 +152,6 @@ class NewGameHandler(GameRouterHandler):
 
         ######
         # FUTURE: Set limit on # concurrent games and enforce limit here.
-        #       Will make use of thread pool (where?); pool size = limit.
         ######
         
         # Create new game object and add to router.games and client_mgr
