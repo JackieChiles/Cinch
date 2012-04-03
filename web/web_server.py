@@ -5,7 +5,6 @@ Comet web server for Cinch game engine communication with clients.
 TODO:   
         Add logging
         Change Access-Control-Allow-Origin to appropriate resource
-        ! Threading on POST causing race conditions/anomalies (rapid chat)
 
 """
 from http.server import HTTPServer,BaseHTTPRequestHandler  
@@ -24,7 +23,7 @@ from web.message import Message
 class CometServer(ThreadingMixIn, HTTPServer):    
     """Perform event handling for comet long polling using many threads."""
     def __init__(self, hostname, port):
-        """Initialize server. Overrides inherited __init__."""
+        """Initialize server. Overrides inherited HTTPServer __init__."""
         super(HTTPServer, self).__init__((hostname, port), HttpHandler)
 
         max_connections = config.MAX_CLIENTS
@@ -33,11 +32,11 @@ class CometServer(ThreadingMixIn, HTTPServer):
         # For each new request, create a deque
         self.handler_queue = deque(maxlen=max_connections)
 
-        # For temporary message storate        
+        # For temporary message storage        
         self.message_queue = deque(maxlen=cache_size)
         
-        self.lock = Lock()  #thread control for message_queue
-        self.responders = []
+        self.lock = Lock()    # Thread control for server
+        self.responders = []  # List of CommChannels for handling POST queries
 
     ####################
     # Server-focused methods
@@ -47,10 +46,12 @@ class CometServer(ThreadingMixIn, HTTPServer):
         try:
             self.serve_forever()
         except KeyboardInterrupt:   # Exit gracefully
-            while len(self.handler_queue) > 0:
-                h = self.handler_queue.pop()
-                h.event.set()
-            self.shutdown()
+            # Release all handler threads so server doesn't wait for timeout
+            hq = list(self.handler_queue)
+            for h in hq:
+                try:  h.event.set()
+                except:  pass  # h may have exited on its own
+                
             print("Server halted with keyboard interrupt.\n")
 
     def add_announcer(self, channel):
@@ -134,10 +135,10 @@ class CometServer(ThreadingMixIn, HTTPServer):
         # Check if handler for guid is already in queue. If so, close out all
         # old ones. Should only be at most one handler per guid, but loop just
         # in case.
-        old_handler = self.get_handler(http_handler.guid)
+        old_handler = self.retrieve_handler(http_handler.guid)
         while old_handler is not None:
             self.release_handler(old_handler)
-            old_handler = self.get_handler(http_handler.guid)    
+            old_handler = self.retrieve_handler(http_handler.guid)    
 
         # If there are old messages in the queue, send them now
         output = self.get_old_messages(http_handler.guid)
@@ -155,7 +156,7 @@ class CometServer(ThreadingMixIn, HTTPServer):
             
             return True  # Do http_handler.event.wait() from calling method
 
-    def get_handler(self, guid):
+    def retrieve_handler(self, guid):
         """Get active HttpHandler object for guid from handler_queue.
 
         guid (str): guid of client creating http request
@@ -180,7 +181,7 @@ class CometServer(ThreadingMixIn, HTTPServer):
             output = [y.data for y in msgs]
 
             # Remove those messages from message_queue
-            # (Attempts to streamline this block cause failures)
+            # (Attempts to streamline this block cause Lock failures)
             if len(msgs) > 0:
                 with self.lock: 
                     for msg in msgs:
@@ -203,7 +204,7 @@ class CometServer(ThreadingMixIn, HTTPServer):
 
         target = msg.target
 
-        handler = self.get_handler(target)
+        handler = self.retrieve_handler(target)
         if handler is not None:
             with self.lock:
                 # Gather any messages from queue for target, plus incoming msg
@@ -271,11 +272,10 @@ class HttpHandler(BaseHTTPRequestHandler):
         Input from POSTs are assumed to require evaluation by the server
         and will be parsed and passed to the appropriate engine.
 
-        TODO: De-thread POST, while keeping GET threaded  
         """
         # Parse request
         content_len = int(self.headers['content-length'])
-        self.parse_data(self.rfile.read(content_len))
+        self.parse_data(self.rfile.read(content_len).decode()) # Decode bytes
 
         # Acknowledge request with status code and headers regardless of
         # content. This lets browser finish request cleanly.
@@ -288,30 +288,28 @@ class HttpHandler(BaseHTTPRequestHandler):
         if guid:  del self.data[config.GUID_KEY]
         
         msg = Message(self.data, source=guid)
-        
+
         # If guid of POST is same as an active GET, close out GET to give
         # client a free connection -- HTTP best-practices: there should be no
         # more than 2 connections to a server from a single client. If the
         # client wants to spam POSTs, though, we won't stop it.
         if guid is not None:
-            active_get_handler = self.server.get_handler(guid)
+            active_get_handler = self.server.retrieve_handler(guid)
             if active_get_handler is not None:
                 active_get_handler.event.set()  # Close-out GET request now
 
-        # Delegate data to appropriate channel
-        ##TODO refactor; allow for mult channels or not
+        # Delegate data to appropriate channel; supports multiple channels
         channels = [x['channel'] for x in self.server.responders
                     if self.server.matches_signature(x, msg)]
 
         if len(channels) > 0:
-            response = self.server.handle_msg(channels[0], msg)
+            for channel in channels:
+                response = self.server.handle_msg(channel, msg)
 
-            if response is None:  # Most common case
-                pass
-            elif isinstance(response, dict): 
-                self.send_message(response, mode="POST")
-            else:
-                print("POST can't handle", response) ###TODO handle this case
+                if response is None:  # Most common case
+                    pass
+                elif isinstance(response, dict): 
+                    self.send_message(response, mode="POST")
 
         else:
            # No handler exists, so print error message
@@ -326,7 +324,7 @@ class HttpHandler(BaseHTTPRequestHandler):
         self.end_headers()
 
     def log_request(self, code="-", size="-"):
-        """Silence server output (from GET/POST connections).
+        """Silence server output from GET/POST requests.
 
         Overriden from BaseHTTPHandler.
         
@@ -336,27 +334,23 @@ class HttpHandler(BaseHTTPRequestHandler):
         else:
             super().log_request(code, size)
 
-    def parse_data(self, data):  #TODO refactor this if possible
-        """Parse raw_query into dictionary."""
-        try:
-            query = data.decode()     # convert bytes to str
-        except AttributeError:
-            query = data              # input already a str
-        finally:
-            query = escape(query)               # sanitize inputs
+    def parse_data(self, data):
+        """Parse raw request data into dictionary."""
+        assert isinstance(data, str)
+        
+        query = escape(data)  # Sanitize inputs
 
         try:
-            self.data = json.loads(query)
-        except ValueError:
-            # Data may be from GET query
-            try:
-                self.data = parse_qs(query) #query is (likely) from GET
-                # GET values get packed into lists by parse_qs, while we
-                # expect a single value per key. Unpack the "lists".
-                for k in self.data:
-                    self.data[k] = self.data[k][0]
-            except Exception:
-                self.data = {"Error": "Cannot parse data."}
+            data = parse_qs(query)
+
+            # parse_qs() wraps dict values in a list, so unpack them
+            for k in data:  data[k] = data[k][0]
+
+        except:
+            data = {"Error": "Cannot parse data."}
+
+        finally:
+            self.data = data
                 
     def send_message(self, data, mode="GET"):
         """Helper method for sending JSON-encoded data to client.
