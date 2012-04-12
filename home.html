@@ -10,6 +10,7 @@
         
         <script type="text/javascript" src="scripts/jquery-1.7.1.min.js"></script>
         <script type="text/javascript" src="jquery.mobile/jquery.mobile-1.0.1.min.js"></script>
+        <script type="text/javascript" src="scripts/knockout-2.1.0beta.js"></script>
         <script type="text/javascript" src="scripts/jquery.animate-shadow-min.js"></script>
         <script type="text/javascript" src="scripts/modernizr-2.0.6.js"></script>
 	<script type="text/javascript" src="scripts/main.js"></script>
@@ -29,7 +30,7 @@
                      }
                 });
 		
-		$('#play-surface').attr('width', PLAY_SURFACE_WIDTH).attr('height', PLAY_SURFACE_HEIGHT);
+		$('#play-surface').attr('width', CinchApp.PLAY_SURFACE_WIDTH).attr('height', CinchApp.PLAY_SURFACE_HEIGHT);
                 OutputMessage("Welcome to Cinch- it's pretty rad here.", 'System');
 		
 		//Development
@@ -42,6 +43,8 @@
                 else {
                     LogDebugMessage('Your browser does not support canvas and canvas text.');
                 }
+                
+                ko.applyBindings(viewModel);
             });
         </script>
     </head>
@@ -53,7 +56,7 @@
             </div>
             <div data-role="content">
                 <div id="home-buttons-container">
-                    <a data-role="button" href="game.html" onclick="SubmitNew(GAME_MODE_NEW)">New game</a>
+                    <a data-role="button" href="game.html" onclick="SubmitNew(CinchApp.GAME_MODE_NEW)">New game</a>
                     <a data-role="button" href="game.html" onclick="SubmitJoin(0, 0)">Join game</a>
                 </div>
             </div>
@@ -68,53 +71,29 @@
                     <li data-theme="a">
                         Bids
                     </li>
-                    <li data-role="list-divider">
-                        Left opponent
-                    </li>
-                    <li id="bid-1">
-                        -
-                    </li>
-                    <li data-role="list-divider">
-                        Right opponent
-                    </li>
-                    <li id="bid-3">
-                        -
-                    </li>
-                    <li data-role="list-divider">
-                        Partner
-                    </li>
-                    <li id="bid-2">
-                        -
-                    </li>
+                    
+                    <!-- ko foreach: playerNames -->
+                        <li data-bind="text: $data" data-role="list-divider"></li>
+                        <li data-bind="text: $root.currentBidsNames()[parseInt($index())]"></li>
+                    <!-- /ko -->
                 </ul>
                 
 		<fieldset data-role="controlgroup" id="bid-controls">
-		    <input type="radio" name="bid-radio" id="radio-choice-0" value="0" />
-		    <label for="radio-choice-0">Pass</label>
-	    
-		    <input type="radio" name="bid-radio" id="radio-choice-1" value="1" />
-		    <label for="radio-choice-1">One</label>
-	    
-		    <input type="radio" name="bid-radio" id="radio-choice-2" value="2" />
-		    <label for="radio-choice-2">Two</label>
-	    
-		    <input type="radio" name="bid-radio" id="radio-choice-3" value="3" />
-		    <label for="radio-choice-3">Three</label>
+                    <!-- ko foreach: possibleBids -->
+                        <input type="radio" data-bind="value: value, checked: $root.selectedBid, jqmCbrEnabled: isValid, attr: { id: 'bid-radio-' + value }" name="bid-radio" />
+                        <label data-bind="text: name, attr: { for: 'bid-radio-' + value }"></label>
+                    <!-- /ko -->
 		    
-		    <input type="radio" name="bid-radio" id="radio-choice-4" value="4" />
-		    <label for="radio-choice-4">Four</label>
-		    
-		    <input type="radio" name="bid-radio" id="radio-choice-5" value="5" />
-		    <label for="radio-choice-5">Cinch</label>
-		    
-		    <input type="button" id="bid-submit" value="Submit bid" onclick="SubmitBid(parseInt($('input:radio[name=bid-radio]:checked').val()))"/>
+		    <input type="button" data-bind="click: submitBid, jqmButtonEnabled: isActivePlayer" id="bid-submit" value="Submit bid" />
 		</fieldset>
                 
                 <strong>
                     Your hand:
                 </strong>
                 
-                <div id="bid-hand"></div>
+                <div data-bind="foreach: cardsInHand" id="bid-hand">
+                    <img data-bind="attr: { src: imagePath }" />
+                </div>
 	    </div>
 	</div><!-- /bidding page -->
     </body>

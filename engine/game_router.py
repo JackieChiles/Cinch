@@ -101,21 +101,24 @@ class GameRouterHandler(CommChannel):
         server.add_announcer(self)
 
     def announce_msgs_from_game(self, msg_list, game_id):
-        """Build Messages from Game and announce to web server."""
-        #TODO: if the message for multiple clients is the same,
-        #       combine the destinations into one message
+        """Build Messages from Game and announce to web server.
+
+        msg_list (list of dicts): outgoing data; one element per destination
+        game_id (int): id num of related Game
+
+        """
         outgoing_msgs = []
-        
         for element in msg_list:
             dest_pNum = element.pop('tgt')
-
-            # Convert pNum to uid
-            dest = cm.get_client_by_player_num(game_id, dest_pNum)
-            outgoing_msgs.append(
-                Message(element, source=game_id, dest_list=[dest]))
+            for target in dest_pNum:
+                # Convert pNum to uid
+                dest = cm.get_client_by_player_num(game_id, target)
+                outgoing_msgs.append(
+                    Message(element, target=dest, source=game_id))
     
         # Announce each message
-        for x in outgoing_msgs:  self.announce(x)
+        for m in outgoing_msgs:
+            self.announce(m)
 
 
 #--------------------
@@ -123,16 +126,32 @@ class GameRouterHandler(CommChannel):
 #--------------------
 class NewGameHandler(GameRouterHandler):
     """React to New Game requests from server."""
-    # Overriden member
+    # Overridden member
     def respond(self, msg):
         
         if msg.data['game'] != '0':
             # May support other types of game requests in the future
             return None
 
+        # TODO: remove this code block; in place for debugging
+
+        # Purge existing game -- allow us to restart game w/o restarting server
+        # while working in single-game development mode (game # 0)
+        # This can result in some (non-fatal) errors for the server, but
+        # that's okay; this is a hack for development
+        try:
+            old_game = self.router.games.pop(0)
+            del old_game
+            cm.groups.pop(0)
+            
+            #should remove old client GUIDs, but I don't care.
+        except KeyError: # no game 0 created yet
+            pass
+
+        ###### remove to here
+
         ######
         # FUTURE: Set limit on # concurrent games and enforce limit here.
-        #       Will make use of thread pool (where?); pool size = limit.
         ######
         
         # Create new game object and add to router.games and client_mgr

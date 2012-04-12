@@ -1,0 +1,71 @@
+2012-03-30 15:04:54.928530+00:00
+Cinch game with players: Test0, Test1, Test2, Test3
+Game ID: 4000 
+
+Test0 deals.
+Test0's hand: 7♠, 4♥, 8♦, A♦, 6♠, 2♥, A♠, 3♥, 7♣
+Test1's hand: Q♠, J♣, 4♣, 5♦, 7♥, 4♦, K♦, Q♥, K♣
+Test2's hand: 2♠, 2♣, 4♠, 8♠, 9♠, 5♣, 6♦, 8♣, 6♥
+Test3's hand: 8♥, 3♠, 9♣, 9♦, 5♠, 2♦, Q♦, J♦, 6♣
+Test1 passes.
+Test2 passes.
+Test3 passes.
+Test0 passes.
+Test0 declared diamonds as trump.
+Test0 played A♦.
+Test1 played 5♦.
+Test2 played 6♦.
+Test3 played Q♦.
+Test0 won the trick with A♦.
+Test0 played 3♥.
+Test1 played Q♥.
+Test2 played 6♥.
+Test3 played 8♥.
+Test1 won the trick with Q♥.
+Test1 played Q♠.
+Test2 played 2♠.
+Test3 played 3♠.
+Test0 played 7♠.
+Test1 won the trick with Q♠.
+Test1 played J♣.
+Test2 played 2♣.
+Test3 played 9♣.
+Test0 played 7♣.
+Test1 won the trick with J♣.
+Test1 played K♦.
+Test2 played 5♣.
+Test3 played J♦.
+Test0 played 8♦.
+Test1 won the trick with K♦.
+Test1 played 7♥.
+Test2 played 8♠.
+Test3 played 9♦.
+Test0 played 4♥.
+Test3 won the trick with 9♦.
+Test3 played 5♠.
+Test0 played 6♠.
+Test1 played 4♣.
+Test2 played 4♠.
+Test0 won the trick with 6♠.
+Test0 played 2♥.
+Test1 played 4♦.
+Test2 played 9♠.
+Test3 played 2♦.
+Test1 won the trick with 4♦.
+Test1 played K♣.
+Test2 played 8♣.
+Test3 played 6♣.
+Test0 played A♠.
+Test1 won the trick with K♣.
+Hand results:
+-------------
+Team Test0: High [Game points: 6]
+Team Test1: Low Jack Game [Game points: 16]
+Declarer made bid.
+
+New scores: [1, 3]
+Test1 deals.
+Test0's hand: 9♥, J♠, 9♣, A♣, 5♣, Q♦, 8♠, T♦, Q♥
+Test1's hand: T♣, 5♦, 3♦, 2♠, K♠, 4♥, Q♠, K♥, 6♣
+Test2's hand: 2♥, 5♥, J♦, 3♣, A♥, J♣, 3♠, T♥, 8♣
+Test3's hand: T♠, 3♥, 7♠, 8♥, 7♦, 5♠, 6♦, Q♣, 2♦

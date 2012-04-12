@@ -7,6 +7,7 @@ TODO: game logging functionality
 
 """
 import random
+from datetime import datetime, timezone
 
 #this allows game.py to be ran alone from core dir AND as part of cinch.py
 # for development.
@@ -24,9 +25,10 @@ except ImportError:
 
 #Constants and global variables
 STARTING_HAND_SIZE = 9
-NUM_PLAYERS = 4
-GAME_MODE = common.enum(PLAY=1, BID=2)
+NUM_TEAMS = 2
 TEAM_SIZE = 2
+NUM_PLAYERS = NUM_TEAMS * TEAM_SIZE
+GAME_MODE = common.enum(PLAY=1, BID=2)
 
 # Bid constants
 BID = common.enum(PASS=0, CINCH=5)
@@ -48,22 +50,11 @@ class Game:
         self.players = []
         self.gs = None
         self.deck = cards.Deck()
-        self.log = []
 
     def __repr__(self):
         """Return descriptive string when asked to print object."""
-        return "Cinch game with players: {0}".format(
-            [(p.name, p.pNum) for p in self.players])
-        
-    def create_players(self):
-        """
-        Instantiate Player objects based on args, pack into array,
-        and set internal variable.
-
-        """
-        #if there is nothing more to do here, put line in start_game and
-        #remove this method.
-        self.players = [Player(x) for x in range(NUM_PLAYERS)]
+        return "Cinch game with players: "+", ".join(str(_.name) for _ in
+                                                     self.players)
 
     def check_bid_legality(self, player, bid):
         """Check a proposed bid for legality against the current gs. Assumes
@@ -74,6 +65,8 @@ class Game:
         bid (int): integer [0-5] value of bid; BID.PASS=0, BID.CINCH=5
 
         """
+        if self.gs.game_mode != GAME_MODE.BID:
+            return False    # Can't bid during play phase.
         if bid == BID.PASS:
             return 'pass'   # Always legal to pass.
         if bid < BID.PASS:
@@ -82,7 +75,7 @@ class Game:
             return False    # Bid outside legal range.
         if bid > self.gs.high_bid:
             return 'high'   # New high bid; legal.
-        if (bid == BID.CINCH & player.pNum == self.gs.dealer):
+        if (bid == BID.CINCH) & (player.pNum == self.gs.dealer):
             return 'cntr'   # Dealer has option to counter-cinch.
         return False        # If we get here, no legal options left.
 
@@ -103,18 +96,19 @@ class Game:
                 break
 
         if not has_card:
-            return False
-        
+            return False     # Must play a card in hand.
+        if self.gs.game_mode != GAME_MODE.PLAY:
+            return False     # Can't play during bid phase.
         if len(self.gs.cards_in_play) == 0:
-            return True # No restrictions on what cards can be led.
+            return True      # No restrictions on what cards can be led.
         if card.suit is self.gs.trump:
-            return True # Trump is always OK
+            return True      # Trump is always OK
         if card.suit is self.gs.cards_in_play[0].suit:
-            return True # Not trump, but followed suit.
+            return True      # Not trump, but followed suit.
         for each_card in player.hand:
             if each_card.suit is self.gs.cards_in_play[0].suit:
                 return False # Could have followed suit with a different card.
-        return True # Couldn't follow suit, throwing off.
+        return True          # Couldn't follow suit, throwing off.
         
     def deal_hand(self):
         """Deal new hand to each player and set card ownership."""
@@ -151,24 +145,16 @@ class Game:
             self.gs.declarer = player_num
         elif bid_status is 'cntr':
             self.gs.declarer = player_num # Set declarer; bid already cinch.
-            self.log.append({'type': 'counter', 'dealer': self.gs.dealer})
-            # Not adding 'bid' message because high_bid has not changed.
-            
-        self.log.append({'type': 'bid', 'bid': bid})
+            self.gs.countercinch = True
             
         # Is bidding over? Either way, publish and return.
         if self.gs.active_player == self.gs.dealer: # Dealer always last to bid
             self.gs.active_player = self.gs.declarer
             self.gs.game_mode = GAME_MODE.PLAY
-            self.log.append({'type': 'active-player',
-                             'player': self.gs.active_player})
-            self.log.append({'type': 'mode', 'mode': self.gs.game_mode})
-            return self.publish()
+            return self.publish('eob', player_num, bid)
         else:
             self.gs.active_player = self.gs.next_player(self.gs.active_player)
-            self.log.append({'type': 'active-player',
-                             'player': self.gs.active_player})
-            return self.publish()
+            return self.publish('bid', player_num, bid)
             
         raise NotImplementedError("Bid handling incomplete") # Debugging.
                 
@@ -197,33 +183,28 @@ class Game:
         #--------------------------------------------------
         for card_pos, card in list(enumerate(self.players[player_num].hand)):
             if card.code == card_num:
-                if self.gs.trump is None: # First card played this hand?
-                    self.gs.trump = card.suit
-                    self.log.append({'type': 'trump', 'player': player_num,
-                                     'suit': card.suit})
                 a = self.players[player_num].hand.pop(card_pos)
                 self.gs.cards_in_play.append(a)
-                self.log.append({'type': 'card', 'player': player_num,
-                                 'card': card})
+                if self.gs.trump is None: # First card played this hand?
+                    self.gs.trump = card.suit
+                    self.gs.active_player = self.gs.next_player(
+                                                    self.gs.active_player)
+                    return self.publish('trp', player_num, card)
                 break
                 
         # Check for end of trick and handle, otherwise return.
         #-----------------------------------------------------
-        winning_card = self.gs.trick_winner()
+        winning_card = self.gs.trick_winning_card()
         if winning_card == None:
             # Trick is not over
             self.gs.active_player = self.gs.next_player(self.gs.active_player)
-            self.log.append({'type': 'active-player',
-                             'player': self.gs.active_player})
-            return self.publish()
+            return self.publish('crd', player_num, card)
         else:
             trick_winner = winning_card.owner
             self.gs.active_player = trick_winner
             self.gs.team_stacks[trick_winner 
                                 % TEAM_SIZE] += self.gs.cards_in_play
             self.gs.cards_in_play = []
-            self.log.append({'type': 'trick', 'player': trick_winner,
-                             'card': winning_card})
 
 
         # Check for end of hand and handle, otherwise return.
@@ -238,13 +219,10 @@ class Game:
             raise RuntimeError("Cards in hand not even.")
         if cards_left != 0:
             # More tricks to play
-            self.log.append({'type': 'active-player', 'player': trick_winner})
-            return self.publish()
+            return self.publish('eot', player_num, card)
             
-        # Check victory conditions and handle.
-        score_changes = self.gs.score_hand()
-        self.log.append({'type': 'score-chg', 'score-chg': score_changes})
-        self.log.append({'type': 'scores', 'scores': self.gs.scores})
+        # Log hand results and check victory conditions.
+        self.gs.score_hand()
         victor = False
         for score in self.gs.scores:
             if score >= 11:
@@ -253,108 +231,198 @@ class Game:
         
         # This block breaks if there are more than two teams.        
         if victor:
-            if score[self.gs.declarer % TEAM_SIZE] >= 11:
-                self.log.append({'type': 'winner',
-                                 'team': self.gs.declarer % TEAM_SIZE})
-                pass
+            if self.gs.scores[self.gs.declarer % TEAM_SIZE] >= 11:
+                self.gs.winner = self.gs.declarer % TEAM_SIZE
             else:
-                self.log.append({'type': 'winner',
-                                 'team': (self.gs.declarer + 1) % TEAM_SIZE})
-                pass
-            return self.publish()
+                self.gs.winner = (self.gs.declarer + 1) % TEAM_SIZE
+            return self.publish('eog', player_num, card)
                 
         # If no victor, set up for next hand.
-        for stack in self.gs.team_stacks:
-            stack = []
+        self.gs.team_stacks = [[] for _ in range(NUM_TEAMS)]
         self.gs.dealer = self.gs.next_player(self.gs.dealer)
         self.gs.declarer = self.gs.dealer
         self.deck = cards.Deck()
         self.deal_hand()
         self.gs.active_player = self.gs.next_player(self.gs.dealer)
+        self.gs.high_bid = 0
         self.gs.game_mode = GAME_MODE.BID
         self.gs.trump = None
-        
-        # Log/Message: new hands, dealer, active player, game mode
-        for player in self.players:
-            self.log.append({'type': 'hand', 'player': player.pNum,
-                             'cards': player.hand})
-        self.log.append({'type': 'dealer', 'player': self.gs.dealer})
-        self.log.append({'type': 'active-player',
-                         'player': self.gs.active_player})
-        self.log.append({'type': 'mode', 'mode': self.gs.game_mode})
-        return self.publish()
+        self.gs.countercinch = False
 
-    def publish(self):
-        """Translate game actions into messages for clients."""
-        # Could optimize by adding stuff like type=trump to 1 dict and copying
-        # before going through and adding player-specific stuff.
-        # Also order switch statement from most-used to least.
-        output = [{'tgt': i} for i in range(NUM_PLAYERS)]
-        for entry in self.log:
+        return self.publish('eoh', player_num, card)
+
+    def publish(self, status, pNum, data):
+        """Translate game actions into messages for clients.
+        Also write data to the appropriate game log file on the server.
         
-            if entry['type'] == 'trump':
-                for message in output:
-                    message['trp'] = entry['suit']
-                # gamelog(Player X declared suit Y as trump.)
-                
-            elif entry['type'] == 'card':
-                for message in output:
-                    message['playC'] = entry['card'].code
-                    if message['tgt'] == entry['player']:
-                        message['remC'] = entry['card'].code
-                # gamelog(Player X played card Y.)
-                
-            elif entry['type'] == 'bid':
-                for message in output:
-                    message['bid'] = entry['bid']
-                
-            elif entry['type'] == 'active-player':
-                for message in output:
-                    message['actvP'] = entry['player']
-                    
-            elif entry['type'] == 'trick':
-                for message in output:
-                    message['remP'] = entry['player']
-                # gamelog(Player X won the trick with card Y.)
-                
-            elif entry['type'] == 'score-chg':
-                pass # gamelog(Going to need to handle this differently.)
-                
-            elif entry['type'] == 'scores':
-                for message in output:
-                    message['sco'] = entry['scores']
-                # gamelog(New scores: X1, X2)
-                
-            elif entry['type'] == 'winner':
-                for message in output:
-                    message['win'] = entry['team']
-                # gamelog(Team X wins!)
-                
-            elif entry['type'] == 'hand':
-                for message in output:
-                    if message['tgt'] == entry['player']:
-                        message['addC'] = [card.code for
-                                           card in entry['cards']]
-                        
-            elif entry['type'] == 'dealer':
-                for message in output:
-                    message['dlr'] = entry['player']
-                # gamelog(Player X deals.)
+        status (str): 3-char code specifying the event type.
+        Legal values:
+            bid: 3/hand, normal bid.
+            eob: 1/hand, final bid.
+            trp: 1/hand, first card played.
+            crd: 26/hand, normal card play.
+            eot: 8/hand, end of trick.
+            eoh: 1/hand, end of hand.
+            eog: 1/game, end of game.
+        pNum (int): local player number
+        data (int or Card): Card object being played by player for modes
+            trp, crd, eot, eoh, eog; integer encoding of bid for bid and eob.
+
+        """
+        
+        # Initialize the output. Message always contains actvP, so do it here.
+        gamelog = open('logs/'+str(self.gs.game_id)+'.log', 'a')
+        message = {'actvP': self.gs.active_player}
+        
+        if status in ['sog', 'eob', 'eoh']:
+            # Handle switching game modes first.
+            message['mode'] = self.gs.game_mode
             
-            elif entry['type'] == 'mode':
-                for message in output:
-                    message['mode'] = entry['mode']
-                    
-            elif entry['type'] == 'counter':
-                # gamelog(Dealer, Player entry['player'], counter-cinches!)
-                pass
-                    
-            else:
-                print("Warning: Unknown internal msg type {0}; ignoring.",
-                      entry['type'])
+        if status in ['trp', 'crd', 'eot', 'eoh', 'eog']:
         
-        #Everything in log has been handled, clear it        
-        self.log = []
+            if status is 'trp':
+                message['trp'] = self.gs.trump
+                # Player declared Suit as trump.
+                print(self.players[pNum].name, "declared",
+                      cards.SUITS_BY_NUM[self.gs.trump], "as trump.",
+                      file=gamelog)
+                      
+            message['playC'] = data.code
+            # Player played Card.
+            print(self.players[pNum].name, "played", ''.join([str(data), "."]),
+                  file=gamelog)
+            
+            if status in ['eot', 'eoh', 'eog']:
+                message['remP'] = self.gs._t_w_card.owner
+                # Player won the trick with Card.
+                print(self.players[message['remP']].name,
+                      "won the trick with", ''.join([str(self.gs._t_w_card),
+                      "."]), file=gamelog)
+                
+                if status in ['eoh', 'eog']:
+                    message['mp'] = ['',]*NUM_TEAMS # Initialize
+                    # We will end up with a list of NUM_TEAMS strings,
+                    # where the string is the match points out of 'hljg' won.
+                    message['mp'][self.gs._results['high_holder']] += 'h'
+                    message['mp'][self.gs._results['low_holder']] += 'l'
+                    try:
+                        message['mp'][self.gs._results['jack_holder']] += 'j'
+                    except TypeError: # No jack out, NoneType.
+                        pass
+                    try:
+                        message['mp'][self.gs._results['game_holder']] += 'g'
+                    except TypeError: # Game tied and not awarded, NoneType.
+                        pass
+                    message['gp'] = self.gs._results['game_points']
+                    message['sco'] = self.gs.scores
+                    
+                    # Hand results:
+                    # -------------
+                    # Team Team0: High Low [Game Points: 20]
+                    # Team Team1: Jack Game [Game Points: 28]
+                    # Declarer [was set|made bid].
+                    # 
+                    # New scores: 2, 2
+                    #
+                    print("Hand results:\n-------------", file=gamelog)
+                    for num in range(NUM_TEAMS):
+                        print("Team ", self.players[num].name, ": ", sep='',
+                              end='', file=gamelog)
+                        if self.gs._results['high_holder'] == num:
+                            print("High ", end='', file=gamelog)
+                        if self.gs._results['low_holder'] == num:
+                            print("Low ", end='', file=gamelog)
+                        if self.gs._results['jack_holder'] == num:
+                            print("Jack ", end='', file=gamelog)
+                        if self.gs._results['game_holder'] == num:
+                            print("Game ", end='', file=gamelog)
+                        print("[Game points: ",
+                              self.gs._results['game_points'][num], "]",
+                              sep='', file=gamelog)
+                    # Blank lines intentional
+                    if self.gs._results['declarer_set']:
+                        print("Declarer was set.\n", file=gamelog)
+                    else:
+                        print("Declarer made bid.\n", file=gamelog)
+                    print("New scores:", self.gs.scores, file=gamelog)
+                    
+                    if status is 'eog':
+                        message['win'] = self.gs.winner
+                        # Team TeamW wins!
+                        print("Team", self.players[self.gs.winner].name,
+                              "wins!", file=gamelog)
+                        print(datetime.now(timezone.utc), file=gamelog)
+                        print("################################", file=gamelog)
+                    else: # Status must be 'eoh': Set up for next hand.
+                        message['dlr'] = self.gs.dealer
+                        # Player deals.
+                        print(self.players[self.gs.dealer].name, "deals.",
+                              file=gamelog)
+                        output = [message.copy() for _ in range(NUM_PLAYERS)]
+                        for player in self.players:
+                            output[player.pNum]['addC'] = [card.code for card
+                                                           in player.hand]
+                            print(player.name, "\'s hand: ", sep='', end = '',
+                                  file=gamelog)
+                            print(", ".join(str(card) for card in player.hand),
+                                  file=gamelog)
+                            output[player.pNum]['tgt'] = [player.pNum]
+            
+        elif status in ['bid', 'eob']:
+            message['bid'] = data
+            if self.gs.countercinch:
+                # Dealer Player counter-cinches!
+                print("Dealer", self.players[self.gs.dealer].name,
+                      "counter-cinches!", file=gamelog)
+            else:
+                if data == BID.PASS:
+                    # Player passes.
+                    print(self.players[pNum].name, "passes.", file=gamelog)
+                elif data == BID.CINCH:
+                    # Player cinches.
+                    print(self.players[pNum].name, "cinches.", file=gamelog)
+                else:
+                    # Player bid X.
+                    print(self.players[pNum].name, "bids", 
+                          ''.join([str(data), "."]), file=gamelog)
+
+        # Start of game is the same as end of hand except there are different
+        # logging requirements, so there's a little bit of duplicated code.
+        elif status is 'sog':
+            print(datetime.now(timezone.utc), file=gamelog)
+            print(self, file=gamelog)
+            print("Game ID:", self.gs.game_id, "\n", file=gamelog)
+            message['dlr'] = self.gs.dealer
+            # Player deals.
+            print(self.players[self.gs.dealer].name, "deals.",
+                  file=gamelog)
+            output = [message.copy() for _ in range(NUM_PLAYERS)]
+            for player in self.players:
+                output[player.pNum]['addC'] = [card.code for card
+                                               in player.hand]
+                print(player.name, "\'s hand: ", sep='', end = '',
+                      file=gamelog)
+                print(", ".join(str(card) for card in player.hand),
+                      file=gamelog)
+                output[player.pNum]['tgt'] = [player.pNum]        
+            
+        # Note: New hands are handled differently from all others because they
+        # are the only ones dealing with private information. If status is
+        # 'eoh'/'sog', output will be a length-4 list containing 4 dicts with
+        # 'tgt' containing an integer, and 'addC' containing the new hands. If
+        # not, output will be a length-1 list containing 1 dict with 'tgt' con-
+        # taining a length-4 list. (With 4 meaning NUM_PLAYERS, of course.)
+        if status not in ['eoh', 'sog']:
+            message['tgt'] = [i for i in range(NUM_PLAYERS)]
+            output = [message]
+        
+        gamelog.flush()
+        gamelog.close()
+        
+        # TODO These print statements for debugging/testing only.
+        #print("************",
+        #      self.players[self.gs.active_player].name, "is next to act.",
+        #      "************")
         
         return output
 
@@ -364,50 +432,21 @@ class Game:
         
         game_id (int): Assigned by game router. Defaults to 0 for testing.
         """
-        self.create_players()
+        self.players = [Player(x, game_id, "Test"+str(x))
+                        for x in range(NUM_PLAYERS)]
         self.gs = GameState(game_id)
-        
-        for stack in self.gs.team_stacks:
-            stack = []
         self.deck = cards.Deck()
         self.deal_hand()
         self.gs.active_player = self.gs.next_player(self.gs.dealer)
         self.gs.game_mode = GAME_MODE.BID
-        
+        self.gs.countercinch = False
         self.gs.trump = None
-        
-        # Log/Message: new hands, dealer, active player, game mode
-        for player in self.players:
-            self.log.append({'type': 'hand', 'player': player.pNum,
-                             'cards': player.hand})
-        self.log.append({'type': 'dealer', 'player': self.gs.dealer})
-        self.log.append({'type': 'active-player',
-                         'player': self.gs.active_player})
-        self.log.append({'type': 'mode', 'mode': self.gs.game_mode})
-        return self.publish()
+
+        return self.publish('sog', None, None)
         
 #test
 if __name__ == '__main__': 
     print("Creating new game with 4 players.")
     g = Game()
     g.start_game(4000)
-    print(g)
-    print("Undealt cards:",g.deck)
-    '''
-    print("trump =",g.gs.trump)
-    for x in range(8):
-        for ii in range(4):
-            g.players[ii].hand.pop()
-    for x in range(3):
-        g.gs.cards_in_play.append(g.players[x].hand.pop())
-        print(g.gs.cards_in_play)
-    print("players[3].hand=",g.players[3].hand)
-    g.gs.active_player = 3
-    hats = g.handle_card_played(3, g.players[3].hand[0].code)
-    for cats in hats:
-        print(cats)
-        '''
-    print("High bid:", g.gs.high_bid)
-    print("Active player:", g.gs.active_player)
-    print(g.handle_bid(g.gs.active_player, 0))
-    print("High bid:", g.gs.high_bid)
+    g.handle_bid(g.gs.active_player, 0)

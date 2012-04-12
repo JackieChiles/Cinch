@@ -1,16 +1,10 @@
 #!/usr/bin/python3
 """
-!Built for Initial Network Capability for handling Chat-like data, not game data.
+Comet web server for Cinch game engine communication with clients.
 
-Web server for game engine communication for Cinch (not for web pages).
-
-TODO:   Add send_error functionality
+TODO:   
         Add logging
         Change Access-Control-Allow-Origin to appropriate resource
-        See what happens if client closes connection while server is thinking
-        Client management using HTML5 WebStorage
-
-* Inspired by Voxound comet server
 
 """
 from http.server import HTTPServer,BaseHTTPRequestHandler  
@@ -28,25 +22,36 @@ from web.message import Message
 
 class CometServer(ThreadingMixIn, HTTPServer):    
     """Perform event handling for comet long polling using many threads."""
-    def __init__(self, hostname, port, cache_size=config.CACHE_SIZE):
-        """Initialize server. Overrides inherited __init__."""
-        HTTPServer.__init__(self, (hostname, port), HttpHandler)
+    def __init__(self, hostname, port):
+        """Initialize server. Overrides inherited HTTPServer __init__."""
+        super(HTTPServer, self).__init__((hostname, port), HttpHandler)
 
-        self.max = cache_size
-        self.lastid = 0
-        self.queue = deque(maxlen=cache_size)
-        self.events = []    #temp list of threads when many hit server at once
-        self.lock = Lock()  #thread control
-        self.responders = []
+        max_connections = config.MAX_CLIENTS
+        cache_size = config.CACHE_SIZE
 
-##    def log_message(self, format, *args):
-##        """Silence server output (from GET/POST connections)."""
-##        return
+        # For each new request, create a deque
+        self.handler_queue = deque(maxlen=max_connections)
+
+        # For temporary message storage        
+        self.message_queue = deque(maxlen=cache_size)
+        
+        self.lock = Lock()    # Thread control for server
+        self.responders = []  # List of CommChannels for handling POST queries
+
+    ####################
+    # Server-focused methods
+    ####################
 
     def run_server(self):
         try:
             self.serve_forever()
-        except KeyboardInterrupt:   # Exit gracefully with CTRL^C
+        except KeyboardInterrupt:   # Exit gracefully
+            # Release all handler threads so server doesn't wait for timeout
+            hq = list(self.handler_queue)
+            for h in hq:
+                try:  h.event.set()
+                except:  pass  # h may have exited on its own
+                
             print("Server halted with keyboard interrupt.\n")
 
     def add_announcer(self, channel):
@@ -81,27 +86,21 @@ class CometServer(ThreadingMixIn, HTTPServer):
         
         self.responders.append({'channel':channel, 'signature':signature})
 
-    def get_responder(self, msg):
-        """Checks server for registered response channel for msg.
+    def matches_signature(self, channel, msg):
+        """Determine if msg signature matches channel signature.
 
-        msg_data (dict or Message): incoming message data
-        returns: channel if exists, None if not
+        channel (CommChannel): channel
+        msg (Message): message
+
+        returns: True or False
 
         """
-        assert isinstance(msg, (dict, Message))
+        if (all (k in msg.data for k in channel['signature']) and
+            all (k in channel['signature'] for k in msg.data)):
+            return True
 
-        if isinstance(msg, Message):
-            msg_data = msg.data
         else:
-            msg_data = msg
-
-        for r in self.responders:
-            if (all (k in msg_data for k in r['signature']) and
-                all (k in r['signature'] for k in msg_data)):
-
-                return r['channel']
-
-        return None
+            return False
                 
     def handle_msg(self, channel, msg):
         """Handle event with registered channel.
@@ -115,116 +114,156 @@ class CometServer(ThreadingMixIn, HTTPServer):
         assert isinstance(channel, CommChannel)
         assert isinstance(msg, Message)
 
-        response = channel.respond(msg) #can be Message, dict, or None
+        response = channel.respond(msg)
 
         assert (isinstance(response, (Message, dict)) or response is None)
         
         return response
 
-    def retrieve(self, lastid, timeout):
-        """Retrieve all events from queue with lastid or later.
+    ####################
+    # Client-focused methods
+    ####################
 
-        lastid (int): last message id client had previously received
-        timeout (float): time (in seconds) for thread to wait for new message;
-            must be shorter than client-side AJAX timeout.
+    def capture_handler(self, http_handler):
+        """Add http_handler to handler_queue and set event flags for later.
+        
+        Captures handler for later writing to by notify().
+        
+        http_handler (HttpHandler): request handler
+        
+        """
+        # Check if handler for guid is already in queue. If so, close out all
+        # old ones. Should only be at most one handler per guid, but loop just
+        # in case.
+        old_handler = self.retrieve_handler(http_handler.guid)
+        while old_handler is not None:
+            self.release_handler(old_handler)
+            old_handler = self.retrieve_handler(http_handler.guid)    
+
+        # If there are old messages in the queue, send them now
+        output = self.get_old_messages(http_handler.guid)
+        if len(output) > 0:
+            # Return output for writing without further capture
+            http_handler.send_message(output)
+            return False
+
+        else:
+            # Set event() flag on handler
+            http_handler.event = Event()
+            
+            # Add handler to list of active http handlers        
+            self.handler_queue.append(http_handler)
+            
+            return True  # Do http_handler.event.wait() from calling method
+
+    def retrieve_handler(self, guid):
+        """Get active HttpHandler object for guid from handler_queue.
+
+        guid (str): guid of client creating http request
+        returns: HttpHandler, or None if no handler present for guid
 
         """
-        with self.lock:
-            #if events have occured since lastid, then get those events
-            if lastid >= 0 and lastid < self.lastid:
-                interval = self.lastid - lastid
-                if interval > self.max:
-                    interval = self.max
-
-                msgs = list(self.queue[interval*-1 + x] for
-                            x in range(interval))
-                return (True, (self.lastid, msgs))
-
-            #else listen for new event during timeout
-            event = Event()
-            self.events.append(event)
-
-        # No unseen messages, so wait for new message
-        event.wait(timeout)
-        if event.is_set():
-            #seems to exist a race condition between args 2.1 and 2.2
-##            return (True, (self.lastid, [self.queue[-1]]))
-            # New message(s) received during timeout, so go get them
-            # This preserves the connection and avoids race condition
-            return self.retrieve(lastid, timeout) 
+        my_handlers = [x for x in self.handler_queue if x.guid == guid]
+        if len(my_handlers) > 0:
+            return my_handlers[0] # Return first (oldest) handler in queue
         else:
-            return (False, None)
+            return None
+        
+    def get_old_messages(self, target):
+        """Retrieve any messages for target from message_queue.
 
+        target (str): guid of client
+
+        """        
+        if len(self.message_queue) > 0:
+            # Get all message data from message_queue for target
+            msgs = [x for x in self.message_queue if x.target==target]
+            output = [y.data for y in msgs]
+
+            # Remove those messages from message_queue
+            # (Attempts to streamline this block cause Lock failures)
+            if len(msgs) > 0:
+                with self.lock: 
+                    for msg in msgs:
+                        self.message_queue.remove(msg)
+
+        else:
+            output = []
+
+        return output
+        
     def notify(self, msg):
-        """Add new message to queue.
+        """Attempt to match msg up with active handler.
 
-        msg (Message): Message object containing source/dest/data.
+        If cannot find active handler, push into queue for later delivery.
+
+        msg (Message): Message object
 
         """
         assert isinstance(msg, Message)
 
-        # Enqueue message
-        with self.lock:        #locks the thread, then unlocks at end of block
-            self.lastid += 1
-            self.queue.append(msg)
+        target = msg.target
 
-            # thread management
-            for event in self.events: #frees all events created by retrieve
-                event.set()
-            self.events = []
+        handler = self.retrieve_handler(target)
+        if handler is not None:
+            with self.lock:
+                # Gather any messages from queue for target, plus incoming msg
+                # (get_old_messages() will ususally return [])
+                output = self.get_old_messages(target)
+                output.append(msg.data)
 
-  
+                handler.send_message(output)
+                handler.event.set() # Release wait()           
+
+        else:  # No handler for msg, so add to queue for later delivery
+            self.message_queue.append(msg)
+            
+    def release_handler(self, http_handler):
+        """Release handler from handler_queue.
+
+        http_handler (HttpHandler): request handler
+
+        """
+        try:  http_handler.event.set()
+        except AttributeError:  pass  # Handler may not have been captured
+
+        try:  self.handler_queue.remove(http_handler)
+        except ValueError:  pass  # Handler may not have been enqueued
+    
+
 class HttpHandler(BaseHTTPRequestHandler):
     """Handle GET/POST requests for Cinch from web clients."""
     def do_GET(self):
         """Process GET requests for Cinch application.
 
-        Exclusively used to send items from server.queue to requesting clients.
-        Comet GET requests must have the following fields:
+        Exclusively used to send data from server/engine to requesting clients.
+        Comet GET requests must have the following field:
         - uid: GUID of requesting client
-        - last: # of last message received (-1 if no messages received yet)
         
         """
-        #TODO optimize: remove Message packing on input
-        ## Interpret request
+        # Parse request
         parsed_path = urlparse(self.path)
-        self.raw_query = parsed_path.query  #reevaluate this flow
-        self.parse_data()
-        message = Message(self.json, source_key=config.GUID_KEY)
-        
-        ## Acknowledge request
-        self.send_response(config.OK_RESPONSE)
-        self.send_header(*config.CONTENT_TYPE)
-        self.send_header(*config.ACCESS_CONTROL) #handle CORS
-        self.end_headers()
+        self.parse_data(parsed_path.query)
 
-        client_lastid = message.data.get(config.COMET_LAST_MSG_KEY, None)
-        if (client_lastid is None) or (message.source is None):
-            # GET is not valid Comet query
-            print("not a valid Comet query")
-            return  #or other option for non-Comet GETs
-        else:
-            client_lastid = int(client_lastid)
-    
-        success, res = self.server.retrieve(client_lastid,
-                                            config.COMET_TIMEOUT)
+        # Acknowledge request with status code and headers regardless of
+        # content. This lets browser finish request cleanly.
+        self.acknowledge_request()
 
-        if success:
-            server_lastid, msgs = res
+        # If valid Comet request, capture handler for future notification
+        if config.GUID_KEY in self.data:
+            # Extract client guid from data
+            self.guid = self.data[config.GUID_KEY]
 
-            # Filter messages based on Message recipient list, requestor
-            msgs = [x for x in msgs if message.source in x.dest_list]
-            # Return only lastid if no messages remain after filtering
-            if len(msgs) == 0:
-                self.send_message({config.COMET_LATEST_KEY: server_lastid})
-            else:            
-                # Assemble message block
-                msgs_data = []
-                for msg in msgs:
-                    msgs_data.append(msg.data)
+            # Attempt to capture request and begin waiting
+            if self.server.capture_handler(self):
+                # You can store the result (True/False) from wait if desired
+                self.event.wait(config.COMET_TIMEOUT)
 
-                self.send_message({config.COMET_LATEST_KEY: server_lastid,
-                                   config.COMET_MESSAGE_BLOCK_KEY: msgs_data})
+                # Shutdown handler
+                self.server.release_handler(self)
+
+        else: # Not a valid Comet request, so do nothing
+            pass
 
     def do_POST(self):
         """Process POST requests for Cinch application.
@@ -232,78 +271,109 @@ class HttpHandler(BaseHTTPRequestHandler):
         Primarily used to handle Ajax requests -- game actions and chats.
         Input from POSTs are assumed to require evaluation by the server
         and will be parsed and passed to the appropriate engine.
-        
+
         """
-        ## Interpret request.
+        # Parse request
         content_len = int(self.headers['content-length'])
-        self.raw_query = self.rfile.read(content_len)
-        self.parse_data()
-        message = Message(self.json, source_key=config.GUID_KEY)
+        self.parse_data(self.rfile.read(content_len).decode()) # Decode bytes
+
+        # Acknowledge request with status code and headers regardless of
+        # content. This lets browser finish request cleanly.
+        self.acknowledge_request()       
+
+        # Assemble message for engine. Initial entry msgs don't have guid.
+        guid = self.data.get(config.GUID_KEY, None)
+
+        # Strip guid info from data before building message
+        if guid:  del self.data[config.GUID_KEY]
         
-        ## Acknowledge request.
-        self.send_response(config.OK_RESPONSE)
+        msg = Message(self.data, source=guid)
+
+        # If guid of POST is same as an active GET, close out GET to give
+        # client a free connection -- HTTP best-practices: there should be no
+        # more than 2 connections to a server from a single client. If the
+        # client wants to spam POSTs, though, we won't stop it.
+        if guid is not None:
+            active_get_handler = self.server.retrieve_handler(guid)
+            if active_get_handler is not None:
+                active_get_handler.event.set()  # Close-out GET request now
+
+        # Delegate data to appropriate channel; supports multiple channels
+        channels = [x['channel'] for x in self.server.responders
+                    if self.server.matches_signature(x, msg)]
+
+        if len(channels) > 0:
+            for channel in channels:
+                response = self.server.handle_msg(channel, msg)
+
+                if response is None:  # Most common case
+                    pass
+                elif isinstance(response, dict): 
+                    self.send_message(response, mode="POST")
+
+        else:
+           # No handler exists, so print error message
+            print("Warn: No handler for query: ", self.data)
+        
+
+    def acknowledge_request(self):
+        """Send out status code and headers, common between GET and POST."""
+        self.send_response(200)
         self.send_header(*config.CONTENT_TYPE)
         self.send_header(*config.ACCESS_CONTROL)
         self.end_headers()
 
-        ## Delegate data to appropriate sinks.
-        channel = self.server.get_responder(message)
-        if channel is None:
-            # No handler exists, so print error message
-            print("Warn: No handler for query: ", self.json)
-        else:
-            response = self.server.handle_msg(channel, message)
+    def log_request(self, code="-", size="-"):
+        """Silence server output from GET/POST requests.
 
-            if isinstance(response, Message): # e.g. error states, new game
-                self.send_message(response.data)
-            elif isinstance(response, dict): #New and join game responses currently return dict
-                self.send_message(response)
-
-    def parse_data(self):
-        """Parse raw_query into dictionary."""
-        try:
-            query = self.raw_query.decode()     # convert bytes to str
-        except AttributeError:
-            query = self.raw_query              # input already a str
-        finally:
-            query = escape(query)               # sanitize inputs
-
-        try:
-            self.json = json.loads(query)
-        except ValueError:
-            # Data may be from GET query
-            try:
-                self.json = parse_qs(query) #query is (likely) from GET
-                # GET values get packed into lists by parse_qs, while we
-                # expect a single value per key. Unpack the "lists".
-                for k in self.json:
-                    self.json[k] = self.json[k][0]
-            except Exception:
-                self.json = {"Error": "Cannot parse data."}
-
-    def send_message(self, message):
-        """Helper interface for sending data to client."""
-        assert isinstance(message, (str, bytes, dict))
-
-        if isinstance(message, dict):
-            message = json.dumps(message)
+        Overriden from BaseHTTPHandler.
         
-        try:
-            m = message.encode()
-        except AttributeError:
-            m = message
+        """
+        if self.requestline.startswith(("GET", "POST")):
+            return
+        else:
+            super().log_request(code, size)
 
-        self.wfile.write(m)
+    def parse_data(self, data):
+        """Parse raw request data into dictionary."""
+        assert isinstance(data, str)
+        
+        query = escape(data)  # Sanitize inputs
+
+        try:
+            data = parse_qs(query)
+
+            # parse_qs() wraps dict values in a list, so unpack them
+            for k in data:  data[k] = data[k][0]
+
+        except:
+            data = {"Error": "Cannot parse data."}
+
+        finally:
+            self.data = data
+                
+    def send_message(self, data, mode="GET"):
+        """Helper method for sending JSON-encoded data to client.
+
+        data (dict): outgoing message set
+
+        """
+        # Repackage data for Comet requests
+        if mode == "GET":
+            data = {config.COMET_MESSAGE_BLOCK_KEY: data}
+ 
+        output = json.dumps(data)
+        self.wfile.write(output.encode())
 
 
 def boot_server():
     """Initialize server."""
     try:
         server = CometServer(config.HOSTNAME, config.PORT)
-    except Exception:
+    except:
         print("Error booting server.\n")
-        return
+        raise
     
-    print("Server started on {0}, port {1}...".format(
-        config.HOSTNAME, config.PORT))
+    print("Server started.")
+    print("Suppressing GET/POST output.")
     return server

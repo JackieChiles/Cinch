@@ -13,8 +13,9 @@ except ImportError:
     import core.cards as cards
     
 # Constants; these can be replaced later
-NUM_PLAYERS = 4
+NUM_TEAMS = 2
 TEAM_SIZE = 2
+NUM_PLAYERS = NUM_TEAMS * TEAM_SIZE
 
 class GameState:
     """
@@ -38,16 +39,21 @@ class GameState:
 
     def __init__(self, game_id):
         self.game_id = game_id
-        self.game_mode = 2
+        self.game_mode = 2 # Change this later to MODE BID or whatever.
         self.trump = None
         self.dealer = 0
         self.high_bid = 0
         self.declarer = 0
         self.active_player = 0
         self.cards_in_play = []
-        # This (obviously) breaks for more than two teams.
-        self.scores = [0, 0]
-        self.team_stacks = [[], []]
+        self.scores = [0]*NUM_TEAMS
+        self.team_stacks = [[] for _ in range(NUM_TEAMS)]
+        self.winner = None
+        
+        # Journalist's variables to publish().
+        self._t_w_card = None
+        self._results = None
+        self.countercinch = False
     
     def next_player(self, player_num):
         """Return the player number of the player on the left of player_num."""
@@ -65,7 +71,7 @@ class GameState:
                 return True
         return False
         
-    def trick_winner(self):
+    def trick_winning_card(self):
         """Return the Card object that won the current trick.
         Return None if not enough cards in play."""
         
@@ -86,6 +92,7 @@ class GameState:
                 if each.rank > current_highest_card_rank:
                     current_highest_card_rank = each.rank
                     current_highest_card = each
+        self._t_w_card = current_highest_card # For logging purposes.
         return current_highest_card
         
     def score_hand(self):
@@ -102,9 +109,10 @@ class GameState:
         current_high_rank = 0
         current_low_rank = 15
         current_best_game_point_total = 0
-        game_points = [0]*TEAM_SIZE # Allows for arbitrary number of teams
+        game_points = [0]*NUM_TEAMS # Allows for arbitrary number of teams
         jack_holder = None # Jack not necessarily out
         game_holder = None # Game not necessarily out (ties)
+        declarer_set = False
         
         # team_number and *_holder are indices referencing a particular team.
         for team_number in range(len(self.team_stacks)):
@@ -156,26 +164,23 @@ class GameState:
                     temp_points[declaring_team] = 10
             else:                                           # Ouch, set.
                 temp_points[declaring_team] = -10
+                declarer_set = True
         else:
             if temp_points[declaring_team] < self.high_bid: # Set
                 temp_points[declaring_team] = -1*self.high_bid
+                declarer_set = True
          
         for each in range(len(self.scores)):
             self.scores[each] += temp_points[each]
             
-        return temp_points
+        self._results = dict(high_holder = high_holder,
+                            low_holder = low_holder,
+                            jack_holder = jack_holder,
+                            game_holder = game_holder,
+                            declarer_set = declarer_set,
+                            game_points = game_points)
+
+        return
         
 if __name__ == "__main__":
-    print("Default Game State")
-    gs = GameState(2000)
-    gs.dealer = 2
-    gs.high_bid = 5
-    gs.declarer = 0
-    gs.trump = 3
-    d = cards.Deck()
-    for x in range(36):
-        gs.team_stacks[x%2].append(d.deal_one())
-        gs.team_stacks[x%2][-1].owner = x % NUM_PLAYERS
-    print(gs.team_stacks)
-    gs.score_hand()
-    print(gs.scores)   
+    print("Are your cats old enough to learn about Jesus?")  

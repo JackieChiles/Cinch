@@ -15,7 +15,7 @@ Technology
 * [jQuery Mobile](http://jquerymobile.com/)
 * [Modernizr](http://www.modernizr.com/)
 * HTML 5
-* cats
+* [Knockout.js](http://knockout.js/)
 
 ####Server
 * [Python 3.2.2](http://python.org/download/releases/3.2.2/)

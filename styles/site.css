@@ -76,7 +76,7 @@
 
 #left-content
 {
-    display:none;
+    /*display:none;*/
     float:left;
 }
 
@@ -112,6 +112,11 @@
 .bottom-row
 {
     height:auto!important;
+}
+
+.chat-message
+{
+    font-weight:normal;
 }
 
 .condensed-list
