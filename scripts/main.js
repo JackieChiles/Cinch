@@ -65,7 +65,6 @@ var CinchApp = {
     //Other
     responseCount: 0, //Development
     guid: 0,
-    lastUpdateID: 0,
     cardImagesInPlay: [], //Tracks card images for animation purposes
     trickWinner: -1, //Relative to client (self is always CinchApp.playerEnum.south)
     responseCompleteQueue: [],
@@ -395,8 +394,6 @@ function HandleResponse(result) {
     if (result !== null) {
         var current;
         
-        CinchApp.lastUpdateID = result.new;
-        
         if (result.hasOwnProperty('msgs')) {
             var updates = result.msgs;
 
@@ -417,7 +414,7 @@ function StartLongPoll() {
     $.ajax({
         url: CinchApp.serverUrl,
         type: 'GET',
-        data: {'uid':CinchApp.guid, 'last':CinchApp.lastUpdateID},
+        data: {'uid':CinchApp.guid},
         dataType: 'json',
         success: function (result, textStatus, jqXHR) {
             //Development
