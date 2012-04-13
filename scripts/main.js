@@ -64,28 +64,31 @@ var CinchApp = {
     
     //Other
     responseCount: 0, //Development
+    isDebugMode: true,
     guid: 0,
     cardImagesInPlay: [], //Tracks card images for animation purposes
     trickWinner: -1, //Relative to client (self is always CinchApp.playerEnum.south)
     responseCompleteQueue: [],
+    
+    //If "ravenholm" is in the URL, app must be running on production server, so use that URL, otherwise use dev. URL
     serverUrl: window.location.href.indexOf("ravenholm") > -1
         ? "http://ravenholm.dyndns.tv:2424" //Legend url
         : "http://localhost:2424", //Development URL
     actions: {
         actvP: function (update) {
+            //Must wait until after other handlers are called because some depend on previous activePlayer (like playC)
             CinchApp.responseCompleteQueue.push(function () {
                 viewModel.activePlayer(ServerToClientPNum(update.actvP));
             });
         },
         addC: function (update) {
-            //Must wait until after other handlers are called in case cards need to be removed first
-        
+            //Must wait until after other handlers are called in case cards need to be removed first (from playC handler)      
             CinchApp.responseCompleteQueue.push(function () {
                 viewModel.encodedCards(update.addC);
             });
         },
         bid: function (update) {
-            //Still previous active player
+            //Still previous active player, as actvP handler gets pushed into the responseCompleteQueue
             viewModel.currentBids[viewModel.activePlayer()](update.bid);
         },
         dlr: function(update) { viewModel.dealer(ServerToClientPNum(update.dlr)); },
@@ -119,7 +122,13 @@ for(i = 0; i < CinchApp.NUM_PLAYERS; i++) {
 /////////////////////////////////////////////////////////////////
 
 //TODO: encapsulate bidNames? (parameter, local variable, etc.)
+
+//Represents a possible bid to be made by the player
+//Must be invoked with the "new" keyword
 var Bid = function(self, value, validFunction) {
+    //actualValidFunction will be the passed function if available
+    //Or, if self is a valid CinchViewModel the default isValid function will be used
+    //Otherwise, we're out of options- the bid is always valid
     var actualValidFunction =
         validFunction
         || (self instanceof CinchViewModel
@@ -127,10 +136,12 @@ var Bid = function(self, value, validFunction) {
         : function() { return true; });
     
     this.value = value;
-    this.name = CinchApp.bidNames[value] || value.toString();
+    this.name = CinchApp.bidNames[value] || value.toString(); //If bid name exists for value use it, otherwise use value
     this.isValid = ko.computed(actualValidFunction);
 }
 
+//Represents a single playable card
+//Must be invoked with the "new" keyword
 var Card = function(encodedCard) {
     var numRanks = CinchApp.ranks.length;
     var suitIndex = Math.floor((encodedCard - 1) / numRanks);
@@ -163,6 +174,8 @@ var Card = function(encodedCard) {
     }
 };
 
+//Represents a single chat message from an entity
+//Must be invoked with the "new" keyword
 var Chat = function(text, name) {
     this.text = text;
     this.name = name;
@@ -183,9 +196,10 @@ function CinchViewModel() {
         'Your partner',
         'Right opponent'
     ];
-    this.myPlayerNum = ko.observable(0); //Player num assigned by server (self is always CinchApp.playerEnum.south)
+    this.myPlayerNum = ko.observable(0); //Player num assigned by server
     this.activePlayer = ko.observable(); //Relative to client (self is always CinchApp.playerEnum.south)
     this.isActivePlayer = ko.computed(function() {
+        //Client is always CinchApp.playerEnum.south
         return self.activePlayer() === CinchApp.playerEnum.south;
     });
     this.activePlayerName = ko.computed(function() {
@@ -206,6 +220,7 @@ function CinchViewModel() {
     this.gameScores = ko.observableArray([0, 0]);
     this.encodedCards = ko.observableArray([]);
     this.cardsInHand = ko.computed(function() {
+        //Will re-compute every time cards are added removed to hand (encodedCards)
         var j = 0;
         var handArray = [];
         
@@ -216,8 +231,11 @@ function CinchViewModel() {
         return handArray;
     });
     this.chats = ko.observableArray([]);
+    this.debugMessages = ko.observableArray([]);
     this.currentBids = CinchApp.emptyBids;
     this.currentBidsNames = ko.computed(function() {
+        //Will re-compute every time a bid update is received from server (currentBids is updated)
+        
         var j = 0;
         var bidNameArray = [];
         var bidValue;
@@ -233,6 +251,8 @@ function CinchViewModel() {
         return bidNameArray;
     });
     this.highBid = ko.computed(function() {
+        //Will re-compute every time a bid update is received from server (currentBids is updated)
+        
         var bidValues = [];
         var j = 0;
         
@@ -484,12 +504,15 @@ function SubmitNew(mode) {
 // Other                                                       //
 /////////////////////////////////////////////////////////////////
 
-//Development
 function LogDebugMessage(message) {
-    var log = $('#debug-area').val();
-    $('#debug-area').val(message + '\n\n' + log);
-    
-    console.log(message);
+    if(CinchApp.isDebugMode) {
+        viewModel.debugMessages.push(message);
+        
+        //Log to the console if one is available
+        if(console) {
+            console.log(message);
+        }
+    }
 }
 
 function OutputMessage(text, name) {
