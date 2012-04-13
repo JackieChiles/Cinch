@@ -15,38 +15,6 @@
         <script type="text/javascript" src="scripts/modernizr-2.0.6.js"></script>
 	<script type="text/javascript" src="scripts/main.js"></script>
 	<script type="text/javascript" src="scripts/animation.js"></script>
-        
-        <script type="text/javascript">
-            //TODO: don't use live or die, they're deprecated
-            $('#game-page').live('pageinit', function () {
-                
-                //Kill the pageinit handler so it doesn't trigger more than once
-                $('#game-page').die('pageinit');
-                
-                $("#text-to-insert").keypress(function(event) {
-                    if ( event.which == 13 ) {
-                       event.preventDefault();
-                       $('#submit-button').click();
-                     }
-                });
-		
-		$('#play-surface').attr('width', CinchApp.PLAY_SURFACE_WIDTH).attr('height', CinchApp.PLAY_SURFACE_HEIGHT);
-                OutputMessage("Welcome to Cinch- it's pretty rad here.", 'System');
-		
-		//Development
-		LogDebugMessage('--Debug console--');
-		
-                //TODO: Actually handle incompatible browsers
-                if (Modernizr.canvas && Modernizr.canvastext) {
-                    LogDebugMessage('Canvas and canvas text support detected.');
-                }
-                else {
-                    LogDebugMessage('Your browser does not support canvas and canvas text.');
-                }
-                
-                ko.applyBindings(viewModel);
-            });
-        </script>
     </head>
     
     <body>

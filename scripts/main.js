@@ -110,12 +110,41 @@ var CinchApp = {
 
 /////////////////////////////////////////////////////////////////
 // Initialization                                              //
+//(this code actually executes upon main.js load)              //
 /////////////////////////////////////////////////////////////////
 var i = 0;
 
 for(i = 0; i < CinchApp.NUM_PLAYERS; i++) {
     CinchApp.emptyBids.push(ko.observable(CinchApp.bidEnum.none));
 }
+
+//Live and die are deprecated, but strangely they are the only jQuery binding functions that work here...
+$('#game-page').live('pageinit', function () {
+    //Kill the pageinit handler so it doesn't trigger more than once
+    $('#game-page').die('pageinit');
+    
+    //Add a binding to the chat input to submit chats when enter is pressed
+    $("#text-to-insert").keypress(function(event) {
+        if ( event.which == 13 ) {
+           event.preventDefault();
+           $('#submit-button').click();
+         }
+    });
+    
+    $('#play-surface').attr('width', CinchApp.PLAY_SURFACE_WIDTH).attr('height', CinchApp.PLAY_SURFACE_HEIGHT);
+    OutputMessage("Welcome to Cinch- it's pretty rad here.", 'System');
+    
+    //TODO: Actually handle incompatible browsers
+    if (Modernizr.canvas && Modernizr.canvastext) {
+        LogDebugMessage('Canvas and canvas text support detected.');
+    }
+    else {
+        LogDebugMessage('Your browser does not support canvas and canvas text.');
+    }
+    
+    //Apply Knockout bindings
+    ko.applyBindings(viewModel);
+});
 
 /////////////////////////////////////////////////////////////////
 // Types                                                       //
@@ -150,7 +179,7 @@ var Card = function(encodedCard) {
     this.decoded = CinchApp.ranks[this.encoded - suitIndex * numRanks - 1] + CinchApp.suits[suitIndex];   
     this.imagePath = CinchApp.CARD_IMAGE_DIR + this.decoded + CinchApp.CARD_IMAGE_EXTENSION;
     
-    //Development
+    //Development (really just an easter egg now, I guess ??? )
     this.imagePath =
         this.imagePath.indexOf('undefined') > 0 || this.imagePath.indexOf('NaN') > 0
         ? CinchApp.CARD_IMAGE_DIR + 'undefined' + CinchApp.CARD_IMAGE_EXTENSION
