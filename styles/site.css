@@ -41,8 +41,7 @@
 
 #hand
 {
-    height:auto!important;
-    width:auto!important;
+    width:500px;
 }
 
 #right-content
@@ -80,22 +79,12 @@
     float:left;
 }
 
-#left-content > div
-{
-    float:left;
-    padding:3px;
-    height:245px;
-    width:290px
-}
-
 #play-surface
 {
     background-color:#339C53;
     border:2px solid #703C0D;
-    height:100%;
-    position:relative;
-        right:2px;
-    width:100%;
+    height:245px;
+    width:290px;
 }
 
 #scoreboard *
@@ -129,11 +118,9 @@
     padding:5px!important;
 }
 
-.float-break
+.middle-row
 {
-    visibility: hidden;
-    height:1px;
-    float:none!important;
+    float:left;
 }
 
 .no-mobile
@@ -161,8 +148,24 @@
 
 .ui-content#game-content
 {
+    margin:0 auto;
     overflow-y:hidden;
     width:400px;
+}
+
+.other-player.partner
+{
+    height:116px;
+    margin:0 auto;
+    padding:3px;
+    width:290px;
+}
+
+.other-player.opponent
+{
+    height:247px;
+    padding:3px;
+    width:116px;
 }
 
 .other-player > div
@@ -172,7 +175,7 @@
     border-radius:8px;
     box-shadow:0px 1px 4px #555555;
     height:98%;
-    margin: 0 auto;
+    margin:0 auto;
     width:98%;
 }
 
@@ -180,7 +183,7 @@
 {
     .ui-content#game-content
     {
-        min-width:1280px;
+        min-width:860px;
     }
     
     .no-mobile

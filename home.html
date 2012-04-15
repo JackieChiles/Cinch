@@ -71,63 +71,26 @@
             </div><!-- /header -->
             <div data-role="content" id="game-content">
                 <div id="left-content">
-                    <div>
-			<ul data-role="listview" data-inset="true" id="active-player" class="condensed-list">
-                            <li data-bind="visible: activePlayerName" data-role="list-divider">
-				Active player
-                            </li>
-                            <li data-bind="text: activePlayerName, visible: activePlayerName">
-                            </li>
-			    
-                            <li data-bind="visible: dealerName" data-role="list-divider">
-				Dealer
-                            </li>
-                            <li data-bind="text: dealerName, visible: dealerName">
-                            </li>
-			    
-                            <li data-bind="visible: trumpName" data-role="list-divider">
-				Trump
-                            </li>
-                            <li data-bind="text: trumpName, visible: trumpName">
-                            </li>
-                        </ul>
-		    </div>
-                    <div id="player-2" class="other-player">
+                    <div id="player-2" class="other-player partner no-mobile">
                         <div>
 			</div>
                     </div>
-                    <div>
-			<ul data-role="listview" data-inset="true" id="scoreboard" class="condensed-list">
-			    <li data-theme="a">
-				Score
-                            </li>
-                            <li data-role="list-divider">
-				You
-                            </li>
-                            <li data-bind="text: gameScores()[0]"></li>
-			    
-			    <li data-role="list-divider">
-				Them
-                            </li>
-                            <li data-bind="text: gameScores()[1]"></li>
-                        </ul>
-		    </div>
                     
-                    <div class="float-break"></div>
-                    <div id="player-1" class="other-player">
+                    <div id="player-1" class="other-player middle-row opponent no-mobile">
                         <div>
 			</div>
                     </div>
-                    <div>
+                    
+                    <div class="middle-row">
                         <canvas id="play-surface">
                         </canvas>
                     </div>
-                    <div id="player-3" class="other-player">
+                        
+                    <div id="player-3" class="other-player middle-row opponent no-mobile">
                         <div>
 			</div>
                     </div>
                     
-                    <div class="float-break"></div>
                     <div data-bind="foreach: cardsInHand" id="hand">
 			<div data-bind="click: submit, jqmButtonEnabled: $root.isActivePlayer() && $root.gameMode() == CinchApp.gameModeEnum.play" data-role="button" class="tile-button">
 			    <img data-bind="attr: { src: imagePath}" />
@@ -135,10 +98,48 @@
                     </div>
                 </div>
                 <div id="right-content">
-		    <div data-bind="visible: !isGameStarted" id="waiting-message">
+		    <div data-bind="visible: !isGameStarted()" id="waiting-message">
 			Waiting for other players <img src="images/loading.gif" />
 		    </div>
 		    
+                    <ul data-role="listview" data-inset="true" id="scoreboard" class="condensed-list">
+                        <li data-theme="a">
+                            Game Status
+                        </li>
+                        <li data-bind="visible: activePlayerName" data-role="list-divider">
+                            Active player
+                        </li>
+                        <li data-bind="text: activePlayerName, visible: activePlayerName">
+                        </li>
+                        
+                        <li data-bind="visible: dealerName" data-role="list-divider">
+                            Dealer
+                        </li>
+                        <li data-bind="text: dealerName, visible: dealerName">
+                        </li>
+                        
+                        <li data-bind="visible: trumpName" data-role="list-divider">
+                            Trump
+                        </li>
+                        <li data-bind="text: trumpName, visible: trumpName">
+                        </li>
+                        
+                        <li data-theme="a">
+                            Score
+                        </li>
+                        <li data-role="list-divider">
+                            You
+                        </li>
+                        <li data-bind="text: gameScores()[0]"></li>
+                        
+                        <li data-role="list-divider">
+                            Them
+                        </li>
+                        <li data-bind="text: gameScores()[1]"></li>
+                    </ul>
+                    
+                    <hr />
+                    
 		    <input id="text-to-insert" type="text" />
                     <button id="submit-button" onclick="SubmitChat()">Submit</button>
                     <ul data-role="listview" data-inset="true" id="output-list">

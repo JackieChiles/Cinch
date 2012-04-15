@@ -244,7 +244,7 @@ function CinchViewModel() {
     });
     this.gameMode = ko.observable();
     this.isGameStarted = ko.computed(function() {
-        return self.gameMode === CinchApp.gameModeEnum.play || self.gameMode === CinchApp.gameModeEnum.bid;
+        return self.gameMode() === CinchApp.gameModeEnum.play || self.gameMode() === CinchApp.gameModeEnum.bid;
     });
     this.gameScores = ko.observableArray([0, 0]);
     this.encodedCards = ko.observableArray([]);
