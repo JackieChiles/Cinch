@@ -19,7 +19,7 @@ $.fn.pulse = function (totalDuration, callback) {
 /////////////////////////////////////////////////////////////////
 var CinchApp = {
     //Constants
-    GAME_MODE_NEW: 0,
+    GAME_MODE_NEW: 0, //unused
     NUM_PLAYERS: 4,
     NUM_POSSIBLE_BIDS: 6,
     PLAY_SURFACE_WIDTH: 290,
@@ -61,6 +61,10 @@ var CinchApp = {
         'Cinch'
     ],
     emptyBids: [],
+    responseModeEnum: {
+        holding: 0,
+        running: 1
+    },
     
     //Other
     responseCount: 0, //Development
@@ -68,7 +72,9 @@ var CinchApp = {
     guid: 0,
     cardImagesInPlay: [], //Tracks card images for animation purposes
     trickWinner: -1, //Relative to client (self is always CinchApp.playerEnum.south)
-    responseCompleteQueue: [],
+    responseQueue: [], //All GET responses go here
+    processing: false, //Flag for ProcessQueue
+    responseCompleteQueue: [], //Actions with dependencies go here to be ran last
     
     //If "ravenholm" is in the URL, app must be running on production server, so use that URL, otherwise use dev. URL
     serverUrl: window.location.href.indexOf("ravenholm") > -1
@@ -103,6 +109,7 @@ var CinchApp = {
         uid: function (update) {
             //Don't start long-polling until server gives valid guid
             CinchApp.guid = update.uid;
+            viewModel.unlockBoard();
             StartLongPoll();
         } 
     }
@@ -112,9 +119,7 @@ var CinchApp = {
 // Initialization                                              //
 //(this code actually executes upon main.js load)              //
 /////////////////////////////////////////////////////////////////
-var i = 0;
-
-for(i = 0; i < CinchApp.NUM_PLAYERS; i++) {
+for(var i = 0; i < CinchApp.NUM_PLAYERS; i++) {
     CinchApp.emptyBids.push(ko.observable(CinchApp.bidEnum.none));
 }
 
@@ -214,7 +219,7 @@ var Chat = function(text, name) {
 // Knockout.js viewmodel                                       //
 /////////////////////////////////////////////////////////////////
 function CinchViewModel() {
-    var self = this;
+    var self = this; //Since this is here, recommend changing all  `this` to `self`
     var i = 0;
     var bidValidFunction;
     
@@ -312,6 +317,26 @@ function CinchViewModel() {
         
         this.possibleBids.push(new Bid(this, i, bidValidFunction));
     }
+    
+    //description
+    this.lockBoard = function () {
+        this.responseMode(CinchApp.responseModeEnum.holding);
+    }
+    this.unlockBoard = function() {
+        this.responseMode(CinchApp.responseModeEnum.running);
+    }
+    this.isBoardLocked = function() {
+        return this.responseMode() == CinchApp.responseModeEnum.holding;
+    }
+ 
+    //Response mode things
+    this.responseMode = ko.observable();
+    this.responseModeOnChange = ko.computed(function() {
+        //When responseMode is changed to `running`, process responseQueue
+        if (!self.isBoardLocked()) {
+            ProcessResponseQueue();
+        }
+    });
     
     //Functions
     this.playCard = function(cardNum) {
@@ -414,10 +439,11 @@ var viewModel = new CinchViewModel();
 // Animation                                                   //
 /////////////////////////////////////////////////////////////////
 function ClearTable(playerNum){
+
     CinchApp.trickWinner = ServerToClientPNum(playerNum);
     //Allow all cards in play to finish animating
     finishDrawingCards();
-    
+
     //Process is completed from within animation.js
 }
 
@@ -426,6 +452,8 @@ function HandleEndTrick(playerNum) {
     
     //TODO: lock down active player from playing until board is cleared
     //Still a TODO after animation coding update.
+    viewModel.lockBoard();
+    
     CinchApp.responseCompleteQueue.push(function () {
         //Wait a bit so the ending play can be seen
         setTimeout(function () {
@@ -438,19 +466,46 @@ function HandleEndTrick(playerNum) {
 // AJAX/Communication                                          //
 /////////////////////////////////////////////////////////////////
 function HandleResponse(result) {
-    var i = 0;
-    
     if (result !== null) {
-        var current;
-        
-        if (result.hasOwnProperty('msgs')) {
-            var updates = result.msgs;
+        CinchApp.responseQueue.push(result);
+    }
+    
+    //If responseMode = running, then process all items in queue
+    if (!viewModel.isBoardLocked()) {
+        ProcessResponseQueue();
+    }
+}
 
-            for(i = 0; i < updates.length; i++) {
-                HandleUpdate(updates[i]);
-            }
+function ProcessResponseQueue() {
+    if (CinchApp.processing) { //Prevent multiple concurrent calls to this
+        return;
+    }
+    else {
+        CinchApp.processing = true;
+        
+        while (CinchApp.responseQueue.length > 0) {
+            ProcessResponse(CinchApp.responseQueue.shift());
+        }
+
+        CinchApp.responseQueue.length = 0; //Clear responseQueue
+        CinchApp.processing = false;
+    }
+}
+
+function ProcessResponse(result) {
+    if (result.hasOwnProperty('msgs')) {
+        var updates = result.msgs;
+
+        for(var i = 0; i < updates.length; i++) {
+            HandleUpdate(updates[i]);
         }
     }
+
+    //Take care of any queued items
+    for(var i = 0; i < CinchApp.responseCompleteQueue.length; i++)
+        CinchApp.responseCompleteQueue[i]();
+        
+    CinchApp.responseCompleteQueue.length = 0;
 }
 
 function HandleUpdate(update) {
@@ -471,13 +526,7 @@ function StartLongPoll() {
             LogDebugMessage('Long poll response ' + CinchApp.responseCount + ' received from server: ' + JSON.stringify(result));
             
             HandleResponse(result);
-            
-            //Take care of any queued items
-            for(var i = 0; i < CinchApp.responseCompleteQueue.length; i++)
-                CinchApp.responseCompleteQueue[i]();
-                
-            CinchApp.responseCompleteQueue.length = 0;
-            
+
             //No longer delaying this, but there MUST remain a time-out on the server
             //so clients don't poll rapidly when nothing is being returned
             StartLongPoll();

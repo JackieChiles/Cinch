@@ -184,6 +184,7 @@ function animateBoardClear() {
         setTimeout( function() {
             CinchApp.cardImagesInPlay = [];    
             context.clearRect(0, 0, CinchApp.PLAY_SURFACE_WIDTH, CinchApp.PLAY_SURFACE_HEIGHT);
+            viewModel.unlockBoard();
         }, 500);
     } else {
         requestAnimFrame(animateBoardClear);
