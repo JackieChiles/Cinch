@@ -19,7 +19,7 @@ $.fn.pulse = function (totalDuration, callback) {
 /////////////////////////////////////////////////////////////////
 var CinchApp = {
     //Constants
-    GAME_MODE_NEW: 0, //unused
+    GAME_MODE_NEW: 0,
     NUM_PLAYERS: 4,
     NUM_POSSIBLE_BIDS: 6,
     PLAY_SURFACE_WIDTH: 290,
@@ -60,7 +60,6 @@ var CinchApp = {
         'Four',
         'Cinch'
     ],
-    emptyBids: [],
     responseModeEnum: {
         holding: 0,
         running: 1
@@ -117,12 +116,9 @@ var CinchApp = {
 
 /////////////////////////////////////////////////////////////////
 // Initialization                                              //
-//(this code actually executes upon main.js load)              //
+//(this code executes when main.js loads)                      //
 /////////////////////////////////////////////////////////////////
-for(var i = 0; i < CinchApp.NUM_PLAYERS; i++) {
-    CinchApp.emptyBids.push(ko.observable(CinchApp.bidEnum.none));
-}
-
+    
 //Live and die are deprecated, but strangely they are the only jQuery binding functions that work here...
 $('#game-page').live('pageinit', function () {
     //Kill the pageinit handler so it doesn't trigger more than once
@@ -222,6 +218,12 @@ function CinchViewModel() {
     var self = this; //Since this is here, recommend changing all  `this` to `self`
     var i = 0;
     var bidValidFunction;
+    var emptyBids = [];
+    
+    //Initialize emptyBids
+    for(i = 0; i < CinchApp.NUM_PLAYERS; i++) {
+        emptyBids.push(ko.observable(CinchApp.bidEnum.none));
+    }
     
     //Data
     this.playerNames = [  
@@ -266,7 +268,7 @@ function CinchViewModel() {
     });
     this.chats = ko.observableArray([]);
     this.debugMessages = ko.observableArray([]);
-    this.currentBids = CinchApp.emptyBids;
+    this.currentBids = emptyBids;
     this.currentBidsNames = ko.computed(function() {
         //Will re-compute every time a bid update is received from server (currentBids is updated)
         
@@ -352,7 +354,7 @@ function CinchViewModel() {
         PostData({ 'uid': CinchApp.guid, 'bid': self.selectedBid() });
     }
     this.resetBids = function() {
-        self.currentBids = CinchApp.emptyBids;
+        self.currentBids = emptyBids;
     };
     
     //Subscriptions
