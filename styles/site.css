@@ -118,6 +118,30 @@
     padding:5px!important;
 }
 
+.hand-opponent
+{
+    padding:8px;
+    position:relative;
+        top:55px;
+}
+
+.hand-opponent > img
+{
+    margin-top:-55px;
+}
+
+.hand-partner
+{
+    padding:8px;
+    position:relative;
+        left:50px;
+}
+
+.hand-partner > img
+{
+    margin-left:-50px;
+}
+
 .middle-row
 {
     float:left;

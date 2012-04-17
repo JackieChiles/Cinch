@@ -30,6 +30,15 @@ var CinchApp = {
     CARD_IMAGE_DIR: 'images/',
     CARD_IMAGE_EXTENSION: '.png',
     NONE_BID_DISPLAY: '-',
+    faceDownCard: function() {
+        //Represents face-down cards in other players' hands, used in KO arrays for those hands
+        //You may not pay 3 colorless to morph
+        
+        return {
+            vertImagePath: this.CARD_IMAGE_DIR + 'b1fv' + this.CARD_IMAGE_EXTENSION,
+            horizImagePath: this.CARD_IMAGE_DIR + 'b1fh' + this.CARD_IMAGE_EXTENSION
+        };
+    },
     suits: ['C', 'D', 'H', 'S'],
     suitNames: ['Clubs', 'Diamonds', 'Hearts', 'Spades'],
     ranks: ['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A'],
@@ -89,7 +98,19 @@ var CinchApp = {
         addC: function (update) {
             //Must wait until after other handlers are called in case cards need to be removed first (from playC handler)      
             CinchApp.responseCompleteQueue.push(function () {
-                viewModel.encodedCards(update.addC);
+                var i = 0;
+                var j = 0;
+                var cardsToAdd = update.addC;
+                
+                viewModel.encodedCards(cardsToAdd);
+                
+                //Populate other players' hands with face-down cards
+                //Can use cardsToAdd.length to get number of cards that should be in each player's hand
+                for(i = 0; i < cardsToAdd.length; i++) {
+                    for(j = 1; j < CinchApp.NUM_PLAYERS; j++) { //Skip index zero (client player, face-up hand)
+                        viewModel.cardsInAllHands[j].push(CinchApp.faceDownCard());
+                    }
+                }
             });
         },
         bid: function (update) {
@@ -218,12 +239,6 @@ function CinchViewModel() {
     var self = this; //Since this is here, recommend changing all  `this` to `self`
     var i = 0;
     var bidValidFunction;
-    var emptyBids = [];
-    
-    //Initialize emptyBids
-    for(i = 0; i < CinchApp.NUM_PLAYERS; i++) {
-        emptyBids.push(ko.observable(CinchApp.bidEnum.none));
-    }
     
     //Data
     this.playerNames = [  
@@ -266,9 +281,23 @@ function CinchViewModel() {
         
         return handArray;
     });
+    
+    //An array of items for each player's hand, indexed by CinchApp.playerEnum
+    this.cardsInAllHands = [
+        null, //Unused placeholder to keep indexing straight. Hand for client (face-up cards) is this.cardsInHand.
+        ko.observableArray([]),
+        ko.observableArray([]),
+        ko.observableArray([])
+    ];
     this.chats = ko.observableArray([]);
     this.debugMessages = ko.observableArray([]);
-    this.currentBids = emptyBids;
+    this.currentBids = [];
+    
+    //Initialize currentBids
+    for(i = 0; i < CinchApp.NUM_PLAYERS; i++) {
+        this.currentBids.push(ko.observable(CinchApp.bidEnum.none));
+    }
+    
     this.currentBidsNames = ko.computed(function() {
         //Will re-compute every time a bid update is received from server (currentBids is updated)
         
@@ -343,18 +372,27 @@ function CinchViewModel() {
     //Functions
     this.playCard = function(cardNum) {
         var cardToPlay = new Card(cardNum);
+        var playerOfCard = self.activePlayer(); //Still "old" activePlayer
         
-        cardToPlay.play(self.activePlayer());
+        //This takes care of the animation
+        cardToPlay.play(playerOfCard);
         
-        //This is safe to do every time: if the card isn't in hand, nothing will happen
-        //If it is in hand, it will be removed
-        this.encodedCards.remove(cardNum);
+        if(playerOfCard === CinchApp.playerEnum.south) { //Client player
+            self.encodedCards.remove(cardNum);
+        }
+        else {
+            self.cardsInAllHands[playerOfCard].pop();
+        }
     }
     this.submitBid = function() {
         PostData({ 'uid': CinchApp.guid, 'bid': self.selectedBid() });
     }
     this.resetBids = function() {
-        self.currentBids = emptyBids;
+        var j = 0;
+        
+        for(j = 0; j < self.currentBids.length; j++) {
+            self.currentBids[j](CinchApp.bidEnum.none);
+        }
     };
     
     //Subscriptions

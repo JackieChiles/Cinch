@@ -73,11 +73,17 @@
                 <div id="left-content">
                     <div id="player-2" class="other-player partner no-mobile">
                         <div>
+                            <div data-bind="foreach: cardsInAllHands[CinchApp.playerEnum.north]" class="hand-partner">
+                                <img data-bind="attr: { src: vertImagePath }" />
+                            </div>
 			</div>
                     </div>
                     
                     <div id="player-1" class="other-player middle-row opponent no-mobile">
                         <div>
+                            <div data-bind="foreach: cardsInAllHands[CinchApp.playerEnum.west]" class="hand-opponent">
+                                <img data-bind="attr: { src: horizImagePath }" />
+                            </div>
 			</div>
                     </div>
                     
@@ -88,6 +94,9 @@
                         
                     <div id="player-3" class="other-player middle-row opponent no-mobile">
                         <div>
+                            <div data-bind="foreach: cardsInAllHands[CinchApp.playerEnum.east]" class="hand-opponent">
+                                <img data-bind="attr: { src: horizImagePath }" />
+                            </div>
 			</div>
                     </div>
                     
