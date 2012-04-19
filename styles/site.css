@@ -25,6 +25,11 @@
     display:none;
 }
 
+#bidding-page.ui-dialog  .ui-header, #bidding-page.ui-dialog  .ui-content
+{
+    max-width:800px;
+}
+
 #bidding-page.ui-dialog .ui-header
 {
     margin:15px auto;
@@ -33,6 +38,17 @@
 #bid-hand > img
 {
     padding:3px;
+}
+
+#bid-controls
+{
+    text-align:center;
+}
+
+#bid-controls .ui-btn-inner
+{
+    padding-left:8px!important;
+    padding-right:8px!important;
 }
 
 /*****************************************

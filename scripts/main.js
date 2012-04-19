@@ -176,19 +176,24 @@ $('#game-page').live('pageinit', function () {
 
 //Represents a possible bid to be made by the player
 //Must be invoked with the "new" keyword
-var Bid = function(self, value, validFunction) {
+var Bid = function(parentViewModel, value, validFunction) {
+    var self = this;
+    
     //actualValidFunction will be the passed function if available
-    //Or, if self is a valid CinchViewModel the default isValid function will be used
+    //Or, if parentViewModel is a valid CinchViewModel the default isValid function will be used
     //Otherwise, we're out of options- the bid is always valid
     var actualValidFunction =
         validFunction
-        || (self instanceof CinchViewModel
-        ? function() { return self.isActivePlayer() && self.highBid() < value; }
+        || (parentViewModel instanceof CinchViewModel
+        ? function() { return parentViewModel.isActivePlayer() && parentViewModel.highBid() < value; }
         : function() { return true; });
     
     this.value = value;
     this.name = CinchApp.bidNames[value] || value.toString(); //If bid name exists for value use it, otherwise use value
     this.isValid = ko.computed(actualValidFunction);
+    this.submit = function() {
+        PostData({ 'uid': CinchApp.guid, 'bid': self.value });
+    }
 }
 
 //Represents a single playable card
@@ -328,7 +333,6 @@ function CinchViewModel() {
         
         return Math.max.apply(null, bidValues);
     });
-    this.selectedBid = ko.observable();
     this.possibleBids = [];
     
     //Create the possible bids
@@ -383,9 +387,6 @@ function CinchViewModel() {
         else {
             self.cardsInAllHands[playerOfCard].pop();
         }
-    }
-    this.submitBid = function() {
-        PostData({ 'uid': CinchApp.guid, 'bid': self.selectedBid() });
     }
     this.resetBids = function() {
         var j = 0;
