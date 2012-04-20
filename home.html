@@ -35,16 +35,22 @@
 		<h1>Bidding</h1>
 	    </div><!-- /header -->
 	    <div data-role="content">
-                <ul data-role="listview" data-inset="true" id="bid-list" class="condensed-list">
-                    <li data-theme="a">
-                        Bids
-                    </li>
-                    
-                    <!-- ko foreach: playerNames -->
-                        <li data-bind="text: $data" data-role="list-divider"></li>
-                        <li data-bind="text: $root.currentBidsNames()[parseInt($index())]"></li>
-                    <!-- /ko -->
+                <ul data-role="listview" data-inset="true" class="bid-list partner">                   
+                    <li data-bind="text: playerNames[CinchApp.playerEnum.north]" data-role="list-divider"></li>
+                    <li data-bind="text: currentBidsNames()[CinchApp.playerEnum.north]"></li>
                 </ul>
+                
+                <div id="opponent-bid-container">
+                    <ul data-role="listview" data-inset="true" id="bid-list" class="bid-list opponent">                   
+                        <li data-bind="text: playerNames[CinchApp.playerEnum.west]" data-role="list-divider"></li>
+                        <li data-bind="text: currentBidsNames()[CinchApp.playerEnum.west]"></li>
+                    </ul>
+                    
+                    <ul data-role="listview" data-inset="true" id="bid-list" class="bid-list opponent">                   
+                        <li data-bind="text: playerNames[CinchApp.playerEnum.east]" data-role="list-divider"></li>
+                        <li data-bind="text: currentBidsNames()[CinchApp.playerEnum.east]"></li>
+                    </ul>
+                </div>
                 
 		<fieldset data-role="controlgroup" data-type="horizontal" data-bind="foreach: possibleBids" id="bid-controls">
                     <button data-bind="
@@ -60,9 +66,9 @@
                     </button>
 		</fieldset>
                 
-                <strong>
-                    Your hand:
-                </strong>
+                <h3 id="bid-hand-label">Your hand</h3>
+                
+                <hr />
                 
                 <div data-bind="foreach: cardsInHand" id="bid-hand">
                     <img data-bind="attr: { src: imagePath }" />

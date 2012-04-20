@@ -25,9 +25,15 @@
     display:none;
 }
 
-#bidding-page.ui-dialog  .ui-header, #bidding-page.ui-dialog  .ui-content
+#bidding-page.ui-dialog .ui-content, #bidding-page.ui-dialog .ui-header
 {
-    max-width:800px;
+    padding-left:0;
+    padding-right:0;
+}
+
+#bidding-page.ui-dialog  .ui-content *
+{
+    text-align:center;
 }
 
 #bidding-page.ui-dialog .ui-header
@@ -35,13 +41,14 @@
     margin:15px auto;
 }
 
-#bid-hand > img
+#bid-hand-label
 {
-    padding:3px;
+    margin:0;
 }
 
 #bid-controls
 {
+    clear:both;
     text-align:center;
 }
 
@@ -49,6 +56,25 @@
 {
     padding-left:8px!important;
     padding-right:8px!important;
+}
+
+#opponent-bid-container
+{
+    margin:0 auto;
+    width:300px;
+}
+
+.bid-list.partner
+{
+    margin:0 auto;
+    width:150px;
+}
+
+.bid-list.opponent
+{
+    float:left;
+    margin:0 0 12px 0;
+    width:150px;
 }
 
 /*****************************************
@@ -146,14 +172,23 @@
     margin-top:-55px;
 }
 
-.hand-partner
+.hand-partner, #bid-hand
 {
     padding:8px;
     position:relative;
-        left:50px;
 }
 
-.hand-partner > img
+.hand-partner
+{
+    left:50px;
+}
+
+#bid-hand
+{
+    left:25px;
+}
+
+.hand-partner > img, #bid-hand > img
 {
     margin-left:-50px;
 }
