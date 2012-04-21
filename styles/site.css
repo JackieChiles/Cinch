@@ -25,6 +25,11 @@
     display:none;
 }
 
+#bidding-page.ui-dialog .ui-content
+{
+    overflow-y:hidden;
+}
+
 #bidding-page.ui-dialog .ui-content, #bidding-page.ui-dialog .ui-header
 {
     padding-left:0;
