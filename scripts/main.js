@@ -409,6 +409,7 @@ function CinchViewModel() {
             $('<a />')
             .attr('href', '#bidding-page')
             .attr('data-rel', 'dialog')
+            .attr('data-transition', 'slidedown')
             .appendTo('body')
             .click()
             .remove();

@@ -19,8 +19,13 @@
 /*****************************************
 ** Bidding                              **
 *****************************************/
+#bidding-page.ui-dialog, #bidding-page.ui-dialog .ui-header, #bidding-page.ui-dialog .ui-dialog-contain
+{
+    margin:0 auto;
+}
 
-#bidding-page .ui-header .ui-btn-icon-notext
+
+#bidding-page.ui-dialog .ui-header .ui-btn-icon-notext
 {
     display:none;
 }
@@ -39,11 +44,6 @@
 #bidding-page.ui-dialog  .ui-content *
 {
     text-align:center;
-}
-
-#bidding-page.ui-dialog .ui-header
-{
-    margin:15px auto;
 }
 
 #bid-hand-label

@@ -5,11 +5,11 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1"> 
         <title>Cinch</title>
         
-        <link rel="stylesheet" href="jquery.mobile/jquery.mobile-1.0.1.min.css" />
+        <link rel="stylesheet" href="styles/jquery.mobile-1.1.0.min.css" />
         <link rel="stylesheet" href="styles/site.css" />
         
         <script type="text/javascript" src="scripts/jquery-1.7.1.min.js"></script>
-        <script type="text/javascript" src="jquery.mobile/jquery.mobile-1.0.1.min.js"></script>
+        <script type="text/javascript" src="scripts/jquery.mobile-1.1.0.min.js"></script>
         <script type="text/javascript" src="scripts/knockout-2.1.0beta.js"></script>
         <script type="text/javascript" src="scripts/jquery.animate-shadow-min.js"></script>
         <script type="text/javascript" src="scripts/modernizr-2.0.6.js"></script>
@@ -24,8 +24,8 @@
             </div>
             <div data-role="content">
                 <div id="home-buttons-container">
-                    <a data-role="button" href="#game-page" onclick="SubmitNew(CinchApp.GAME_MODE_NEW)">New game</a>
-                    <a data-role="button" href="#game-page" onclick="SubmitJoin(0, 0)">Join game</a>
+                    <a data-role="button" data-transition="slide" href="#game-page" onclick="SubmitNew(CinchApp.GAME_MODE_NEW)">New game</a>
+                    <a data-role="button" data-transition="slide" href="#game-page" onclick="SubmitJoin(0, 0)">Join game</a>
                 </div>
             </div>
         </div>
