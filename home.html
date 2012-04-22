@@ -77,8 +77,39 @@
 	</div><!-- /bidding page -->
         
         <div data-role="page" data-dom-cache="true" id="game-page">
-            <div data-role="header">
-            <h1>Cinch</h1>
+            <div data-role="navbar">
+                <ul>
+                    <li>
+                        <span class="ui-btn ui-btn-inline ui-btn-up-a">
+                            <h3>Your score</h3>
+                            <span data-bind="text: gameScores()[0]"></span>
+                        </span>
+                    </li>
+                    <li>
+                        <span class="ui-btn ui-btn-inline ui-btn-up-a">
+                            <h3>Their score</h3>
+                            <span data-bind="text: gameScores()[1]"></span>
+                        </span>
+                    </li>
+                    <li>
+                        <span class="ui-btn ui-btn-inline ui-btn-up-a">
+                            <h3>Active player</h3>
+                            <span data-bind="text: activePlayerName() || '-'"></span>
+                        </span>
+                    </li>
+                    <li>
+                        <span class="ui-btn ui-btn-inline ui-btn-up-a">
+                            <h3>Dealer</h3>
+                            <span data-bind="text: dealerName() || '-'"></span>
+                        </span>
+                    </li>
+                    <li>
+                        <span class="ui-btn ui-btn-inline ui-btn-up-a">
+                            <h3>Trump</h3>
+                            <span data-bind="text: trumpName() || '-', jqmButtomEnabled: false"></span>
+                        </span>
+                    </li>
+                </ul>
             </div><!-- /header -->
             <div data-role="content" id="game-content">
                 <div id="left-content">
@@ -110,58 +141,14 @@
                             </div>
 			</div>
                     </div>
-                    
-                    <div data-bind="foreach: cardsInHand" id="hand">
-			<div data-bind="click: submit, jqmButtonEnabled: $root.isActivePlayer() && $root.gameMode() == CinchApp.gameModeEnum.play" data-role="button" class="tile-button">
-			    <img data-bind="attr: { src: imagePath}" />
-			</div>
-                    </div>
                 </div>
                 <div id="right-content">
 		    <div data-bind="visible: !isGameStarted()" id="waiting-message">
 			Waiting for other players <img src="images/loading.gif" />
 		    </div>
-		    
-                    <ul data-role="listview" data-inset="true" id="scoreboard" class="condensed-list">
-                        <li data-theme="a">
-                            Game Status
-                        </li>
-                        <li data-bind="visible: activePlayerName" data-role="list-divider">
-                            Active player
-                        </li>
-                        <li data-bind="text: activePlayerName, visible: activePlayerName">
-                        </li>
-                        
-                        <li data-bind="visible: dealerName" data-role="list-divider">
-                            Dealer
-                        </li>
-                        <li data-bind="text: dealerName, visible: dealerName">
-                        </li>
-                        
-                        <li data-bind="visible: trumpName" data-role="list-divider">
-                            Trump
-                        </li>
-                        <li data-bind="text: trumpName, visible: trumpName">
-                        </li>
-                        
-                        <li data-theme="a">
-                            Score
-                        </li>
-                        <li data-role="list-divider">
-                            You
-                        </li>
-                        <li data-bind="text: gameScores()[0]"></li>
-                        
-                        <li data-role="list-divider">
-                            Them
-                        </li>
-                        <li data-bind="text: gameScores()[1]"></li>
-                    </ul>
                     
-                    <hr />
-                    
-		    <input id="text-to-insert" type="text" />
-                    <button id="submit-button" onclick="SubmitChat()">Submit</button>
+		    <input id="text-to-insert" type="text" placeholder="Enter chat message" />
+                    <button id="submit-button" onclick="SubmitChat()">Submit Message</button>
                     <ul data-role="listview" data-inset="true" id="output-list">
                         <li data-role="list-divider">Messages</li>
 			
@@ -172,6 +159,11 @@
 			    </li>
 			<!-- /ko -->
                     </ul>
+                </div>
+                <div data-bind="foreach: cardsInHand" id="hand">
+                    <div data-bind="click: submit, jqmButtonEnabled: $root.isActivePlayer() && $root.gameMode() == CinchApp.gameModeEnum.play" data-role="button" class="tile-button">
+                        <img data-bind="attr: { src: imagePath}" />
+                    </div>
                 </div>
             </div>
         </div><!-- /game page -->

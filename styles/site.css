@@ -12,7 +12,7 @@
 
 #home-buttons-container
 {
-    margin: 0 auto;
+    margin:0 auto;
     width:290px;
 }
 
@@ -23,7 +23,6 @@
 {
     margin:0 auto;
 }
-
 
 #bidding-page.ui-dialog .ui-header .ui-btn-icon-notext
 {
@@ -85,16 +84,26 @@
 /*****************************************
 ** Game page                            **
 *****************************************/
+#game-page .ui-navbar h3
+{
+    margin:0;
+}
+
+#game-page .ui-navbar .ui-btn
+{
+    cursor:default;
+    padding-top:5px;
+    min-height:50px;
+}
 
 #hand
 {
-    width:500px;
+    float:left;
 }
 
 #right-content
 {
     float:left;
-    margin-left:10px;
     width:300px;
 }
 
@@ -116,7 +125,9 @@
 
 #output-list
 {
-    max-height:600px;
+    margin-bottom:0;
+    margin-top:3px;
+    max-height:285px;
     overflow-y:scroll;
 }
 
@@ -230,7 +241,7 @@
 {
     margin:0 auto;
     overflow-y:hidden;
-    width:400px;
+    width:320px;
 }
 
 .other-player.partner
@@ -259,11 +270,18 @@
     width:98%;
 }
 
-@media all and (min-width: 480px)
+/* Non-mobile styles*/
+@media all and (min-width: 330px)
 {
+    #right-content
+    {
+        margin-left:10px;
+        width:350px;
+    }
+    
     .ui-content#game-content
     {
-        min-width:860px;
+        min-width:900px;
     }
     
     .no-mobile

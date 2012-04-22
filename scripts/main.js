@@ -636,8 +636,11 @@ function LogDebugMessage(message) {
 }
 
 function OutputMessage(text, name) {
+    var listElement = document.getElementById('output-list');
+    
     viewModel.chats.push(new Chat(text, name));
     $("#output-list").listview("refresh");
+    listElement.scrollTop = listElement.scrollHeight;
 }
 
 function ServerToClientPNum(serverNum) {
