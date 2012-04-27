@@ -45,11 +45,6 @@
     text-align:center;
 }
 
-#bid-hand-label
-{
-    margin:0;
-}
-
 #bid-controls
 {
     clear:both;
@@ -68,6 +63,12 @@
     width:300px;
 }
 
+.bidding-label
+{
+    clear:both;
+    margin:0;
+}
+
 .bid-list.partner
 {
     margin:0 auto;
@@ -79,6 +80,11 @@
     float:left;
     margin:0 0 12px 0;
     width:150px;
+}
+
+.clear-both
+{
+    clear:both;
 }
 
 /*****************************************
@@ -98,6 +104,7 @@
 
 #hand
 {
+    clear:left;
     float:left;
 }
 
@@ -174,6 +181,13 @@
 .condensed-list li
 {
     padding:5px!important;
+}
+
+.active-border
+{
+    border:3px solid blue!important;
+    opacity:1!important;
+    padding:-3px!important;
 }
 
 .hand-opponent

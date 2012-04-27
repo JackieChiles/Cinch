@@ -52,23 +52,23 @@
                     </ul>
                 </div>
                 
+                <hr class="clear-both"/>
+                
+                <h3 class="bidding-label">Your bid</h3>
+                
 		<fieldset data-role="controlgroup" data-type="horizontal" data-bind="foreach: possibleBids" id="bid-controls">
                     <button data-bind="
                         value: value,
                         text: name,
                         click: submit,
                         jqmButtonEnabled: isValid,
-                        attr: {
-                            'style': $root.currentBids[CinchApp.playerEnum.south]() == value
-                            ? 'border: 3px solid green; padding: -3px; opacity: 1!important;'
-                            : ''
-                        }">
+                        activeBorder: $root.currentBids[CinchApp.playerEnum.south]() == value">
                     </button>
 		</fieldset>
                 
-                <h3 id="bid-hand-label">Your hand</h3>
-                
                 <hr />
+                
+                <h3 class="bidding-label">Your hand</h3>
                 
                 <div data-bind="foreach: cardsInHand" id="bid-hand">
                     <img data-bind="attr: { src: imagePath }" />
@@ -99,14 +99,14 @@
                     </li>
                     <li>
                         <span class="ui-btn ui-btn-inline ui-btn-up-a">
-                            <h3>Dealer</h3>
-                            <span data-bind="text: dealerName() || '-'"></span>
+                            <h3>Trump</h3>
+                            <span data-bind="text: trumpName() || '-', jqmButtomEnabled: false"></span>
                         </span>
                     </li>
                     <li>
                         <span class="ui-btn ui-btn-inline ui-btn-up-a">
-                            <h3>Trump</h3>
-                            <span data-bind="text: trumpName() || '-', jqmButtomEnabled: false"></span>
+                            <h3>Dealer</h3>
+                            <span data-bind="text: dealerName() || '-'"></span>
                         </span>
                     </li>
                 </ul>
@@ -114,7 +114,7 @@
             <div data-role="content" id="game-content">
                 <div id="left-content">
                     <div id="player-2" class="other-player partner no-mobile">
-                        <div>
+                        <div data-bind="activeBorder: activePlayer() == CinchApp.playerEnum.north">
                             <div data-bind="foreach: cardsInAllHands[CinchApp.playerEnum.north]" class="hand-partner">
                                 <img data-bind="attr: { src: vertImagePath }" />
                             </div>
@@ -122,7 +122,7 @@
                     </div>
                     
                     <div id="player-1" class="other-player middle-row opponent no-mobile">
-                        <div>
+                        <div data-bind="activeBorder: activePlayer() == CinchApp.playerEnum.west">
                             <div data-bind="foreach: cardsInAllHands[CinchApp.playerEnum.west]" class="hand-opponent">
                                 <img data-bind="attr: { src: horizImagePath }" />
                             </div>
@@ -135,7 +135,7 @@
                     </div>
                         
                     <div id="player-3" class="other-player middle-row opponent no-mobile">
-                        <div>
+                        <div data-bind="activeBorder: activePlayer() == CinchApp.playerEnum.east">
                             <div data-bind="foreach: cardsInAllHands[CinchApp.playerEnum.east]" class="hand-opponent">
                                 <img data-bind="attr: { src: horizImagePath }" />
                             </div>

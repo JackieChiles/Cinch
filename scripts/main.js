@@ -472,6 +472,20 @@ function CinchViewModel() {
             }
         }
     };
+    
+    //Applies a border for emphasis if condition is met
+    ko.bindingHandlers.activeBorder = {
+        update: function(element, valueAccessor, allBindingsAccessor) {
+            var enable = ko.utils.unwrapObservable(valueAccessor());
+            
+            if(enable) {
+                $(element).addClass('active-border');
+            }
+            else {
+                $(element).removeClass('active-border');
+            }
+        }
+    };
 }
 
 //TODO: migrate this to CinchApp, probably
