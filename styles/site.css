@@ -284,6 +284,14 @@
     width:98%;
 }
 
+/* Special message styles */
+.error-msg {
+    background-color: #339C53;
+    background-image: -webkit-linear-gradient(#B00,#888);
+    color: black;
+    text-shadow: none;
+}
+
 /* Non-mobile styles*/
 @media all and (min-width: 330px)
 {

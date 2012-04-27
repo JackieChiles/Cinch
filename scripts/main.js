@@ -118,7 +118,7 @@ var CinchApp = {
             viewModel.currentBids[viewModel.activePlayer()](update.bid);
         },
         dlr: function(update) { viewModel.dealer(ServerToClientPNum(update.dlr)); },
-        err: function (update) { LogDebugMessage(update.err); },
+        err: function (update) { OutputErrorMessage(update.err); },
         mode: function (update) { viewModel.gameMode(update.mode); },
         msg: function(update) { OutputMessage(update.msg, viewModel.playerNames[ServerToClientPNum(parseInt(update.uNum))]); },
         playC: function (update) { viewModel.playCard(update.playC); },
@@ -588,7 +588,7 @@ function StartLongPoll() {
             StartLongPoll();
         },
         error: function (jqXHR, textStatus, errorThrown) {
-            LogDebugMessage('Error starting long poll: ' + errorThrown);
+            OutputErrorMessage('Error starting long poll: ' + errorThrown);
         }
     });
 }
@@ -609,7 +609,7 @@ function PostData(data) {
             HandleUpdate(result);
         },
         error: function (jqXHR, textStatus, errorThrown) {
-            LogDebugMessage('Error sending data: ' + errorThrown);
+            OutputErrorMessage('Error sending data: ' + errorThrown);
         },
         complete: function (jqXHR, textStatus) {
         }
@@ -649,11 +649,28 @@ function LogDebugMessage(message) {
     }
 }
 
-function OutputMessage(text, name) {
+function OutputErrorMessage(message) {
+    OutputMessage(message, "Error", "error-msg");
+    LogDebugMessage(message);
+}
+
+function OutputMessage(text, name, messageType) {
     var listElement = document.getElementById('output-list');
+    //var oldClass, lastElement;
     
     viewModel.chats.push(new Chat(text, name));
+
     $("#output-list").listview("refresh");
+
+    //Apply functional class formatting by messageType, if any;
+    //Custom class is carried along when new elements are added
+    if (messageType !== undefined) {
+        lastElement = listElement.lastElementChild;
+        oldClass = lastElement.className;
+        lastElement.className = oldClass + " " + messageType;
+    }
+
+    //Scroll chat pane to bottom
     listElement.scrollTop = listElement.scrollHeight;
 }
 
