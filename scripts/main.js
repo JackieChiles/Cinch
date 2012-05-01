@@ -230,11 +230,12 @@ var Card = function(encodedCard) {
     }
 };
 
-//Represents a single chat message from an entity
+//Represents a single message from an entity
 //Must be invoked with the "new" keyword
-var Chat = function(text, name) {
+var VisibleMessage = function(text, name, messageType) {
     this.text = text;
     this.name = name;
+    this.type = messageType || ''; //CSS class, if any, to apply special formatting
 }
 
 /////////////////////////////////////////////////////////////////
@@ -486,6 +487,13 @@ function CinchViewModel() {
             }
         }
     };
+    
+    //Applies the given class
+    ko.bindingHandlers.addClass = {
+        update: function(element, valueAccessor, allBindingsAccessor) {
+            $(element).addClass(ko.utils.unwrapObservable(valueAccessor()));
+        }
+    };
 }
 
 //TODO: migrate this to CinchApp, probably
@@ -656,19 +664,11 @@ function OutputErrorMessage(message) {
 
 function OutputMessage(text, name, messageType) {
     var listElement = document.getElementById('output-list');
-    //var oldClass, lastElement;
     
-    viewModel.chats.push(new Chat(text, name));
+    viewModel.chats.push(new VisibleMessage(text, name, messageType));
 
+    //Refresh the view so JQM is aware of the change made by KO
     $("#output-list").listview("refresh");
-
-    //Apply functional class formatting by messageType, if any;
-    //Custom class is carried along when new elements are added
-    if (messageType !== undefined) {
-        lastElement = listElement.lastElementChild;
-        oldClass = lastElement.className;
-        lastElement.className = oldClass + " " + messageType;
-    }
 
     //Scroll chat pane to bottom
     listElement.scrollTop = listElement.scrollHeight;

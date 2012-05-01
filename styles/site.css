@@ -286,8 +286,15 @@
 
 /* Special message styles */
 .error-msg {
-    background-color: #339C53;
-    background-image: -webkit-linear-gradient(#B00,#888);
+    background-color: #BB0000;
+    
+    /* This will clear default BG image so solid color displays if none of the gradients work*/
+    background-image: none;
+    
+    background-image: -webkit-linear-gradient(top, #B00, #888);
+    background-image: -moz-linear-gradient(top, #B00, #888);
+    background-image: -ms-linear-gradient(top, #B00, #888);
+    background-image: linear-gradient(top, #B00, #888);
     color: black;
     text-shadow: none;
 }

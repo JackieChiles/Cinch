@@ -153,7 +153,7 @@
                         <li data-role="list-divider">Messages</li>
 			
 			<!-- ko foreach: chats -->
-			    <li>
+			    <li data-bind="addClass: type">
 				<strong data-bind="visible: name, text: name + ': '"></strong>
 				<span data-bind="text: text" class="chat-message"></span>
 			    </li>
