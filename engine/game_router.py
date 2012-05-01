@@ -9,6 +9,7 @@ from threading import Timer #for delayed start
 
 # All import paths are relative to the root
 import core.common as common
+import core.cards as cards
 from core.game import Game, NUM_PLAYERS
 from web.message import Message
 from web.channel import CommChannel
@@ -276,7 +277,10 @@ class GamePlayHandler(GameRouterHandler):
         response = target_game.handle_card_played(pNum, card_num)
 
         if response is False:
-            return get_error(ERROR_TYPE.ILLEGAL_PLAY, card_num)
+            decoded = cards.decode(card_num)
+            
+            # Pass in a tuple of the suit and rank names for the illegal play error message
+            return get_error(ERROR_TYPE.ILLEGAL_PLAY, (cards.RANKS_BY_NUM[decoded[0]], cards.SUITS_BY_NUM[decoded[1]]))
 
         try:
             self.announce_msgs_from_game(response, game_id)
@@ -301,7 +305,7 @@ def get_error(err, *args):
         elif err == ERROR_TYPE.ILLEGAL_BID:
             err_val = "Your bid of {0} is illegal.".format(args[0])
         elif err == ERROR_TYPE.ILLEGAL_PLAY:
-            err_val = "Your play of {0} is illegal.".format(args[0])
+            err_val = "Your play of the {0} of {1} is illegal.".format(args[0][0], args[0][1])
         else:
             err_val = "Unspecified error type."
 
