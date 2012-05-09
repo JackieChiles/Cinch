@@ -18,7 +18,7 @@
     </head>
     
     <body>
-        <div data-role="page">
+        <div data-role="page" id="home-page">
             <div data-role="header">
             <h1>Cinch</h1>
             </div>
@@ -30,10 +30,11 @@
             </div>
         </div>
         
-        <div data-role="page" id="bidding-page">
+        <div data-role="page" id="bidding-page" class="no-close-dialog">
 	    <div data-role="header">
 		<h1>Bidding</h1>
 	    </div><!-- /header -->
+            
 	    <div data-role="content">
                 <ul data-role="listview" data-inset="true" class="bid-list partner">                   
                     <li data-bind="text: playerNames[CinchApp.playerEnum.north]" data-role="list-divider"></li>
@@ -41,12 +42,12 @@
                 </ul>
                 
                 <div id="opponent-bid-container">
-                    <ul data-role="listview" data-inset="true" id="bid-list" class="bid-list opponent">                   
+                    <ul data-role="listview" data-inset="true" class="bid-list opponent">                   
                         <li data-bind="text: playerNames[CinchApp.playerEnum.west]" data-role="list-divider"></li>
                         <li data-bind="text: currentBidsNames()[CinchApp.playerEnum.west]"></li>
                     </ul>
                     
-                    <ul data-role="listview" data-inset="true" id="bid-list" class="bid-list opponent">                   
+                    <ul data-role="listview" data-inset="true" class="bid-list opponent">                   
                         <li data-bind="text: playerNames[CinchApp.playerEnum.east]" data-role="list-divider"></li>
                         <li data-bind="text: currentBidsNames()[CinchApp.playerEnum.east]"></li>
                     </ul>
@@ -75,6 +76,96 @@
                 </div>
 	    </div>
 	</div><!-- /bidding page -->
+        
+        <div data-role="page" id="hand-end-page" class="no-close-dialog">
+	    <div data-role="header">
+		<h1>End of Hand</h1>
+	    </div><!-- /header -->
+	    
+            <div data-role="content">
+                <div class="ui-grid-c">
+                    <div class="ui-block-a">
+                        <div class="ui-bar ui-bar-c">High</div>
+                    </div>
+                    <div class="ui-block-b">
+                        <div class="ui-bar ui-bar-c">Low</div>
+                    </div>
+                    <div class="ui-block-c">
+                        <div class="ui-bar ui-bar-c">Jack</div>
+                    </div>
+                    <div class="ui-block-d">
+                        <div class="ui-bar ui-bar-c">Game</div>
+                    </div>
+                    
+                    <div class="ui-block-a">
+                        <div data-bind="text: highTeam" class="ui-bar ui-bar-c hand-end-info"></div>
+                    </div>
+                    <div class="ui-block-b">
+                        <div data-bind="text: lowTeam" class="ui-bar ui-bar-c hand-end-info"></div>
+                    </div>
+                    <div class="ui-block-c">
+                        <div data-bind="text: jackTeam" class="ui-bar ui-bar-c hand-end-info"></div>
+                    </div>
+                    <div class="ui-block-d">
+                        <div data-bind="text: gameTeam" class="ui-bar ui-bar-c hand-end-info"></div>
+                    </div>
+                </div>
+                
+                <h3 class="dialog-label">Game points</h3>
+                
+                <div class="ui-grid-a">
+                    <div class="ui-block-a">
+                        <div class="ui-bar ui-bar-c">You</div>
+                    </div>
+                    <div class="ui-block-b">
+                        <div class="ui-bar ui-bar-c">Opponents</div>
+                    </div>
+                    
+                    <div class="ui-block-a">
+                        <div data-bind="text: gamePoints()[0]" class="ui-bar ui-bar-c hand-end-info"></div>
+                    </div>
+                    <div class="ui-block-b">
+                        <div data-bind="text: gamePoints()[1]" class="ui-bar ui-bar-c hand-end-info"></div>
+                    </div>
+                </div>
+                
+                <button data-bind="click: startBidding">Continue</button>
+            </div>
+	</div><!-- /hand-end page -->
+        
+        <div data-role="page" id="game-end-page" class="no-close-dialog">
+	    <div data-role="header">
+		<h1>Game over</h1>
+	    </div><!-- /header -->
+	    
+            <div data-role="content">
+                <h3>
+                    <span data-bind="text: winnerName"></span> win!
+                </h3>
+                
+                <hr />
+                
+                <h3>Final scores</h3>
+                
+                <div class="ui-grid-a">
+                    <div class="ui-block-a">
+                        <div class="ui-bar ui-bar-c">You</div>
+                    </div>
+                    <div class="ui-block-b">
+                        <div class="ui-bar ui-bar-c">Opponents</div>
+                    </div>
+                    
+                    <div class="ui-block-a">
+                        <div data-bind="text: gameScores()[0]" class="ui-bar ui-bar-c hand-end-info"></div>
+                    </div>
+                    <div class="ui-block-b">
+                        <div data-bind="text: gameScores()[1]" class="ui-bar ui-bar-c hand-end-info"></div>
+                    </div>
+                </div>
+                
+                <button data-bind="click: returnHome">Continue</button>
+            </div>
+	</div><!-- /game-end page -->
         
         <div data-role="page" data-dom-cache="true" id="game-page">
             <div data-role="navbar">

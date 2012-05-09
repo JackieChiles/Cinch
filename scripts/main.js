@@ -21,7 +21,9 @@ var CinchApp = {
     //Constants
     GAME_MODE_NEW: 0,
     NUM_PLAYERS: 4,
+    NUM_TEAMS: 2,
     NUM_POSSIBLE_BIDS: 6,
+    ANIM_WAIT_DELAY: 1000,
     PLAY_SURFACE_WIDTH: 290,
     PLAY_SURFACE_HEIGHT: 245,
     CARD_IMAGE_WIDTH: 72,
@@ -80,7 +82,10 @@ var CinchApp = {
     guid: 0,
     cardImagesInPlay: [], //Tracks card images for animation purposes
     trickWinner: -1, //Relative to client (self is always CinchApp.playerEnum.south)
-    responseQueue: [], //All GET responses go here
+    
+    //Function queue: all GET responses go here to be processed once app is in 'running' mode
+    //Any other functions can be added here as needed
+    responseQueue: [],    
     processing: false, //Flag for ProcessQueue
     responseCompleteQueue: [], //Actions with dependencies go here to be ran last
     
@@ -117,10 +122,15 @@ var CinchApp = {
             //Still previous active player, as actvP handler gets pushed into the responseCompleteQueue
             viewModel.currentBids[viewModel.activePlayer()](update.bid);
         },
-        dlr: function(update) { viewModel.dealer(ServerToClientPNum(update.dlr)); },
+        dlr: function (update) { viewModel.dealer(ServerToClientPNum(update.dlr)); },
         err: function (update) { OutputErrorMessage(update.err); },
-        mode: function (update) { viewModel.gameMode(update.mode); },
-        msg: function(update) { OutputMessage(update.msg, viewModel.playerNames[ServerToClientPNum(parseInt(update.uNum))]); },
+        mode: function (update) {
+            //The rest of the hand-end processing is done through Knockout subscriptions, etc.
+            viewModel.matchPoints(update.mp || []);
+            viewModel.gamePoints(update.gp || []);
+            viewModel.gameMode(update.mode);
+        },
+        msg: function (update) { OutputMessage(update.msg, viewModel.playerNames[ServerToClientPNum(parseInt(update.uNum))]); },
         playC: function (update) { viewModel.playCard(update.playC); },
         pNum: function (update) { viewModel.myPlayerNum(update.pNum); },
         remP: function (update) { HandleEndTrick(update.remP); },
@@ -131,7 +141,8 @@ var CinchApp = {
             CinchApp.guid = update.uid;
             viewModel.unlockBoard();
             StartLongPoll();
-        } 
+        },
+        win: function (update) { viewModel.winner(update.win); }
     }
 };
 
@@ -253,6 +264,10 @@ function CinchViewModel() {
         'Your partner',
         'Right opponent'
     ];
+    this.teamNames = [
+        'You',
+        'Opponents'
+    ];
     this.myPlayerNum = ko.observable(0); //Player num assigned by server
     this.activePlayer = ko.observable(); //Relative to client (self is always CinchApp.playerEnum.south)
     this.isActivePlayer = ko.computed(function() {
@@ -270,12 +285,51 @@ function CinchViewModel() {
     this.trumpName = ko.computed(function() {
         return CinchApp.suitNames[self.trump()];
     });
+    this.winner = ko.observable(); //Integer, winning team. Will be 0 for players 0 & 2 and 1 for players 1 and 3.
+    this.winnerName = ko.computed(function() {
+        //Winning team is "You" if self.winner() matches your team, otherwise "Opponents"
+        return self.myPlayerNum() % CinchApp.NUM_TEAMS == self.winner() ? self.teamNames[0] : self.teamNames[1];
+    });
     this.gameMode = ko.observable();
     this.isGameStarted = ko.computed(function() {
         return self.gameMode() === CinchApp.gameModeEnum.play || self.gameMode() === CinchApp.gameModeEnum.bid;
     });
     this.gameScores = ko.observableArray([0, 0]);
     this.encodedCards = ko.observableArray([]);
+    this.gamePoints = ko.observable([]);
+    this.matchPoints = ko.observable([]); //Encoded strings representing taking teams of high, low, jack, and game from server
+    
+    //"Private" function used to process gamePoints
+    var getMatchPointTeam = function(type) {
+        var i = 0;
+        var matchPointStrings = self.matchPoints();
+        
+        for(i = 0; i < matchPointStrings.length; i++) {
+            if(matchPointStrings[i].indexOf(type) > -1) {
+                //Return the team that got the point
+                return self.teamNames[i] || '';
+            }
+        }
+        
+        //If the indicator was not found for any team, return empty string
+        return '';
+    };
+    
+    //These are just team strings used for display, not the team integer values
+    //TODO: use string constants for game point types
+    this.highTeam = ko.computed(function() {
+        return getMatchPointTeam('h');
+    });
+    this.lowTeam = ko.computed(function() {
+        return getMatchPointTeam('l');
+    });
+    this.jackTeam = ko.computed(function() {
+        return getMatchPointTeam('j');
+    });
+    this.gameTeam = ko.computed(function() {
+        return getMatchPointTeam('g');
+    });
+    
     this.cardsInHand = ko.computed(function() {
         //Will re-compute every time cards are added removed to hand (encodedCards)
         var j = 0;
@@ -354,25 +408,18 @@ function CinchViewModel() {
         this.possibleBids.push(new Bid(this, i, bidValidFunction));
     }
     
-    //description
+    //Board lock/response mode
     this.lockBoard = function () {
         this.responseMode(CinchApp.responseModeEnum.holding);
-    }
+    };
     this.unlockBoard = function() {
         this.responseMode(CinchApp.responseModeEnum.running);
-    }
+        ProcessResponseQueue();
+    };
     this.isBoardLocked = function() {
         return this.responseMode() == CinchApp.responseModeEnum.holding;
-    }
- 
-    //Response mode things
+    };
     this.responseMode = ko.observable();
-    this.responseModeOnChange = ko.computed(function() {
-        //When responseMode is changed to `running`, process responseQueue
-        if (!self.isBoardLocked()) {
-            ProcessResponseQueue();
-        }
-    });
     
     //Functions
     this.playCard = function(cardNum) {
@@ -388,7 +435,7 @@ function CinchViewModel() {
         else {
             self.cardsInAllHands[playerOfCard].pop();
         }
-    }
+    };
     this.resetBids = function() {
         var j = 0;
         
@@ -396,28 +443,49 @@ function CinchViewModel() {
             self.currentBids[j](CinchApp.bidEnum.none);
         }
     };
+    this.returnHome = function(transition) {
+        //Temporary fix
+        window.location = 'home.html';
+        viewModel = new CinchViewModel(); //Clear the viewModel for the next game
+        
+        //TODO: figure out why this doesn't work. Doing changePage to #home-page doesn't seem to work either.
+        //Default transition is 'slideup'
+        //$.mobile.changePage( 'home.html', { transition: transition || 'slideup'} );
+    };
+    this.startBidding = function() {
+        self.resetBids();
+        OpenJqmDialog('#bidding-page');
+    };
     
     //Subscriptions
     this.gameMode.subscribe(function(newValue) {
         //Closes or opens the bid dialog depending on the game mode
         
         if(newValue == CinchApp.gameModeEnum.bid) {
-            self.resetBids();
-            
-            //TODO: find a better way of doing this?
-                //Unfortunately, JQM does not have an easier way to open dialogs programmatically, for now...
-            //Open bid dialog
-            $('<a />')
-            .attr('href', '#bidding-page')
-            .attr('data-rel', 'dialog')
-            .attr('data-transition', 'slidedown')
-            .appendTo('body')
-            .click()
-            .remove();
+            //Delay for a second to allow the player to see all of the animations
+            //TODO: change animation.js and use responseQueue to do this properly (called when animations complete)
+            setTimeout(function() {
+                if(self.matchPoints().length > 0) {
+                    //If match points on record, hand ended, open hand end dialog. 
+                    OpenJqmDialog('#hand-end-page');
+                }
+                else {
+                    //Otherwise, game just started, start bidding.
+                    self.startBidding();
+                }
+            }, CinchApp.ANIM_WAIT_DELAY);
         }
         else {
-            $('#bidding-page').dialog('close');
+            //Navigate back to game page when in play mode
+            $.mobile.changePage( '#game-page', { transition: 'slideup'} );
         }
+    });
+    this.winner.subscribe(function(newValue) {
+        //Delay for a second to allow the player to see all of the animations
+        //TODO: change animation.js and use responseQueue to do this properly (called when animations complete)
+        setTimeout(function() {
+            OpenJqmDialog('#game-end-page');
+        }, CinchApp.ANIM_WAIT_DELAY);
     });
     
     //Custom bindings
@@ -503,21 +571,15 @@ var viewModel = new CinchViewModel();
 // Animation                                                   //
 /////////////////////////////////////////////////////////////////
 function ClearTable(playerNum){
-
     CinchApp.trickWinner = ServerToClientPNum(playerNum);
     //Allow all cards in play to finish animating
-    finishDrawingCards();
-
-    //Process is completed from within animation.js
+    finishDrawingCards(); //Process is completed from within animation.js
 }
 
-function HandleEndTrick(playerNum) {
-    //Must wait until 'playC' is handled
-    
-    //TODO: lock down active player from playing until board is cleared
-    //Still a TODO after animation coding update.
+function HandleEndTrick(playerNum) {  
     viewModel.lockBoard();
     
+    //Must wait until 'playC' is handled
     CinchApp.responseCompleteQueue.push(function () {
         //Wait a bit so the ending play can be seen
         setTimeout(function () {
@@ -531,7 +593,9 @@ function HandleEndTrick(playerNum) {
 /////////////////////////////////////////////////////////////////
 function HandleResponse(result) {
     if (result !== null) {
-        CinchApp.responseQueue.push(result);
+        CinchApp.responseQueue.push(function() {
+            ProcessResponse(result);
+        });
     }
     
     //If responseMode = running, then process all items in queue
@@ -541,14 +605,11 @@ function HandleResponse(result) {
 }
 
 function ProcessResponseQueue() {
-    if (CinchApp.processing) { //Prevent multiple concurrent calls to this
-        return;
-    }
-    else {
+    if (!CinchApp.processing) { //Prevent multiple concurrent calls to this
         CinchApp.processing = true;
         
         while (CinchApp.responseQueue.length > 0) {
-            ProcessResponse(CinchApp.responseQueue.shift());
+            CinchApp.responseQueue.shift()(); //Invoke the next function in the queue
         }
 
         CinchApp.responseQueue.length = 0; //Clear responseQueue
@@ -645,7 +706,6 @@ function SubmitNew(mode) {
 /////////////////////////////////////////////////////////////////
 // Other                                                       //
 /////////////////////////////////////////////////////////////////
-
 function LogDebugMessage(message) {
     if(CinchApp.isDebugMode) {
         viewModel.debugMessages.push(message);
@@ -655,6 +715,18 @@ function LogDebugMessage(message) {
             console.log(message);
         }
     }
+}
+
+//TODO: just extend a JQM prototype for this?
+function OpenJqmDialog(dialogId, transition) {
+    //Default transition is 'slidedown'
+    $('<a />')
+        .attr('href', dialogId)
+        .attr('data-rel', 'dialog')
+        .attr('data-transition', transition || 'slidedown')
+        .appendTo('body')
+        .click()
+        .remove();
 }
 
 function OutputErrorMessage(message) {

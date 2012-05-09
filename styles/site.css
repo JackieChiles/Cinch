@@ -17,14 +17,14 @@
 }
 
 /*****************************************
-** Bidding                              **
+** Bidding and hand-end dialogs         **
 *****************************************/
-#bidding-page.ui-dialog, #bidding-page.ui-dialog .ui-header, #bidding-page.ui-dialog .ui-dialog-contain
+.no-close-dialog.ui-dialog, .no-close-dialog.ui-dialog .ui-header, .no-close-dialog.ui-dialog .ui-dialog-contain
 {
     margin:0 auto;
 }
 
-#bidding-page.ui-dialog .ui-header .ui-btn-icon-notext
+.no-close-dialog.ui-dialog .ui-header .ui-btn-icon-notext
 {
     display:none;
 }
@@ -34,7 +34,7 @@
     overflow-y:hidden;
 }
 
-#bidding-page.ui-dialog .ui-content, #bidding-page.ui-dialog .ui-header
+.no-close-dialog.ui-dialog .ui-content, .no-close-dialog.ui-dialog .ui-header
 {
     padding-left:0;
     padding-right:0;
@@ -85,6 +85,17 @@
 .clear-both
 {
     clear:both;
+}
+
+.hand-end-info
+{
+    font-weight:normal;
+    text-shadow:none;
+}
+
+#hand-end-page h3, #game-end-page h3 {
+    margin:1em 0 0.5em 0;
+    text-align:center;
 }
 
 /*****************************************
@@ -150,11 +161,6 @@
     border:2px solid #703C0D;
     height:245px;
     width:290px;
-}
-
-#scoreboard *
-{
-    text-align:center;
 }
 
 #waiting-message
