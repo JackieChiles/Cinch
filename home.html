@@ -24,8 +24,8 @@
             </div>
             <div data-role="content">
                 <div id="home-buttons-container">
-                    <a data-role="button" data-transition="slide" href="#game-page" onclick="SubmitNew(CinchApp.GAME_MODE_NEW)">New game</a>
-                    <a data-role="button" data-transition="slide" href="#game-page" onclick="SubmitJoin(0, 0)">Join game</a>
+                    <a data-role="button" data-transition="slide" href="#game-page" onclick="submitNew(CinchApp.GAME_MODE_NEW)">New game</a>
+                    <a data-role="button" data-transition="slide" href="#game-page" onclick="submitJoin(0, 0)">Join game</a>
                 </div>
             </div>
         </div>
@@ -239,7 +239,7 @@
 		    </div>
                     
 		    <input id="text-to-insert" type="text" placeholder="Enter chat message" />
-                    <button id="submit-button" onclick="SubmitChat()">Submit Message</button>
+                    <button id="submit-button" onclick="submitChat()">Submit Message</button>
                     <ul data-role="listview" data-inset="true" id="output-list">
                         <li data-role="list-divider">Messages</li>
 			

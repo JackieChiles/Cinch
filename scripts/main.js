@@ -1,19 +1,78 @@
 /////////////////////////////////////////////////////////////////
-// jQuery extensions                                           //
+// Knockout custom bindings                                    //
 /////////////////////////////////////////////////////////////////
-$.fn.pulse = function (totalDuration, callback) {
-    //Requires jquery.animate-shadow plugin, for now
-    
-    var self = $(this);
-    var originalShadow = self.css('box-shadow');
-    var duration = totalDuration ? totalDuration / 2 : 500;
-    
-    self.animate({ boxShadow: '0 0 30px #44f'}, duration, function () {
-        self.animate({ boxShadow: originalShadow }, duration, function () {
-            if(callback) { callback(); };
-        });
-    });
-}
+ko.bindingHandlers.jqmButtonEnabled = {
+    update: function(element, valueAccessor, allBindingsAccessor) {
+        //Need a try-catch to handle when this is called before JQM initialization of the control
+        try {
+            var enable = ko.utils.unwrapObservable(valueAccessor());
+            
+            if(enable) {
+                if($(element).attr('data-role') === 'button') {
+                    //"Link" buttons
+                    $(element).removeClass('ui-disabled');
+                    $(element).addClass('ui-enabled');
+                }
+                else {
+                    //Inputs or button elements
+                    $(element).button('enable');
+                }
+            }
+            else {
+                if($(element).attr('data-role') === 'button') {
+                    $(element).removeClass('ui-enabled');
+                    $(element).addClass('ui-disabled');
+                }
+                else {
+                    $(element).button('disable');
+                }
+            }
+        }
+        catch (e) {
+        }
+    }
+};
+
+//Cbr stands for checkboxradio
+ko.bindingHandlers.jqmCbrEnabled = {
+    update: function(element, valueAccessor, allBindingsAccessor) {
+        //Need a try-catch to handle when this is called before JQM initialization of the control
+        try {
+            var enable = ko.utils.unwrapObservable(valueAccessor());
+            
+            if(enable) {
+                $(element).checkboxradio('enable');
+            }
+            else {
+                $(element).checkboxradio('disable');
+            }
+        }
+        catch (e) {
+        }
+    }
+};
+
+//Applies a border for emphasis if condition is met
+ko.bindingHandlers.activeBorder = {
+    update: function(element, valueAccessor, allBindingsAccessor) {
+        var enable = ko.utils.unwrapObservable(valueAccessor());
+        
+        if(enable) {
+            $(element).addClass('active-border');
+        }
+        else {
+            $(element).removeClass('active-border');
+        }
+    }
+};
+
+//Applies the given class
+ko.bindingHandlers.addClass = {
+    update: function(element, valueAccessor, allBindingsAccessor) {
+        $(element).addClass(ko.utils.unwrapObservable(valueAccessor()));
+    }
+};
+
 /////////////////////////////////////////////////////////////////
 // Main namespace                                              //
 /////////////////////////////////////////////////////////////////
@@ -90,14 +149,14 @@ var CinchApp = {
     responseCompleteQueue: [], //Actions with dependencies go here to be ran last
     
     //If "ravenholm" is in the URL, app must be running on production server, so use that URL, otherwise use dev. URL
-    serverUrl: window.location.href.indexOf("ravenholm") > -1
-        ? "http://ravenholm.dyndns.tv:2424" //Legend url
-        : "http://localhost:2424", //Development URL
+    serverUrl: window.location.href.indexOf('ravenholm') > -1
+        ? 'http://ravenholm.dyndns.tv:2424' //Legend url
+        : 'http://localhost:2424', //Development URL
     actions: {
         actvP: function (update) {
             //Must wait until after other handlers are called because some depend on previous activePlayer (like playC)
             CinchApp.responseCompleteQueue.push(function () {
-                viewModel.activePlayer(ServerToClientPNum(update.actvP));
+                viewModel.activePlayer(serverToClientPNum(update.actvP));
             });
         },
         addC: function (update) {
@@ -122,25 +181,25 @@ var CinchApp = {
             //Still previous active player, as actvP handler gets pushed into the responseCompleteQueue
             viewModel.currentBids[viewModel.activePlayer()](update.bid);
         },
-        dlr: function (update) { viewModel.dealer(ServerToClientPNum(update.dlr)); },
-        err: function (update) { OutputErrorMessage(update.err); },
+        dlr: function (update) { viewModel.dealer(serverToClientPNum(update.dlr)); },
+        err: function (update) { outputErrorMessage(update.err); },
         mode: function (update) {
             //The rest of the hand-end processing is done through Knockout subscriptions, etc.
             viewModel.matchPoints(update.mp || []);
             viewModel.gamePoints(update.gp || []);
             viewModel.gameMode(update.mode);
         },
-        msg: function (update) { OutputMessage(update.msg, viewModel.playerNames[ServerToClientPNum(parseInt(update.uNum))]); },
+        msg: function (update) { outputMessage(update.msg, viewModel.playerNames[serverToClientPNum(parseInt(update.uNum))]); },
         playC: function (update) { viewModel.playCard(update.playC); },
         pNum: function (update) { viewModel.myPlayerNum(update.pNum); },
-        remP: function (update) { HandleEndTrick(update.remP); },
+        remP: function (update) { handleEndTrick(update.remP); },
         sco: function (update) { viewModel.gameScores(update.sco); },
         trp: function (update) { viewModel.trump(update.trp); },
         uid: function (update) {
             //Don't start long-polling until server gives valid guid
             CinchApp.guid = update.uid;
             viewModel.unlockBoard();
-            StartLongPoll();
+            startLongPoll();
         },
         win: function (update) { viewModel.winner(update.win); }
     }
@@ -157,7 +216,7 @@ $('#game-page').live('pageinit', function () {
     $('#game-page').die('pageinit');
     
     //Add a binding to the chat input to submit chats when enter is pressed
-    $("#text-to-insert").keypress(function(event) {
+    $('#text-to-insert').keypress(function(event) {
         if ( event.which == 13 ) {
            event.preventDefault();
            $('#submit-button').click();
@@ -165,14 +224,14 @@ $('#game-page').live('pageinit', function () {
     });
     
     $('#play-surface').attr('width', CinchApp.PLAY_SURFACE_WIDTH).attr('height', CinchApp.PLAY_SURFACE_HEIGHT);
-    OutputMessage("Welcome to Cinch- it's pretty rad here.", 'System');
+    outputMessage("Welcome to Cinch- it's pretty rad here.", 'System');
     
     //TODO: Actually handle incompatible browsers
     if (Modernizr.canvas && Modernizr.canvastext) {
-        LogDebugMessage('Canvas and canvas text support detected.');
+        logDebugMessage('Canvas and canvas text support detected.');
     }
     else {
-        LogDebugMessage('Your browser does not support canvas and canvas text.');
+        logDebugMessage('Your browser does not support canvas and canvas text.');
     }
     
     //Apply Knockout bindings
@@ -203,7 +262,7 @@ var Bid = function(parentViewModel, value, validFunction) {
     this.name = CinchApp.bidNames[value] || value.toString(); //If bid name exists for value use it, otherwise use value
     this.isValid = ko.computed(actualValidFunction);
     this.submit = function() {
-        PostData({ 'uid': CinchApp.guid, 'bid': self.value });
+        postData({ 'uid': CinchApp.guid, 'bid': self.value });
     }
 }
 
@@ -237,7 +296,7 @@ var Card = function(encodedCard) {
     }
     
     this.submit = function() {
-        PostData({'uid': CinchApp.guid, 'card': this.encoded});
+        postData({'uid': CinchApp.guid, 'card': this.encoded});
     }
 };
 
@@ -414,7 +473,7 @@ function CinchViewModel() {
     };
     this.unlockBoard = function() {
         this.responseMode(CinchApp.responseModeEnum.running);
-        ProcessResponseQueue();
+        processResponseQueue();
     };
     this.isBoardLocked = function() {
         return this.responseMode() == CinchApp.responseModeEnum.holding;
@@ -454,7 +513,7 @@ function CinchViewModel() {
     };
     this.startBidding = function() {
         self.resetBids();
-        OpenJqmDialog('#bidding-page');
+        openJqmDialog('#bidding-page');
     };
     
     //Subscriptions
@@ -467,7 +526,7 @@ function CinchViewModel() {
             setTimeout(function() {
                 if(self.matchPoints().length > 0) {
                     //If match points on record, hand ended, open hand end dialog. 
-                    OpenJqmDialog('#hand-end-page');
+                    openJqmDialog('#hand-end-page');
                 }
                 else {
                     //Otherwise, game just started, start bidding.
@@ -484,84 +543,9 @@ function CinchViewModel() {
         //Delay for a second to allow the player to see all of the animations
         //TODO: change animation.js and use responseQueue to do this properly (called when animations complete)
         setTimeout(function() {
-            OpenJqmDialog('#game-end-page');
+            openJqmDialog('#game-end-page');
         }, CinchApp.ANIM_WAIT_DELAY);
     });
-    
-    //Custom bindings
-    
-    //TODO: move this out of viewModel
-    ko.bindingHandlers.jqmButtonEnabled = {
-        update: function(element, valueAccessor, allBindingsAccessor) {
-            //Need a try-catch to handle when this is called before JQM initialization of the control
-            try {
-                var enable = ko.utils.unwrapObservable(valueAccessor());
-                
-                if(enable) {
-                    if($(element).attr('data-role') === 'button') {
-                        //"Link" buttons
-                        $(element).removeClass('ui-disabled');
-                        $(element).addClass('ui-enabled');
-                    }
-                    else {
-                        //Inputs or button elements
-                        $(element).button('enable');
-                    }
-                }
-                else {
-                    if($(element).attr('data-role') === 'button') {
-                        $(element).removeClass('ui-enabled');
-                        $(element).addClass('ui-disabled');
-                    }
-                    else {
-                        $(element).button('disable');
-                    }
-                }
-            }
-            catch (e) {
-            }
-        }
-    };
-    
-    //Cbr stands for checkboxradio
-    ko.bindingHandlers.jqmCbrEnabled = {
-        update: function(element, valueAccessor, allBindingsAccessor) {
-            //Need a try-catch to handle when this is called before JQM initialization of the control
-            try {
-                var enable = ko.utils.unwrapObservable(valueAccessor());
-                
-                if(enable) {
-                    $(element).checkboxradio('enable');
-                }
-                else {
-                    $(element).checkboxradio('disable');
-                }
-            }
-            catch (e) {
-            }
-        }
-    };
-    
-    //Applies a border for emphasis if condition is met
-    ko.bindingHandlers.activeBorder = {
-        update: function(element, valueAccessor, allBindingsAccessor) {
-            var enable = ko.utils.unwrapObservable(valueAccessor());
-            
-            if(enable) {
-                $(element).addClass('active-border');
-            }
-            else {
-                $(element).removeClass('active-border');
-            }
-        }
-    };
-    
-    //Applies the given class
-    ko.bindingHandlers.addClass = {
-        update: function(element, valueAccessor, allBindingsAccessor) {
-            $(element).addClass(ko.utils.unwrapObservable(valueAccessor()));
-        }
-    };
 }
 
 //TODO: migrate this to CinchApp, probably
@@ -570,20 +554,20 @@ var viewModel = new CinchViewModel();
 /////////////////////////////////////////////////////////////////
 // Animation                                                   //
 /////////////////////////////////////////////////////////////////
-function ClearTable(playerNum){
-    CinchApp.trickWinner = ServerToClientPNum(playerNum);
+function clearTable(playerNum){
+    CinchApp.trickWinner = serverToClientPNum(playerNum);
     //Allow all cards in play to finish animating
     finishDrawingCards(); //Process is completed from within animation.js
 }
 
-function HandleEndTrick(playerNum) {  
+function handleEndTrick(playerNum) {  
     viewModel.lockBoard();
     
     //Must wait until 'playC' is handled
     CinchApp.responseCompleteQueue.push(function () {
         //Wait a bit so the ending play can be seen
         setTimeout(function () {
-            ClearTable(playerNum);
+            clearTable(playerNum);
         }, 1200);
     });
 }
@@ -591,20 +575,20 @@ function HandleEndTrick(playerNum) {
 /////////////////////////////////////////////////////////////////
 // AJAX/Communication                                          //
 /////////////////////////////////////////////////////////////////
-function HandleResponse(result) {
+function handleResponse(result) {
     if (result !== null) {
         CinchApp.responseQueue.push(function() {
-            ProcessResponse(result);
+            processResponse(result);
         });
     }
     
     //If responseMode = running, then process all items in queue
     if (!viewModel.isBoardLocked()) {
-        ProcessResponseQueue();
+        processResponseQueue();
     }
 }
 
-function ProcessResponseQueue() {
+function processResponseQueue() {
     if (!CinchApp.processing) { //Prevent multiple concurrent calls to this
         CinchApp.processing = true;
         
@@ -617,12 +601,12 @@ function ProcessResponseQueue() {
     }
 }
 
-function ProcessResponse(result) {
+function processResponse(result) {
     if (result.hasOwnProperty('msgs')) {
         var updates = result.msgs;
 
         for(var i = 0; i < updates.length; i++) {
-            HandleUpdate(updates[i]);
+            handleUpdate(updates[i]);
         }
     }
 
@@ -633,13 +617,13 @@ function ProcessResponse(result) {
     CinchApp.responseCompleteQueue.length = 0;
 }
 
-function HandleUpdate(update) {
+function handleUpdate(update) {
     for(property in update)
         if(CinchApp.actions.hasOwnProperty(property))
             CinchApp.actions[property](update);
 }
 
-function StartLongPoll() {
+function startLongPoll() {
     $.ajax({
         url: CinchApp.serverUrl,
         type: 'GET',
@@ -648,21 +632,21 @@ function StartLongPoll() {
         success: function (result, textStatus, jqXHR) {
             //Development
             CinchApp.responseCount++;
-            LogDebugMessage('Long poll response ' + CinchApp.responseCount + ' received from server: ' + JSON.stringify(result));
+            logDebugMessage('Long poll response ' + CinchApp.responseCount + ' received from server: ' + JSON.stringify(result));
             
-            HandleResponse(result);
+            handleResponse(result);
 
             //No longer delaying this, but there MUST remain a time-out on the server
             //so clients don't poll rapidly when nothing is being returned
-            StartLongPoll();
+            startLongPoll();
         },
         error: function (jqXHR, textStatus, errorThrown) {
-            OutputErrorMessage('Error starting long poll: ' + errorThrown);
+            outputErrorMessage('Error connecting to server: ' + errorThrown);
         }
     });
 }
 
-function PostData(data) {
+function postData(data) {
     $.ajax({
         url: CinchApp.serverUrl,
         type: 'POST',
@@ -672,13 +656,13 @@ function PostData(data) {
             setTimeout(function() {
                 //Not a good way to handle this but it's just for debugging...
                 //Wait a bit so the debugging area is (probably) loaded into the DOM
-                LogDebugMessage('POST response from server: ' + JSON.stringify(result));
+                logDebugMessage('POST response from server: ' + JSON.stringify(result));
             }, 500);
             
-            HandleUpdate(result);
+            handleUpdate(result);
         },
         error: function (jqXHR, textStatus, errorThrown) {
-            OutputErrorMessage('Error sending data: ' + errorThrown);
+            outputErrorMessage('Error sending data: ' + errorThrown);
         },
         complete: function (jqXHR, textStatus) {
         }
@@ -686,27 +670,27 @@ function PostData(data) {
 }
 
 //TODO: make this a KO subscription?
-function SubmitChat() {
+function submitChat() {
     var messageText = $('#text-to-insert').val();
 
-    if (messageText !== "") {
-        $('#text-to-insert').val("");
-        PostData({'uid': CinchApp.guid, 'msg': messageText});
+    if (messageText !== '') {
+        $('#text-to-insert').val('');
+        postData({'uid': CinchApp.guid, 'msg': messageText});
     }
 }
 
-function SubmitJoin(gameNum, pNum) {
-    PostData({'join': gameNum, 'pNum': pNum});
+function submitJoin(gameNum, pNum) {
+    postData({'join': gameNum, 'pNum': pNum});
 }
 
-function SubmitNew(mode) {
-    PostData({'game': mode});
+function submitNew(mode) {
+    postData({'game': mode});
 }
 
 /////////////////////////////////////////////////////////////////
 // Other                                                       //
 /////////////////////////////////////////////////////////////////
-function LogDebugMessage(message) {
+function logDebugMessage(message) {
     if(CinchApp.isDebugMode) {
         viewModel.debugMessages.push(message);
         
@@ -718,7 +702,7 @@ function LogDebugMessage(message) {
 }
 
 //TODO: just extend a JQM prototype for this?
-function OpenJqmDialog(dialogId, transition) {
+function openJqmDialog(dialogId, transition) {
     //Default transition is 'slidedown'
     $('<a />')
         .attr('href', dialogId)
@@ -729,24 +713,24 @@ function OpenJqmDialog(dialogId, transition) {
         .remove();
 }
 
-function OutputErrorMessage(message) {
-    OutputMessage(message, "Error", "error-msg");
-    LogDebugMessage(message);
+function outputErrorMessage(message) {
+    outputMessage(message, 'Error', 'error-msg');
+    logDebugMessage(message);
 }
 
-function OutputMessage(text, name, messageType) {
+function outputMessage(text, name, messageType) {
     var listElement = document.getElementById('output-list');
     
     viewModel.chats.push(new VisibleMessage(text, name, messageType));
 
     //Refresh the view so JQM is aware of the change made by KO
-    $("#output-list").listview("refresh");
+    $('#output-list').listview('refresh');
 
     //Scroll chat pane to bottom
     listElement.scrollTop = listElement.scrollHeight;
 }
 
-function ServerToClientPNum(serverNum) {
+function serverToClientPNum(serverNum) {
     //Adjusts serverNum to match "client is South" perspective
     return (serverNum - viewModel.myPlayerNum() + CinchApp.NUM_PLAYERS) % CinchApp.NUM_PLAYERS;
 }
