@@ -146,7 +146,7 @@ var CinchApp = {
     //Any other functions can be added here as needed
     responseQueue: [],    
     processing: false, //Flag for ProcessQueue
-    responseCompleteQueue: [], //Actions with dependencies go here to be ran last
+    secondaryActionQueue: [], //Actions with dependencies go here to be ran last
     
     //If "ravenholm" is in the URL, app must be running on production server, so use that URL, otherwise use dev. URL
     serverUrl: window.location.href.indexOf('ravenholm') > -1
@@ -155,13 +155,13 @@ var CinchApp = {
     actions: {
         actvP: function (update) {
             //Must wait until after other handlers are called because some depend on previous activePlayer (like playC)
-            CinchApp.responseCompleteQueue.push(function () {
+            CinchApp.secondaryActionQueue.push(function () {
                 viewModel.activePlayer(serverToClientPNum(update.actvP));
             });
         },
         addC: function (update) {
             //Must wait until after other handlers are called in case cards need to be removed first (from playC handler)      
-            CinchApp.responseCompleteQueue.push(function () {
+            CinchApp.secondaryActionQueue.push(function () {
                 var i = 0;
                 var j = 0;
                 var cardsToAdd = update.addC;
@@ -178,7 +178,7 @@ var CinchApp = {
             });
         },
         bid: function (update) {
-            //Still previous active player, as actvP handler gets pushed into the responseCompleteQueue
+            //Still previous active player, as actvP handler gets pushed into the secondaryActionQueue
             viewModel.currentBids[viewModel.activePlayer()](update.bid);
         },
         dlr: function (update) { viewModel.dealer(serverToClientPNum(update.dlr)); },
@@ -485,9 +485,12 @@ function CinchViewModel() {
         var cardToPlay = new Card(cardNum);
         var playerOfCard = self.activePlayer(); //Still "old" activePlayer
         
-        //This takes care of the animation
-        cardToPlay.play(playerOfCard);
-        
+        //Put animation at front of secondary queue, so it always is handled
+        //before end of trick procedures
+        CinchApp.secondaryActionQueue.unshift(function() {
+            cardToPlay.play(playerOfCard);
+        });
+
         if(playerOfCard === CinchApp.playerEnum.south) { //Client player
             self.encodedCards.remove(cardNum);
         }
@@ -561,10 +564,10 @@ function clearTable(playerNum){
 }
 
 function handleEndTrick(playerNum) {  
-    viewModel.lockBoard();
-    
     //Must wait until 'playC' is handled
-    CinchApp.responseCompleteQueue.push(function () {
+    CinchApp.secondaryActionQueue.push(function () {
+        viewModel.lockBoard(); //Board is unlocked in animation.js:animateBoardClear()
+
         //Wait a bit so the ending play can be seen
         setTimeout(function () {
             clearTable(playerNum);
@@ -575,51 +578,70 @@ function handleEndTrick(playerNum) {
 /////////////////////////////////////////////////////////////////
 // AJAX/Communication                                          //
 /////////////////////////////////////////////////////////////////
-function handleResponse(result) {
+function handleResponse(result) { //Used for GET-responses; uses response queue
     if (result !== null) {
-        CinchApp.responseQueue.push(function() {
-            processResponse(result);
-        });
+        if (result.hasOwnProperty('msgs')) {
+            var updates = result.msgs;
+            var curItem;
+            
+            while (updates.length > 0) { //Iterate over all update messages
+                //Using closure to keep curUpdate change from affecting entire queue
+                (function (curUpdate) {
+                    CinchApp.responseQueue.push(function() {
+                        handleUpdate(curUpdate);
+                    });
+                })(updates.shift());
+
+                //Push trigger into queue to handle secondary (dependant) actions after each update message
+                CinchApp.responseQueue.push(processSecondaryActionQueue);
+            }
+        }
     }
     
-    //If responseMode = running, then process all items in queue
-    if (!viewModel.isBoardLocked()) {
-        processResponseQueue();
+    processResponseQueue();  //Board lock/unlock status checked within processResponseQueue()
+}
+
+function processSecondaryActionQueue() {
+    //Move secondary actions to head of primary response queue. This design ensures secondary
+    //actions are handled after all primary actions in current update/response, but before any
+    //actions in the next update/response.
+    if (CinchApp.secondaryActionQueue.length == 0) { //Escape condition
+        return;
     }
+    
+    //If secondary actions generate more dependent actions, process again
+    CinchApp.responseQueue.unshift(function() {
+        processSecondaryActionQueue();
+    });
+    
+    //Pull items from back of secondaryActionQueue to push onto front of responseQueue
+    while (CinchApp.secondaryActionQueue.length > 0) {
+        CinchApp.responseQueue.unshift(CinchApp.secondaryActionQueue.pop());
+    }
+    
+    processResponseQueue();
 }
 
 function processResponseQueue() {
     if (!CinchApp.processing) { //Prevent multiple concurrent calls to this
         CinchApp.processing = true;
         
+        //Normal behavior: handleUpdate(), one message block at a time
         while (CinchApp.responseQueue.length > 0) {
-            CinchApp.responseQueue.shift()(); //Invoke the next function in the queue
+            if  (viewModel.isBoardLocked()) {   //Stop processing, but preserve queue
+                break;
+            } else {
+                CinchApp.responseQueue.shift()(); //Invoke the next function in the queue
+            }
         }
 
-        CinchApp.responseQueue.length = 0; //Clear responseQueue
         CinchApp.processing = false;
     }
 }
 
-function processResponse(result) {
-    if (result.hasOwnProperty('msgs')) {
-        var updates = result.msgs;
-
-        for(var i = 0; i < updates.length; i++) {
-            handleUpdate(updates[i]);
-        }
-    }
-
-    //Take care of any queued items
-    for(var i = 0; i < CinchApp.responseCompleteQueue.length; i++)
-        CinchApp.responseCompleteQueue[i]();
-        
-    CinchApp.responseCompleteQueue.length = 0;
-}
-
 function handleUpdate(update) {
-    for(property in update)
-        if(CinchApp.actions.hasOwnProperty(property))
+    for (property in update)
+        if (CinchApp.actions.hasOwnProperty(property))
             CinchApp.actions[property](update);
 }
 
@@ -653,11 +675,7 @@ function postData(data) {
         data: data,
         dataType: 'json',
         success: function (result, testStatus, jqXHR) {
-            setTimeout(function() {
-                //Not a good way to handle this but it's just for debugging...
-                //Wait a bit so the debugging area is (probably) loaded into the DOM
-                logDebugMessage('POST response from server: ' + JSON.stringify(result));
-            }, 500);
+            logDebugMessage('POST response from server: ' + JSON.stringify(result));
             
             handleUpdate(result);
         },
