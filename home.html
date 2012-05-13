@@ -2,7 +2,7 @@
 <html>
     <head>
         <meta charset="utf-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1"> 
+        <meta name="viewport" content="width=device-width, initial-scale=1"> 
         <title>Cinch</title>
         
         <link rel="stylesheet" href="styles/jquery.mobile-1.1.0.min.css" />
@@ -13,14 +13,15 @@
         <script type="text/javascript" src="scripts/knockout-2.1.0beta.js"></script>
         <script type="text/javascript" src="scripts/jquery.animate-shadow-min.js"></script>
         <script type="text/javascript" src="scripts/modernizr-2.0.6.js"></script>
-	<script type="text/javascript" src="scripts/main.js"></script>
-	<script type="text/javascript" src="scripts/animation.js"></script>
+        
+        <script type="text/javascript" src="scripts/main.js"></script>
+        <script type="text/javascript" src="scripts/animation.js"></script>
     </head>
     
     <body>
         <div data-role="page" id="home-page">
             <div data-role="header">
-            <h1>Cinch</h1>
+                <h1>Cinch</h1>
             </div>
             <div data-role="content">
                 <div id="home-buttons-container">
@@ -31,16 +32,16 @@
         </div>
         
         <div data-role="page" id="bidding-page" class="no-close-dialog">
-	    <div data-role="header">
-		<h1>Bidding</h1>
-	    </div><!-- /header -->
+            <div data-role="header">
+                <h1>Bidding</h1>
+            </div><!-- /header -->
             
-	    <div data-role="content">
+            <div data-role="content">
                 <ul data-role="listview" data-inset="true" class="bid-list partner">                   
                     <li data-bind="text: playerNames[CinchApp.playerEnum.north]" data-role="list-divider"></li>
                     <li data-bind="text: currentBidsNames()[CinchApp.playerEnum.north]"></li>
                 </ul>
-                
+                    
                 <div id="opponent-bid-container">
                     <ul data-role="listview" data-inset="true" class="bid-list opponent">                   
                         <li data-bind="text: playerNames[CinchApp.playerEnum.west]" data-role="list-divider"></li>
@@ -52,12 +53,12 @@
                         <li data-bind="text: currentBidsNames()[CinchApp.playerEnum.east]"></li>
                     </ul>
                 </div>
-                
+                    
                 <hr class="clear-both"/>
-                
+                    
                 <h3 class="bidding-label">Your bid</h3>
-                
-		<fieldset data-role="controlgroup" data-type="horizontal" data-bind="foreach: possibleBids" id="bid-controls">
+                    
+                <fieldset data-role="controlgroup" data-type="horizontal" data-bind="foreach: possibleBids" id="bid-controls">
                     <button data-bind="
                         value: value,
                         text: name,
@@ -65,8 +66,8 @@
                         jqmButtonEnabled: isValid,
                         activeBorder: $root.currentBids[CinchApp.playerEnum.south]() == value">
                     </button>
-		</fieldset>
-                
+                </fieldset>
+                    
                 <hr />
                 
                 <h3 class="bidding-label">Your hand</h3>
@@ -74,13 +75,13 @@
                 <div data-bind="foreach: cardsInHand" id="bid-hand">
                     <img data-bind="attr: { src: imagePath }" />
                 </div>
-	    </div>
-	</div><!-- /bidding page -->
+            </div>
+        </div><!-- /bidding page -->
         
         <div data-role="page" id="hand-end-page" class="no-close-dialog">
-	    <div data-role="header">
-		<h1>End of Hand</h1>
-	    </div><!-- /header -->
+            <div data-role="header">
+                <h1>End of Hand</h1>
+            </div><!-- /header -->
 	    
             <div data-role="content">
                 <div class="ui-grid-c">
@@ -131,12 +132,12 @@
                 
                 <button data-bind="click: startBidding">Continue</button>
             </div>
-	</div><!-- /hand-end page -->
+        </div><!-- /hand-end page -->
         
         <div data-role="page" id="game-end-page" class="no-close-dialog">
-	    <div data-role="header">
-		<h1>Game over</h1>
-	    </div><!-- /header -->
+            <div data-role="header">
+                <h1>Game over</h1>
+            </div><!-- /header -->
 	    
             <div data-role="content">
                 <h3>
@@ -165,7 +166,7 @@
                 
                 <button data-bind="click: returnHome">Continue</button>
             </div>
-	</div><!-- /game-end page -->
+        </div><!-- /game-end page -->
         
         <div data-role="page" data-dom-cache="true" id="game-page">
             <div data-role="navbar">
@@ -209,7 +210,7 @@
                             <div data-bind="foreach: cardsInAllHands[CinchApp.playerEnum.north]" class="hand-partner">
                                 <img data-bind="attr: { src: vertImagePath }" />
                             </div>
-			</div>
+                        </div>
                     </div>
                     
                     <div id="player-1" class="other-player middle-row opponent no-mobile">
@@ -217,7 +218,7 @@
                             <div data-bind="foreach: cardsInAllHands[CinchApp.playerEnum.west]" class="hand-opponent">
                                 <img data-bind="attr: { src: horizImagePath }" />
                             </div>
-			</div>
+                        </div>
                     </div>
                     
                     <div class="middle-row">
@@ -230,26 +231,26 @@
                             <div data-bind="foreach: cardsInAllHands[CinchApp.playerEnum.east]" class="hand-opponent">
                                 <img data-bind="attr: { src: horizImagePath }" />
                             </div>
-			</div>
+                        </div>
                     </div>
                 </div>
                 <div id="right-content">
-		    <div data-bind="visible: !isGameStarted()" id="waiting-message">
-			Waiting for other players <img src="images/loading.gif" />
-		    </div>
+                    <div data-bind="visible: !isGameStarted()" id="waiting-message">
+                        Waiting for other players <img src="images/loading.gif" />
+                    </div>
+                            
+                    <input id="text-to-insert" type="text" placeholder="Enter chat message" />
+                        <button id="submit-button" onclick="submitChat()">Submit Message</button>
+                        <ul data-role="listview" data-inset="true" id="output-list">
+                            <li data-role="list-divider">Messages</li>
                     
-		    <input id="text-to-insert" type="text" placeholder="Enter chat message" />
-                    <button id="submit-button" onclick="submitChat()">Submit Message</button>
-                    <ul data-role="listview" data-inset="true" id="output-list">
-                        <li data-role="list-divider">Messages</li>
-			
-			<!-- ko foreach: chats -->
-			    <li data-bind="addClass: type">
-				<strong data-bind="visible: name, text: name + ': '"></strong>
-				<span data-bind="text: text" class="chat-message"></span>
-			    </li>
-			<!-- /ko -->
-                    </ul>
+                            <!-- ko foreach: chats -->
+                                <li data-bind="addClass: type">
+                                    <strong data-bind="visible: name, text: name + ': '"></strong>
+                                    <span data-bind="text: text" class="chat-message"></span>
+                                </li>
+                            <!-- /ko -->
+                        </ul>
                 </div>
                 <div data-bind="foreach: cardsInHand" id="hand">
                     <div data-bind="click: submit, jqmButtonEnabled: $root.isActivePlayer() && $root.gameMode() == CinchApp.gameModeEnum.play" data-role="button" class="tile-button">
@@ -259,5 +260,4 @@
             </div>
         </div><!-- /game page -->
     </body>
-    
 </html>
