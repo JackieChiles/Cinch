@@ -532,30 +532,36 @@ function CinchViewModel() {
         //Closes or opens the bid dialog depending on the game mode
         
         if(newValue == CinchApp.gameModeEnum.bid) {
-            //Delay for a second to allow the player to see all of the animations
-            //TODO: change animation.js and use responseQueue to do this properly (called when animations complete)
-            setTimeout(function() {
-                if(self.matchPoints().length > 0) {
-                    //If match points on record, hand ended, open hand end dialog. 
-                    openJqmDialog('#hand-end-page');
-                }
-                else {
-                    //Otherwise, game just started, start bidding.
-                    self.startBidding();
-                }
-            }, CinchApp.ANIM_WAIT_DELAY);
+            if(self.matchPoints().length > 0) {
+                //If match points on record, hand ended, open hand end dialog.
+                CinchApp.secondaryActionQueue.push(function() {
+                    //Need to ensure this is ran after all other end of trick actions, but
+                    //we can't guarantee key order in the updates. So re-push this till later.
+                    CinchApp.secondaryActionQueue.push(function() {
+                        openJqmDialog('#hand-end-page');
+                    });
+                });
+            }
+            else {
+                //Otherwise, game just started, start bidding.
+                self.startBidding();
+            }
         }
         else {
             //Navigate back to game page when in play mode
             $.mobile.changePage( '#game-page', { transition: 'slideup'} );
         }
     });
-    this.winner.subscribe(function(newValue) {
-        //Delay for a second to allow the player to see all of the animations
-        //TODO: change animation.js and use responseQueue to do this properly (called when animations complete)
-        setTimeout(function() {
-            openJqmDialog('#game-end-page');
-        }, CinchApp.ANIM_WAIT_DELAY);
+    this.winner.subscribe(function(newValue) { //TODO: test to determine if hand-end gets processed on time
+        CinchApp.secondaryActionQueue.push(function() {
+            //Need to ensure this is ran after all everything else, including normal
+            //end of hand procedures. So re-push this till later. Twice.
+            CinchApp.secondaryActionQueue.push(function() {
+                CinchApp.secondaryActionQueue.push(function() {
+                    openJqmDialog('#game-end-page');
+                });
+            });
+        });
     });
 }
 
