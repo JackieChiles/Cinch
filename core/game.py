@@ -115,6 +115,11 @@ class Game:
         for player in self.players:
             player.hand = [self.deck.deal_one()
                            for x in range(STARTING_HAND_SIZE)]
+
+            # Sort in suit, rank order. Doing 2 sorts in reverse order
+            # is easier than implementing rich comparisons for all operators.
+            player.hand.sort(key=lambda x: x.rank)
+            player.hand.sort(key=lambda x: x.suit)
             
             for card in player.hand:
                 card.owner = player.pNum
