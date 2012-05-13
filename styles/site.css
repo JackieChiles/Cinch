@@ -60,7 +60,7 @@
 #opponent-bid-container
 {
     margin:0 auto;
-    width:300px;
+    width:312px; /* + 12px for activePlayer border */
 }
 
 .bidding-label
@@ -200,7 +200,7 @@
 {
     padding:8px;
     position:relative;
-        top:55px;
+    top:55px;
 }
 
 .hand-opponent > img

@@ -37,18 +37,18 @@
             </div><!-- /header -->
             
             <div data-role="content">
-                <ul data-role="listview" data-inset="true" class="bid-list partner">                   
+                <ul data-role="listview" data-inset="true" data-bind="activeBorder: activePlayer() == CinchApp.playerEnum.north" class="bid-list partner">                   
                     <li data-bind="text: playerNames[CinchApp.playerEnum.north]" data-role="list-divider"></li>
                     <li data-bind="text: currentBidsNames()[CinchApp.playerEnum.north]"></li>
                 </ul>
                     
                 <div id="opponent-bid-container">
-                    <ul data-role="listview" data-inset="true" class="bid-list opponent">                   
+                    <ul data-role="listview" data-inset="true" data-bind="activeBorder: activePlayer() == CinchApp.playerEnum.west" class="bid-list opponent">                   
                         <li data-bind="text: playerNames[CinchApp.playerEnum.west]" data-role="list-divider"></li>
                         <li data-bind="text: currentBidsNames()[CinchApp.playerEnum.west]"></li>
                     </ul>
                     
-                    <ul data-role="listview" data-inset="true" class="bid-list opponent">                   
+                    <ul data-role="listview" data-inset="true" data-bind="activeBorder: activePlayer() == CinchApp.playerEnum.east" class="bid-list opponent">                   
                         <li data-bind="text: playerNames[CinchApp.playerEnum.east]" data-role="list-divider"></li>
                         <li data-bind="text: currentBidsNames()[CinchApp.playerEnum.east]"></li>
                     </ul>
