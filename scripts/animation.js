@@ -17,7 +17,8 @@ window.requestAnimFrame = (function(callback){
 var canvas = 0;
 var context = 0;
 var maxImageDelta = 5; //# of px in each axis image can be away from endPos
-var linearDistPerFrame = Math.floor(1.5*maxImageDelta); //px per frame
+var linearDistPerFrame = Math.floor(1.2*maxImageDelta); //px per frame
+var movingCards = 0;    //Tracks number of cards in motion for board clearing
 
 ///////////////////////////
 // Card Playing animations
@@ -27,6 +28,8 @@ function animate(cardObject) {
     cardObject.draw();
     if (cardObject.animateOn) {
         requestAnimFrame( function() {animate(cardObject);});
+    } else { //Animation completed on last draw(); unlock board
+        viewModel.unlockBoard();
     }
 }
 
@@ -50,9 +53,9 @@ var CardAnimation = function(cardImage, destPlayer) {
 };
 
 CardAnimation.prototype.draw = function() {  
-    // clear -- want only to clear cardImage, leave other things in place
-    context.clearRect(this.curPos.x, this.curPos.y, 
-                      CinchApp.CARD_IMAGE_WIDTH, CinchApp.CARD_IMAGE_HEIGHT);
+    // clear -- want only to clear cardImage (w/ padding), leave other things in place
+    context.clearRect(this.curPos.x-2, this.curPos.y-2, 
+                      CinchApp.CARD_IMAGE_WIDTH+2, CinchApp.CARD_IMAGE_HEIGHT+2);
                       
     // update -- change the position of cardImage for the next time it is drawn
     //If card is close enough to endPos, move to endPos for final frame
@@ -137,49 +140,27 @@ function getEndPosition(player) {
 ///////////////////////////
 // Board Clearing animations
 ///////////////////////////
-
-//Wait until all cards are done rendering before proceeding
-function finishDrawingCards() {
-    //Check each CardAnimation in CinchApp.cardImagesInPlay for animateOn=false.
-    if (isAllCardsDoneMoving()) {
-        setTimeout( function() {finishClearingBoard();}, 200);
-    } else {
-        //Wait 200ms and check again
-        setTimeout( function(){finishDrawingCards();}, 200);
-    }
-}
-
-//TODO: lock board while clearing is going on (plays during clearing get cleared)
-//TODO: if a play occurs before the client sees the board get cleared, the new play will vanish too
-// -- perhaps have everything go into an event queue (would require major overhaul)
 function finishClearingBoard() {
     var c;
-    var target = getEndPosition(CinchApp.trickWinner); //Move all cards to this position
+    var target = getEndPosition(CinchApp.trickWinner); //Move all cards to this final position
     
     //Reconfigure cards for new movement
     for (var i = 0; i < CinchApp.cardImagesInPlay.length; i++) {
         c = CinchApp.cardImagesInPlay[i];
         c.animateOn = true;
+        movingCards += 1;
         c.endPos.x = target.x;  c.endPos.y = target.y;
         c.moveOffset = getMoveOffset(c.curPos, c.endPos);
     }
     CinchApp.cardImagesInPlay[CinchApp.trickWinner].animateOn = false; //Winning card gets special handling
+    movingCards -= 1;
     
     animateBoardClear();
 }
 
-function isAllCardsDoneMoving() {
-    var cards = CinchApp.cardImagesInPlay;
-    var val = 0;
-    for (var i = 0; i < cards.length; i++) {
-        val = val + (cards[i].animateOn | 0); //val++ for each card still animating
-    }
-    return (val == 0); //true if no cards animating
-}
-
 function animateBoardClear() {
     drawBoardClear();
-    if (isAllCardsDoneMoving()) {
+    if (movingCards == 0) {
         //Prepare card list & table for new trick, after short delay
         setTimeout( function() {
             CinchApp.cardImagesInPlay = [];    
@@ -195,6 +176,7 @@ function animateBoardClear() {
 function drawBoardClear() {
     //Update positions of each card (as needed)
     var c;
+    //Only touch the cards that need animated (i.e. the non-winning cards)
     var cards = CinchApp.cardImagesInPlay.filter( function(val) {
                     return val.animateOn; });
 
@@ -206,6 +188,7 @@ function drawBoardClear() {
              (Math.abs(c.endPos.y-c.curPos.y) < maxImageDelta) ) { 
             c.curPos.x = c.endPos.x;  c.curPos.y = c.endPos.y;
             c.animateOn = false;
+            movingCards -= 1;
         } else { //Set new position
             c.curPos.x = c.curPos.x + c.moveOffset.x;
             c.curPos.y = c.curPos.y + c.moveOffset.y;        

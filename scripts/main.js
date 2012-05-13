@@ -147,6 +147,7 @@ var CinchApp = {
     responseQueue: [],    
     processing: false, //Flag for ProcessQueue
     secondaryActionQueue: [], //Actions with dependencies go here to be ran last
+    lockCount: 0, //count for number of active animations
     
     //If "ravenholm" is in the URL, app must be running on production server, so use that URL, otherwise use dev. URL
     serverUrl: window.location.href.indexOf('ravenholm') > -1
@@ -283,6 +284,8 @@ var Card = function(encodedCard) {
         : this.imagePath;
     
     this.play = function(player) {
+        viewModel.lockBoard();
+        
         var cardStartPosition = getStartPosition(player);
         var cardEndPosition = getEndPosition(player);
         
@@ -470,10 +473,15 @@ function CinchViewModel() {
     //Board lock/response mode
     this.lockBoard = function () {
         this.responseMode(CinchApp.responseModeEnum.holding);
+        CinchApp.lockCount += 1;
     };
     this.unlockBoard = function() {
-        this.responseMode(CinchApp.responseModeEnum.running);
-        processResponseQueue();
+        CinchApp.lockCount -= 1;
+        if (CinchApp.lockCount < 1) {  //Only unlock board if there are no remaining locks
+            this.responseMode(CinchApp.responseModeEnum.running);
+            processResponseQueue();
+            CinchApp.lockCount = 0; //In case unlock is called absent a lock
+        }
     };
     this.isBoardLocked = function() {
         return this.responseMode() == CinchApp.responseModeEnum.holding;
@@ -557,21 +565,17 @@ var viewModel = new CinchViewModel();
 /////////////////////////////////////////////////////////////////
 // Animation                                                   //
 /////////////////////////////////////////////////////////////////
-function clearTable(playerNum){
+function handleEndTrick(playerNum) {
     CinchApp.trickWinner = serverToClientPNum(playerNum);
-    //Allow all cards in play to finish animating
-    finishDrawingCards(); //Process is completed from within animation.js
-}
 
-function handleEndTrick(playerNum) {  
     //Must wait until 'playC' is handled
     CinchApp.secondaryActionQueue.push(function () {
         viewModel.lockBoard(); //Board is unlocked in animation.js:animateBoardClear()
 
         //Wait a bit so the ending play can be seen
         setTimeout(function () {
-            clearTable(playerNum);
-        }, 1200);
+            finishClearingBoard();
+        }, 1300); //TODO use a constant here
     });
 }
 
