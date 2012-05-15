@@ -1,0 +1,37 @@
+"""
+Temp documentation for AI Agent/Manager system
+
+AI agent will be spawned as a subprocess by an AI Agent Manager on-demand
+during Game setup. It will have input/output pipes used to communicate with
+the engine for management purposes (eg. for shutdown of the AI). Gameplay
+comms will travel through the same Comet Server through which human clients
+connect.
+
+Emphasis will be placed on optimizing base functionality for CPU/RAM
+performance. Minimizing overhead and function calls will support this goal.
+Use of ASM or C modules may also be permitted, if performance would benefit.
+
+Initial implementation will use a lightweight HTTP client to issue GET/POST
+requests to the Comet server. However, we may transition to a lighter
+TCP-based socket connection to avoid the expense of Comet requests. This will
+support the future goal of implementing a WebSockets server in place of Comet;
+doing so will require revision to the web server modules.
+
+Threading/asynch capes are required so move analysis can occur while requesting
+new data. Each AI agent will host at least two threads: one for the HTTP server,
+and the other for game-related actions. If your AI processing would benefit
+from additional threads, use them.
+
+Summary of base features:
+-communication with Cinch Comet Server
+-"cloning" of basic game functionality (rule, etc.)
+-logging (pending)
+-DB management (pending)
+
+TODO:
+~agent~
+*implement request timeout in case server dies
+*implement error responses in handle_error
+*logging functions
+
+"""
