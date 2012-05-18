@@ -113,13 +113,8 @@ class Game:
     def deal_hand(self):
         """Deal new hand to each player and set card ownership."""
         for player in self.players:
-            player.hand = [self.deck.deal_one()
-                           for x in range(STARTING_HAND_SIZE)]
-
-            # Sort in suit, rank order. Doing 2 sorts in reverse order
-            # is easier than implementing rich comparisons for all operators.
-            player.hand.sort(key=lambda x: x.rank)
-            player.hand.sort(key=lambda x: x.suit)
+            player.hand = sorted([self.deck.deal_one() for x in range
+                          (STARTING_HAND_SIZE)], reverse = True)
             
             for card in player.hand:
                 card.owner = player.pNum

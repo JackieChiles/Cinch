@@ -46,6 +46,17 @@ class Card:
         """Create Card object with given rank & suit."""
         self.rank = rank
         self.suit = suit
+        
+    def __lt__(self, other):
+        """Implemented to make class sortable."""
+        return ((self.suit == other.suit and self.rank < other.rank) or
+                (self.suit is not 2 and other.suit is 2) or
+                (self.suit is not 2 and other.suit is not 2 and self.suit <
+                other.suit))
+                
+    def __eq__(self, other):
+        """Implemented to make class sortable."""
+        return self.suit == other.suit and self.rank == other.rank
 
     def __repr__(self):
         """Return descriptive string when asked to print object."""
