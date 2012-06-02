@@ -11,7 +11,6 @@
         <script type="text/javascript" src="scripts/jquery-1.7.1.min.js"></script>
         <script type="text/javascript" src="scripts/jquery.mobile-1.1.0.min.js"></script>
         <script type="text/javascript" src="scripts/knockout-2.1.0beta.js"></script>
-        <script type="text/javascript" src="scripts/jquery.animate-shadow-min.js"></script>
         <script type="text/javascript" src="scripts/modernizr-2.0.6.js"></script>
         
         <script type="text/javascript" src="scripts/main.js"></script>
@@ -26,10 +25,85 @@
             <div data-role="content">
                 <div id="home-buttons-container">
                     <a data-role="button" data-transition="slide" href="#game-page" onclick="submitNew(CinchApp.GAME_MODE_NEW)">New game</a>
-                    <a data-role="button" data-transition="slide" href="#game-page" onclick="submitJoin(0, 0)">Join game</a>
+                    <a data-role="button" data-transition="slide" href="#lobby-page">Join game</a>
                 </div>
             </div>
-        </div>
+        </div><!-- /home page -->
+        
+        <div data-role="page" id="lobby-page">
+            <div data-role="header">
+                <h1>Cinch</h1>
+            </div>
+            <div data-role="content">
+                <div data-bind="foreach: games">
+                    <div class="lobby-item ui-body ui-body-b">
+                        <h3>Game <span data-bind="text: number"></span></h3>
+                        
+                        <ul data-role="listview" data-inset="true" class="seat-list north">
+                            <li data-role="list-divider">
+                                <button
+                                    data-bind="
+                                        jqmButtonEnabled: !isOccupied()[CinchApp.playerEnum.north],
+                                        click: function() { submitJoin(CinchApp.playerEnum.north) }"
+                                    data-icon="arrow-r"
+                                    data-iconpos="right"
+                                    data-mini="true">
+                                    North
+                                </button>
+                            </li>
+                            <li data-bind="text: playerNames()[CinchApp.playerEnum.north]"></li>
+                        </ul>
+                            
+                        <div class="east-west-seat-container">
+                            <ul data-role="listview" data-inset="true" class="seat-list east-west with-south">
+                                <li data-role="list-divider">
+                                    <button
+                                        data-bind="
+                                            jqmButtonEnabled: !isOccupied()[CinchApp.playerEnum.west],
+                                            click: function() { submitJoin(CinchApp.playerEnum.west) }"
+                                        data-icon="arrow-r"
+                                        data-iconpos="right"
+                                        data-mini="true">
+                                        West
+                                    </button>
+                                </li>
+                                <li data-bind="text: playerNames()[CinchApp.playerEnum.west]"></li>
+                            </ul>
+                            
+                            <ul data-role="listview" data-inset="true" class="seat-list east-west with-south">
+                                <li data-role="list-divider">
+                                    <button
+                                        data-bind="
+                                            jqmButtonEnabled: !isOccupied()[CinchApp.playerEnum.east],
+                                            click: function() { submitJoin(CinchApp.playerEnum.east) }"
+                                        data-icon="arrow-r"
+                                        data-iconpos="right"
+                                        data-mini="true">
+                                        East
+                                    </button>
+                                </li>
+                                <li data-bind="text: playerNames()[CinchApp.playerEnum.east]"></li>
+                            </ul>
+                        </div>
+                        
+                        <ul data-role="listview" data-inset="true" class="seat-list south">
+                            <li data-role="list-divider">
+                                <button
+                                    data-bind="
+                                        jqmButtonEnabled: !isOccupied()[CinchApp.playerEnum.south],
+                                        click: function() { submitJoin(CinchApp.playerEnum.south) }"
+                                    data-icon="arrow-r"
+                                    data-iconpos="right"
+                                    data-mini="true">
+                                    South
+                                </button>
+                            </li>
+                            <li data-bind="text: playerNames()[CinchApp.playerEnum.south]"></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div><!-- /game lobby page -->
         
         <div data-role="page" id="bidding-page" class="no-close-dialog">
             <div data-role="header">
@@ -37,18 +111,18 @@
             </div><!-- /header -->
             
             <div data-role="content">
-                <ul data-role="listview" data-inset="true" data-bind="activeBorder: activePlayer() == CinchApp.playerEnum.north" class="bid-list partner">                   
+                <ul data-role="listview" data-inset="true" data-bind="activeBorder: activePlayer() == CinchApp.playerEnum.north" class="seat-list north">
                     <li data-bind="text: playerNames[CinchApp.playerEnum.north]" data-role="list-divider"></li>
                     <li data-bind="text: currentBidsNames()[CinchApp.playerEnum.north]"></li>
                 </ul>
                     
-                <div id="opponent-bid-container">
-                    <ul data-role="listview" data-inset="true" data-bind="activeBorder: activePlayer() == CinchApp.playerEnum.west" class="bid-list opponent">                   
+                <div class="east-west-seat-container">
+                    <ul data-role="listview" data-inset="true" data-bind="activeBorder: activePlayer() == CinchApp.playerEnum.west" class="seat-list east-west">
                         <li data-bind="text: playerNames[CinchApp.playerEnum.west]" data-role="list-divider"></li>
                         <li data-bind="text: currentBidsNames()[CinchApp.playerEnum.west]"></li>
                     </ul>
                     
-                    <ul data-role="listview" data-inset="true" data-bind="activeBorder: activePlayer() == CinchApp.playerEnum.east" class="bid-list opponent">                   
+                    <ul data-role="listview" data-inset="true" data-bind="activeBorder: activePlayer() == CinchApp.playerEnum.east" class="seat-list east-west">
                         <li data-bind="text: playerNames[CinchApp.playerEnum.east]" data-role="list-divider"></li>
                         <li data-bind="text: currentBidsNames()[CinchApp.playerEnum.east]"></li>
                     </ul>

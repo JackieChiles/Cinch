@@ -169,6 +169,9 @@ var CinchApp = {
                 
                 viewModel.encodedCards(cardsToAdd);
                 
+                //We have to manually trigger an update of the page so JQM catches all the bindings
+                $('#game-page').trigger('create');
+                
                 //Populate other players' hands with face-down cards
                 //Can use cardsToAdd.length to get number of cards that should be in each player's hand
                 for(i = 0; i < cardsToAdd.length; i++) {
@@ -210,43 +213,92 @@ var CinchApp = {
 // Initialization                                              //
 //(this code executes when main.js loads)                      //
 /////////////////////////////////////////////////////////////////
-    
-//Live and die are deprecated, but strangely they are the only jQuery binding functions that work here...
-$('#game-page').live('pageinit', function () {
+
+
+$('#home-page').live('pageinit', function () {
     //Kill the pageinit handler so it doesn't trigger more than once
-    $('#game-page').die('pageinit');
-    
-    //Add a binding to the chat input to submit chats when enter is pressed
-    $('#text-to-insert').keypress(function(event) {
-        if ( event.which == 13 ) {
-           event.preventDefault();
-           $('#submit-button').click();
-         }
-    });
-    
-    $('#play-surface').attr('width', CinchApp.PLAY_SURFACE_WIDTH).attr('height', CinchApp.PLAY_SURFACE_HEIGHT);
-    outputMessage("Welcome to Cinch- it's pretty rad here.", 'System');
-    
-    //TODO: Actually handle incompatible browsers
-    if (Modernizr.canvas && Modernizr.canvastext) {
-        logDebugMessage('Canvas and canvas text support detected.');
-    }
-    else {
-        logDebugMessage('Your browser does not support canvas and canvas text.');
-    }
+    $('#home-page').die('pageinit');
     
     //Apply Knockout bindings
     ko.applyBindings(viewModel);
+    
+    $('#lobby-page').live('pageinit', function () {
+        var i = 0;
+        var games;
+        
+        //Kill the pageinit handler so it doesn't trigger more than once
+        $('#lobby-page').die('pageinit');
+        
+        //TODO: use this once server is configured to handle it
+        //submitLobby();
+        
+        /******************** Fake data ******************/
+        //TODO: remove
+        //For now, here's some fake data:       
+        viewModel.games([
+            new Game(0),
+            new Game(1),
+            new Game(2)
+        ]);
+        
+        games = viewModel.games();
+        
+        games[0].players()[0] = 'Annie';
+        games[0].players()[2] = 'Art';
+        games[0].players()[3] = 'Andy';
+        
+        games[1].players()[0] = 'Bert';
+        games[1].players()[1] = 'Bill';
+        games[1].players()[2] = 'Bonnie';
+        games[1].players()[3] = 'Bob';
+        
+        games[2].players()[1] = 'Clyde';
+        games[2].players()[2] = 'Claudia';
+        
+        /******************** End Fake data ******************/
+        
+        //We have to manually trigger an update of the page so JQM catches all the bindings
+        $('#lobby-page').trigger('create');
+        
+        for(i = 0; i < games.length; i++) {
+            //Triggers update of jqmButtonEnabled bindings
+            games[i].players.valueHasMutated();
+        }
+    });
+
+    //Live and die are deprecated, but strangely they are the only jQuery binding functions that work here...
+    $('#game-page').live('pageinit', function () {
+        //Kill the pageinit handler so it doesn't trigger more than once
+        $('#game-page').die('pageinit');
+        
+        //Add a binding to the chat input to submit chats when enter is pressed
+        $('#text-to-insert').keypress(function(event) {
+            if ( event.which == 13 ) {
+               event.preventDefault();
+               $('#submit-button').click();
+             }
+        });
+        
+        $('#play-surface').attr('width', CinchApp.PLAY_SURFACE_WIDTH).attr('height', CinchApp.PLAY_SURFACE_HEIGHT);
+        outputMessage("Welcome to Cinch- it's pretty rad here.", 'System');
+        
+        //TODO: Actually handle incompatible browsers
+        if (Modernizr.canvas && Modernizr.canvastext) {
+            logDebugMessage('Canvas and canvas text support detected.');
+        }
+        else {
+            logDebugMessage('Your browser does not support canvas and canvas text.');
+        }
+    });
 });
 
 /////////////////////////////////////////////////////////////////
-// Types                                                       //
+// Types (invoked with new keyword only)                       //
 /////////////////////////////////////////////////////////////////
 
 //TODO: encapsulate bidNames? (parameter, local variable, etc.)
 
 //Represents a possible bid to be made by the player
-//Must be invoked with the "new" keyword
 var Bid = function(parentViewModel, value, validFunction) {
     var self = this;
     
@@ -264,11 +316,10 @@ var Bid = function(parentViewModel, value, validFunction) {
     this.isValid = ko.computed(actualValidFunction);
     this.submit = function() {
         postData({ 'uid': CinchApp.guid, 'bid': self.value });
-    }
+    };
 }
 
 //Represents a single playable card
-//Must be invoked with the "new" keyword
 var Card = function(encodedCard) {
     var numRanks = CinchApp.ranks.length;
     var suitIndex = Math.floor((encodedCard - 1) / numRanks);
@@ -296,20 +347,53 @@ var Card = function(encodedCard) {
 
         var cardGfx = new CardAnimation(cardImage, player);
         CinchApp.cardImagesInPlay[player] = cardGfx;
-    }
+    };
     
     this.submit = function() {
         postData({'uid': CinchApp.guid, 'card': this.encoded});
-    }
+    };
 };
 
+function Game(number) {
+    var self = this;
+    
+    self.number = number;
+    self.players = ko.observableArray();
+    self.playerNames = ko.computed(function() {
+        var names = [];
+        var i;
+        
+        for(i = 0; i < CinchApp.NUM_PLAYERS; i++) {
+            names.push(self.players()[i] || '-');
+        }
+        
+        return names;
+    });
+    self.isOccupied = ko.computed(function() {
+        var seats = [];
+        var i;
+        
+        for(i = 0; i < CinchApp.NUM_PLAYERS; i++) {
+            //Coerce a boolean
+            seats.push(self.players()[i] ? true : false);
+        }
+        
+        return seats;
+    });
+    self.submitJoin = function(seat) {
+        postData({ 'join': self.number, 'pNum': seat });
+        
+        //TODO: don't actual change pages until the servers says the join is valid
+        $.mobile.changePage( '#game-page', { transition: 'slide'} );
+    };
+}
+
 //Represents a single message from an entity
-//Must be invoked with the "new" keyword
 var VisibleMessage = function(text, name, messageType) {
     this.text = text;
     this.name = name;
     this.type = messageType || ''; //CSS class, if any, to apply special formatting
-}
+};
 
 /////////////////////////////////////////////////////////////////
 // Knockout.js viewmodel                                       //
@@ -330,6 +414,10 @@ function CinchViewModel() {
         'You',
         'Opponents'
     ];
+    
+    //Game lobby
+    this.games = ko.observableArray([]);
+    
     this.myPlayerNum = ko.observable(0); //Player num assigned by server
     this.activePlayer = ko.observable(); //Relative to client (self is always CinchApp.playerEnum.south)
     this.isActivePlayer = ko.computed(function() {
@@ -684,7 +772,7 @@ function postData(data) {
         type: 'POST',
         data: data,
         dataType: 'json',
-        success: function (result, testStatus, jqXHR) {
+        success: function (result, textStatus, jqXHR) {
             logDebugMessage('POST response from server: ' + JSON.stringify(result));
             
             handleUpdate(result);
@@ -707,8 +795,8 @@ function submitChat() {
     }
 }
 
-function submitJoin(gameNum, pNum) {
-    postData({'join': gameNum, 'pNum': pNum});
+function submitLobby() {
+    postData({ 'lob': 0 });
 }
 
 function submitNew(mode) {
