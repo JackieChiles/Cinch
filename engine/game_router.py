@@ -22,6 +22,7 @@ DEFAULT_PNUM = 0 # pNum assigned to player who creates new game
 SIGNATURE = common.enum(
     NEW_GAME=['game'],
     JOIN_GAME=['join', 'pNum'],
+    LOBBY = ['lob'],
     GAME_PLAY=['card'],
     BID=['bid']
     )
@@ -70,6 +71,7 @@ class GameRouter:
         self.handlers.append(JoinGameHandler(self, SIGNATURE.JOIN_GAME))        
         self.handlers.append(GamePlayHandler(self, SIGNATURE.GAME_PLAY))
         self.handlers.append(BidHandler(self, SIGNATURE.BID))
+        self.handlers.append(LobbyHandler(self, SIGNATURE.LOBBY))
 
         # Register each handler with the Comet server
         for h in self.handlers:
@@ -243,6 +245,28 @@ class JoinGameHandler(GameRouterHandler):  ###untested
 #####
 #TODO: Implement way to drop from game before/after game start
 #####
+
+class LobbyHandler(GameRouterHandler):
+    """React to game lobby requests from client."""
+    # Overridden member
+    def respond(self, msg):
+        
+        if msg.data['lob'] != '0':
+            # May support other types of game lobby requests in the future
+            # For now, '0' is just a request for all current games
+            return None
+            
+        games = []
+        
+        for group_id in cm.groups:
+            players = []
+            for client_id in cm.groups[group_id]:
+                #TODO: use appropriate constants here
+                players.append({'name': cm.clients[client_id][0], 'num': cm.clients[client_id][2]})
+            games.append({'num': group_id, 'plrs': players})
+        
+        # Return game list via POST (this is public information)
+        return {'gList': games}
 
 
 class BidHandler(GameRouterHandler):
