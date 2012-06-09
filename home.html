@@ -327,8 +327,12 @@
                         </ul>
                 </div>
                 <div data-bind="foreach: cardsInHand" id="hand">
-                    <div data-bind="click: submit, jqmButtonEnabled: $root.isActivePlayer() && $root.gameMode() == CinchApp.gameModeEnum.play" data-role="button" class="tile-button">
-                        <img data-bind="attr: { src: imagePath}" />
+                    <div data-bind="click: submit, jqmButtonEnabled: $root.isActivePlayer() && $root.gameMode() == CinchApp.gameModeEnum.play" data-role="button" class="tile-button ui-btn ui-btn-up-c ui-shadow ui-btn-corner-all" data-corners="true" data-shadow="true" data-iconshadow="true" data-wrapperels="span" data-theme="c">
+                        <span class="ui-btn-inner ui-btn-corner-all">
+                            <span class="ui-btn-text">
+                                <img data-bind="attr: { src: imagePath}" />
+                            </span>
+                        </span>
                     </div>
                 </div>
             </div>
