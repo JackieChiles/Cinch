@@ -136,23 +136,6 @@ class NewGameHandler(GameRouterHandler):
             # May support other types of game requests in the future
             return None
 
-        # TODO: remove this code block; in place for debugging
-
-        # Purge existing game -- allow us to restart game w/o restarting server
-        # while working in single-game development mode (game # 0)
-        # This can result in some (non-fatal) errors for the server, but
-        # that's okay; this is a hack for development
-        try:
-            old_game = self.router.games.pop(0)
-            del old_game
-            cm.groups.pop(0)
-            
-            #should remove old client GUIDs, but I don't care.
-        except KeyError: # no game 0 created yet
-            pass
-
-        ###### remove to here
-
         ######
         # FUTURE: Set limit on # concurrent games and enforce limit here.
         ######
@@ -175,51 +158,30 @@ class JoinGameHandler(GameRouterHandler):  ###untested
     # Overriden member
     def respond(self, msg):
         # TODO: inhibit join request if game started; need flag in Game
-        
-############## delete following block when following block becomes enabled
 
-        ##########
-        ## for current version, ignore requested pNum and manually assign one
-        ##########
-        
-        # Locate available seat in game and manually assign to pNum
+        ############## untested
+        # TODO: uncomment this block once client allows players to select seat
+        #############
+
+        # Check if requested seat is a valid seat
+        requested_pNum = int(msg.data['pNum'])
+        poss_nums = [x for x in range(0, MAX_GAME_SIZE)]
+        if requested_pNum not in poss_nums:
+          return get_error(ERROR_TYPE.INVALID_SEAT, requested_pNum)
+
+        # Get list of currently occupied seats in target game
         game_id = int(msg.data['join'])
-        cur_player_nums = set(cm.get_player_nums_in_group(game_id))
+        cur_player_nums = cm.get_player_nums_in_group(game_id)
 
-        poss_nums = set([x for x in range(0,MAX_GAME_SIZE)])
-        avail_nums = poss_nums - cur_player_nums
+        # Check if game is full
+        if len(poss_nums) == len(cur_player_nums):
+          return get_error(ERROR_TYPE.FULL_GAME)
+        # Check if requested seat is occupied
+        if requested_pNum in cur_player_nums:
+          return get_error(ERROR_TYPE.OCCUPIED_SEAT, pNum)
 
-        try:
-            pNum = list(avail_nums)[0]
-        except IndexError:
-            return get_error(ERROR_TYPE.FULL_GAME)
-
-############## delete preceeding block when following block becomes enabled
-
-##        ############## untested
-##        # TODO: uncomment this block once client allows players to select seat
-##        #############
-##        
-##        # Check if requested seat is a valid seat
-##        requested_pNum = int(msg.data['pNum'])
-##        poss_nums = [x for x in range(0, MAX_GAME_SIZE)]
-##        if requested_pNum not in poss_nums:
-##            return get_error(ERROR_TYPE.INVALID_SEAT, requested_pNum)
-##
-##        # Get list of currently occupied seats in target game
-##        game_id = int(msg.data['join'])
-##        cur_player_nums = cm.get_player_nums_in_group(game_id)
-##
-##        # Check if game is full
-##        if len(poss_nums) == len(cur_player_nums):
-##            return get_error(ERROR_TYPE.FULL_GAME)
-##        # Check if requested seat is occupied
-##        if requested_pNum in cur_player_nums:
-##            return get_error(ERROR_TYPE.OCCUPIED_SEAT, pNum)
-##
-##        # pNum is valid selection
-##        pNum = requested_pNum
-##        
+        # pNum is valid selection
+        pNum = requested_pNum
 
         # Create GUID for requesting client and add entry to client_mgr
         client_id = cm.create_client(pNum=pNum)

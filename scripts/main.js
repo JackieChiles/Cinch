@@ -91,6 +91,7 @@ var CinchApp = {
     CARD_IMAGE_DIR: 'images/',
     CARD_IMAGE_EXTENSION: '.png',
     NONE_BID_DISPLAY: '-',
+    defaultPlayerName: 'Anonymous',
     faceDownCard: function() {
         //Represents face-down cards in other players' hands, used in KO arrays for those hands
         //You may not pay 3 colorless to morph
@@ -187,13 +188,36 @@ var CinchApp = {
         },
         dlr: function (update) { viewModel.dealer(serverToClientPNum(update.dlr)); },
         err: function (update) { outputErrorMessage(update.err); },
+        gList: function (update) {
+            var i = 0;
+            var gList = update.gList;
+            var games;
+            
+            //Clear out the old games
+            viewModel.games([]);
+            
+            //Add the new games
+            for(i = 0; i < gList.length; i++) {
+                viewModel.games.push(new Game(gList[i]));
+            }
+            
+            //Render the newly added UI
+            $('#lobby-page').trigger('create');
+            
+            //But wait! The jqmButtonEnabled bindings have already been applied, trigger them again
+            games = viewModel.games();
+            
+            for(i = 0; i < games.length; i++) {
+                games[i].players.valueHasMutated();
+            }
+        },
         mode: function (update) {
             //The rest of the hand-end processing is done through Knockout subscriptions, etc.
             viewModel.matchPoints(update.mp || []);
             viewModel.gamePoints(update.gp || []);
             viewModel.gameMode(update.mode);
         },
-        msg: function (update) { outputMessage(update.msg, viewModel.playerNames[serverToClientPNum(parseInt(update.uNum))]); },
+        msg: function (update) { outputMessage(update.msg, viewModel.playerNames[serverToClientPNum(parseInt(update.uNum, 10))]); },
         playC: function (update) { viewModel.playCard(update.playC); },
         pNum: function (update) { viewModel.myPlayerNum(update.pNum); },
         remP: function (update) { handleEndTrick(update.remP); },
@@ -213,8 +237,6 @@ var CinchApp = {
 // Initialization                                              //
 //(this code executes when main.js loads)                      //
 /////////////////////////////////////////////////////////////////
-
-
 $('#home-page').live('pageinit', function () {
     //Kill the pageinit handler so it doesn't trigger more than once
     $('#home-page').die('pageinit');
@@ -222,48 +244,14 @@ $('#home-page').live('pageinit', function () {
     //Apply Knockout bindings
     ko.applyBindings(viewModel);
     
-    $('#lobby-page').live('pageinit', function () {
+    $('#lobby-page').live('pageshow', function () {
         var i = 0;
         var games;
         
         //Kill the pageinit handler so it doesn't trigger more than once
         $('#lobby-page').die('pageinit');
         
-        //TODO: use this once server is configured to handle it
-        //submitLobby();
-        
-        /******************** Fake data ******************/
-        //TODO: remove
-        //For now, here's some fake data:       
-        viewModel.games([
-            new Game(0),
-            new Game(1),
-            new Game(2)
-        ]);
-        
-        games = viewModel.games();
-        
-        games[0].players()[0] = 'Annie';
-        games[0].players()[2] = 'Art';
-        games[0].players()[3] = 'Andy';
-        
-        games[1].players()[0] = 'Bert';
-        games[1].players()[1] = 'Bill';
-        games[1].players()[2] = 'Bonnie';
-        games[1].players()[3] = 'Bob';
-        
-        games[2].players()[1] = 'Clyde';
-        games[2].players()[2] = 'Claudia';
-        
-        /******************** End Fake data ******************/
-        
-        //We have to manually trigger an update of the page so JQM catches all the bindings
-        $('#lobby-page').trigger('create');
-        
-        for(i = 0; i < games.length; i++) {
-            //Triggers update of jqmButtonEnabled bindings
-            games[i].players.valueHasMutated();
-        }
+        submitLobby();
     });
 
     //Live and die are deprecated, but strangely they are the only jQuery binding functions that work here...
@@ -354,17 +342,27 @@ var Card = function(encodedCard) {
     };
 };
 
-function Game(number) {
+//Represents an available game in the lobby
+function Game(gameObject) {
     var self = this;
+    var i = 0;
+    var players = [];
     
-    self.number = number;
-    self.players = ko.observableArray();
+    for(i = 0; i < gameObject.plrs.length; i++) {
+        players[gameObject.plrs[i].num] = gameObject.plrs[i];
+    }
+    
+    self.number = gameObject.num;
+    self.players = ko.observableArray(players);
     self.playerNames = ko.computed(function() {
         var names = [];
-        var i;
+        var i = 0;
+        var currentPlayer;
         
         for(i = 0; i < CinchApp.NUM_PLAYERS; i++) {
-            names.push(self.players()[i] || '-');
+            currentPlayer = self.players()[i];
+            
+            names.push(currentPlayer ? currentPlayer.name || CinchApp.defaultPlayerName : '-');
         }
         
         return names;
@@ -383,7 +381,7 @@ function Game(number) {
     self.submitJoin = function(seat) {
         postData({ 'join': self.number, 'pNum': seat });
         
-        //TODO: don't actual change pages until the servers says the join is valid
+        //TODO: don't actually change pages until the servers says the join is valid
         $.mobile.changePage( '#game-page', { transition: 'slide'} );
     };
 }
@@ -767,6 +765,8 @@ function startLongPoll() {
 }
 
 function postData(data) {
+    logDebugMessage('POST data sent: ' + JSON.stringify(data));
+
     $.ajax({
         url: CinchApp.serverUrl,
         type: 'POST',
@@ -839,8 +839,14 @@ function outputMessage(text, name, messageType) {
     
     viewModel.chats.push(new VisibleMessage(text, name, messageType));
 
-    //Refresh the view so JQM is aware of the change made by KO
-    $('#output-list').listview('refresh');
+    //Try-catch needed in case chat pane isn't loaded yet
+    //TODO: find a better solution, this isn't optimal
+    try {
+        //Refresh the view so JQM is aware of the change made by KO
+        $('#output-list').listview('refresh');
+    }
+    catch(e) {
+    }
 
     //Scroll chat pane to bottom
     listElement.scrollTop = listElement.scrollHeight;
