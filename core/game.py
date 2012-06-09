@@ -195,7 +195,7 @@ class Game:
         # Check for end of trick and handle, otherwise return.
         #-----------------------------------------------------
         winning_card = self.gs.trick_winning_card()
-        if winning_card == None:
+        if winning_card is None:
             # Trick is not over
             self.gs.active_player = self.gs.next_player(self.gs.active_player)
             return self.publish('crd', player_num, card)
