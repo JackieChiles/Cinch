@@ -111,18 +111,18 @@
             </div><!-- /header -->
             
             <div data-role="content">
-                <ul data-role="listview" data-inset="true" data-bind="activeBorder: activePlayer() == CinchApp.playerEnum.north" class="seat-list north">
+                <ul data-role="listview" data-inset="true" data-bind="activeBorder: activePlayer() == CinchApp.playerEnum.north" class="seat-list north ab-top ab-bottom ab-z">
                     <li data-bind="text: playerNames[CinchApp.playerEnum.north]" data-role="list-divider"></li>
                     <li data-bind="text: currentBidsNames()[CinchApp.playerEnum.north]"></li>
                 </ul>
                     
                 <div class="east-west-seat-container">
-                    <ul data-role="listview" data-inset="true" data-bind="activeBorder: activePlayer() == CinchApp.playerEnum.west" class="seat-list east-west">
+                    <ul data-role="listview" data-inset="true" data-bind="activeBorder: activePlayer() == CinchApp.playerEnum.west" class="seat-list east-west ab-all ab-z">
                         <li data-bind="text: playerNames[CinchApp.playerEnum.west]" data-role="list-divider"></li>
                         <li data-bind="text: currentBidsNames()[CinchApp.playerEnum.west]"></li>
                     </ul>
                     
-                    <ul data-role="listview" data-inset="true" data-bind="activeBorder: activePlayer() == CinchApp.playerEnum.east" class="seat-list east-west">
+                    <ul data-role="listview" data-inset="true" data-bind="activeBorder: activePlayer() == CinchApp.playerEnum.east" class="seat-list east-west ab-all ab-z">
                         <li data-bind="text: playerNames[CinchApp.playerEnum.east]" data-role="list-divider"></li>
                         <li data-bind="text: currentBidsNames()[CinchApp.playerEnum.east]"></li>
                     </ul>
@@ -280,7 +280,7 @@
             <div data-role="content" id="game-content">
                 <div id="left-content">
                     <div id="player-2" class="other-player partner no-mobile">
-                        <div data-bind="activeBorder: activePlayer() == CinchApp.playerEnum.north">
+                        <div data-bind="activeBorder: activePlayer() == CinchApp.playerEnum.north" class="ab-all ab-z">
                             <div data-bind="foreach: cardsInAllHands[CinchApp.playerEnum.north]" class="hand-partner">
                                 <img data-bind="attr: { src: vertImagePath }" />
                             </div>
@@ -288,7 +288,7 @@
                     </div>
                     
                     <div id="player-1" class="other-player middle-row opponent no-mobile">
-                        <div data-bind="activeBorder: activePlayer() == CinchApp.playerEnum.west">
+                        <div data-bind="activeBorder: activePlayer() == CinchApp.playerEnum.west" class="ab-all ab-z">
                             <div data-bind="foreach: cardsInAllHands[CinchApp.playerEnum.west]" class="hand-opponent">
                                 <img data-bind="attr: { src: horizImagePath }" />
                             </div>
@@ -301,7 +301,7 @@
                     </div>
                         
                     <div id="player-3" class="other-player middle-row opponent no-mobile">
-                        <div data-bind="activeBorder: activePlayer() == CinchApp.playerEnum.east">
+                        <div data-bind="activeBorder: activePlayer() == CinchApp.playerEnum.east" class="ab-all ab-z">
                             <div data-bind="foreach: cardsInAllHands[CinchApp.playerEnum.east]" class="hand-opponent">
                                 <img data-bind="attr: { src: horizImagePath }" />
                             </div>

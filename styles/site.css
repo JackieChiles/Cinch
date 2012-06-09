@@ -221,6 +221,31 @@
     opacity:1!important;
 }
 
+.active-border.ab-top {
+    margin-top:-3px!important;
+}
+
+.active-border.ab-right {
+    margin-right:-3px!important;
+}
+
+.active-border.ab-bottom {
+    margin-bottom:-3px!important;
+}
+
+.active-border.ab-left {
+    margin-left:-3px!important;
+}
+
+.active-border.ab-all {
+    margin:-3px!important;
+}
+
+.active-border.ab-z {
+    position:relative!important;
+    z-index:5;
+}
+
 .hand-opponent
 {
     padding:8px;
