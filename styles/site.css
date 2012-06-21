@@ -30,7 +30,32 @@
 
 .lobby-item .east-west-seat-container
 {
-    width:300px
+    width:300px;
+}
+
+/*****************************************
+** AI lobby                             **
+*****************************************/
+#ai-page, #ai-page .seat-list .ui-li {
+    text-align:center;
+}
+
+#ai-page .ui-listview.ai {
+    display:inline-block;
+    max-width:300px;
+    vertical-align:top;
+}
+
+#ai-list {
+    clear:both;
+}
+
+.ui-li.ai-select-container {
+    padding:0;
+}
+
+.ui-li.ai-select-container .ui-select .ui-btn-text {
+    white-space:normal;
 }
 
 /*****************************************

@@ -182,6 +182,9 @@ var CinchApp = {
                 }
             });
         },
+        aList: function(update) {
+            viewModel.ai(update.aList);
+        },
         bid: function (update) {
             //Still previous active player, as actvP handler gets pushed into the secondaryActionQueue
             viewModel.currentBids[viewModel.activePlayer()](update.bid);
@@ -225,6 +228,7 @@ var CinchApp = {
         trp: function (update) { viewModel.trump(update.trp); },
         uid: function (update) {
             //Don't start long-polling until server gives valid guid
+            $.mobile.changePage( '#game-page', { transition: 'slide'} );
             CinchApp.guid = update.uid;
             viewModel.unlockBoard();
             startLongPoll();
@@ -245,13 +249,17 @@ $('#home-page').live('pageinit', function () {
     ko.applyBindings(viewModel);
     
     $('#lobby-page').live('pageshow', function () {
-        var i = 0;
-        var games;
-        
-        //Kill the pageinit handler so it doesn't trigger more than once
-        $('#lobby-page').die('pageinit');
+        //Kill the pageshow handler so it doesn't trigger more than once
+        $('#lobby-page').die('pageshow');
         
         submitLobby();
+    });
+    
+    $('#ai-page').live('pageshow', function () {
+        //Kill the pageshow handler so it doesn't trigger more than once
+        $('#ai-page').die('pageshow');
+        
+        submitAi();
     });
 
     //Live and die are deprecated, but strangely they are the only jQuery binding functions that work here...
@@ -287,7 +295,7 @@ $('#home-page').live('pageinit', function () {
 //TODO: encapsulate bidNames? (parameter, local variable, etc.)
 
 //Represents a possible bid to be made by the player
-var Bid = function(parentViewModel, value, validFunction) {
+function Bid(parentViewModel, value, validFunction) {
     var self = this;
     
     //actualValidFunction will be the passed function if available
@@ -308,7 +316,7 @@ var Bid = function(parentViewModel, value, validFunction) {
 }
 
 //Represents a single playable card
-var Card = function(encodedCard) {
+function Card(encodedCard) {
     var numRanks = CinchApp.ranks.length;
     var suitIndex = Math.floor((encodedCard - 1) / numRanks);
     
@@ -380,14 +388,11 @@ function Game(gameObject) {
     });
     self.submitJoin = function(seat) {
         postData({ 'join': self.number, 'pNum': seat });
-        
-        //TODO: don't actually change pages until the servers says the join is valid
-        $.mobile.changePage( '#game-page', { transition: 'slide'} );
     };
 }
 
 //Represents a single message from an entity
-var VisibleMessage = function(text, name, messageType) {
+function VisibleMessage(text, name, messageType) {
     this.text = text;
     this.name = name;
     this.type = messageType || ''; //CSS class, if any, to apply special formatting
@@ -415,6 +420,34 @@ function CinchViewModel() {
     
     //Game lobby
     this.games = ko.observableArray([]);
+    
+    //AI module selection
+    this.ai = ko.observableArray([]);
+    this.chosenAi = {}; //Contains AI modules chosen by user
+    this.chosenAi[CinchApp.playerEnum.west] = ko.observable();
+    this.chosenAi[CinchApp.playerEnum.north] = ko.observable();
+    this.chosenAi[CinchApp.playerEnum.east] = ko.observable();
+    this.uploadAi = ko.computed(function() {
+        var chosenAi = self.chosenAi
+        var uploadList = [];
+        var currentAi;
+    
+        //Creates the list of AI modules to request
+        for(ai in chosenAi) {
+            if(chosenAi.hasOwnProperty(ai)) {
+                currentAi = chosenAi[ai]();
+                
+                if(currentAi) {
+                    uploadList.push({
+                        pNum: parseInt(ai, 10),
+                        id: chosenAi[ai]().id
+                    });
+                }
+            }
+        }
+        
+        return uploadList;
+    });
     
     this.myPlayerNum = ko.observable(0); //Player num assigned by server
     this.activePlayer = ko.observable(); //Relative to client (self is always CinchApp.playerEnum.south)
@@ -612,6 +645,13 @@ function CinchViewModel() {
         self.resetBids();
         openJqmDialog('#bidding-page');
     };
+    this.startNew = function() {
+        //Hard coding 'game'- new game mode is always 0. Could move to a constant, but WHATEVS
+        postData({
+            'game': 0,
+            'agnts': self.uploadAi()
+        });
+    };
     
     //Subscriptions
     this.gameMode.subscribe(function(newValue) {
@@ -785,6 +825,36 @@ function postData(data) {
     });
 }
 
+function submitAi() {
+    postData({ 'ai': 0 });
+    
+    /********TODO: remove this once real data is returned*********/
+    //For now, here's some fake data:
+    viewModel.ai.push({
+        id: 0,
+        author: 'Dewey Cheatum',
+        version: '2.4',
+        date: 'ca. 18000 B.C.',
+        skill: '6E14',
+        name: 'Sooper Dooper AI',
+        description: 'This dude knows how to play some Cinch.'
+    });
+    
+    viewModel.ai.push({
+        id: 1,
+        author: 'Flatfoot Thompson',
+        version: '5',
+        date: '23 April 1987',
+        skill: '12',
+        name: 'Another AI',
+        description: 'Blah blah blah'
+    });
+    /******** End fake data *********/
+    
+    //Render the newly added UI
+    $('#ai-page').trigger('create');
+}
+
 //TODO: make this a KO subscription?
 function submitChat() {
     var messageText = $('#text-to-insert').val();
@@ -797,10 +867,6 @@ function submitChat() {
 
 function submitLobby() {
     postData({ 'lob': 0 });
-}
-
-function submitNew(mode) {
-    postData({'game': mode});
 }
 
 /////////////////////////////////////////////////////////////////

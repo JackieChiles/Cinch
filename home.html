@@ -24,7 +24,7 @@
             </div>
             <div data-role="content">
                 <div id="home-buttons-container">
-                    <a data-role="button" data-transition="slide" href="#game-page" onclick="submitNew(CinchApp.GAME_MODE_NEW)">New game</a>
+                    <a data-role="button" data-transition="slide" href="#ai-page">New game</a>
                     <a data-role="button" data-transition="slide" href="#lobby-page">Join game</a>
                 </div>
             </div>
@@ -32,7 +32,7 @@
         
         <div data-role="page" id="lobby-page">
             <div data-role="header">
-                <h1>Cinch</h1>
+                <h1>Select a Game</h1>
             </div>
             <div data-role="content">
                 <div data-bind="foreach: games">
@@ -104,6 +104,61 @@
                 </div>
             </div>
         </div><!-- /game lobby page -->
+        
+        <div data-role="page" id="ai-page">
+            <div data-role="header">
+                <h1>Select AI Agents (Optional)</h1>
+            </div>
+            
+            <button data-bind="click: startNew">Start Game</button>
+            
+            <div data-role="content">
+                <div>
+                    <ul data-role="listview" data-inset="true" class="seat-list north">
+                        <li data-role="list-divider">North </li>
+                        <li class="ai-select-container">
+                            <select data-bind="options: ai, optionsText: 'name', value: chosenAi[CinchApp.playerEnum.north], optionsCaption: 'Pick one'"></select>
+                        </li>
+                    </ul>
+                        
+                    <div class="east-west-seat-container">
+                        <ul data-role="listview" data-inset="true" class="seat-list east-west with-south">
+                            <li data-role="list-divider">West</li>
+                            <li class="ai-select-container">
+                                <select data-bind="options: ai, optionsText: 'name', value: chosenAi[CinchApp.playerEnum.west], optionsCaption: 'Pick one'"></select>
+                            </li>
+                        </ul>
+                        
+                        
+                        <ul data-role="listview" data-inset="true" class="seat-list east-west with-south">
+                            <li data-role="list-divider">East</li>
+                            <li class="ai-select-container">
+                                <select data-bind="options: ai, optionsText: 'name', value: chosenAi[CinchApp.playerEnum.east], optionsCaption: 'Pick one'"></select>
+                            </li>
+                        </ul>
+                    </div>
+                    
+                    <ul data-role="listview" data-inset="true" class="seat-list south">
+                        <li data-role="list-divider">South</li>
+                        <li>You</li>
+                    </ul>
+                </div>
+                
+                <hr />
+                <h2>Available agents:</h2>
+            
+                <div data-bind="foreach: ai" id="ai-list">
+                    <ul data-role="listview" data-inset="true" class="ai">
+                        <li data-bind="text: name" data-role="list-divider"></li>
+                        <li data-bind="text: author"></li>
+                        <li data-bind="text: version"></li>
+                        <li data-bind="text: date"></li>
+                        <li data-bind="text: skill"></li>
+                        <li data-bind="text: description"></li>
+                    </ul>
+                </div>
+            </div>
+        </div><!-- /ai page -->
         
         <div data-role="page" id="bidding-page" class="no-close-dialog">
             <div data-role="header">
