@@ -2,11 +2,11 @@
 """
 Game object for managing game properties, players, and game states.
 
-TODO: game logging functionality
-      pickling game for later recovery
+TODO: pickling game for later recovery
 
 """
 import random
+import sqlite3
 from datetime import datetime, timezone
 
 #this allows game.py to be ran alone from core dir AND as part of cinch.py
@@ -29,6 +29,7 @@ NUM_TEAMS = 2
 TEAM_SIZE = 2
 NUM_PLAYERS = NUM_TEAMS * TEAM_SIZE
 GAME_MODE = common.enum(PLAY=1, BID=2)
+DB_PATH = 'db/cinch.db'
 
 # Bid constants
 BID = common.enum(PASS=0, CINCH=5)
@@ -148,7 +149,7 @@ class Game:
             self.gs.countercinch = True
             
         # Is bidding over? Either way, publish and return.
-        if self.gs.active_player == self.gs.dealer: # Dealer always last to bid
+        if self.gs.active_player == self.gs.dealer: #Dealer always last to bid
             self.gs.active_player = self.gs.declarer
             self.gs.game_mode = GAME_MODE.PLAY
             return self.publish('eob', player_num, bid)
@@ -271,7 +272,6 @@ class Game:
         """
         
         # Initialize the output. Message always contains actvP, so do it here.
-        gamelog = open('logs/'+str(self.gs.game_id)+'.log', 'a')
         message = {'actvP': self.gs.active_player}
         
         if status in ['sog', 'eob', 'eoh']:
@@ -283,21 +283,13 @@ class Game:
             if status is 'trp':
                 message['trp'] = self.gs.trump
                 # Player declared Suit as trump.
-                print(self.players[pNum].name, "declared",
-                      cards.SUITS_BY_NUM[self.gs.trump], "as trump.",
-                      file=gamelog)
                       
             message['playC'] = data.code
             # Player played Card.
-            print(self.players[pNum].name, "played", ''.join([str(data), "."]),
-                  file=gamelog)
             
             if status in ['eot', 'eoh', 'eog']:
                 message['remP'] = self.gs._t_w_card.owner
                 # Player won the trick with Card.
-                print(self.players[message['remP']].name,
-                      "won the trick with", ''.join([str(self.gs._t_w_card),
-                      "."]), file=gamelog)
                 
                 if status in ['eoh', 'eog']:
                     message['mp'] = ['',]*NUM_TEAMS # Initialize
@@ -316,124 +308,60 @@ class Game:
                     message['gp'] = self.gs._results['game_points']
                     message['sco'] = self.gs.scores
                     
-                    # Hand results:
-                    # -------------
-                    # Team Team0: High Low [Game Points: 20]
-                    # Team Team1: Jack Game [Game Points: 28]
-                    # Declarer [was set|made bid].
-                    # 
-                    # New scores: 2, 2
-                    #
-                    print("Hand results:\n-------------", file=gamelog)
-                    for num in range(NUM_TEAMS):
-                        print("Team ", self.players[num].name, ": ", sep='',
-                              end='', file=gamelog)
-                        if self.gs._results['high_holder'] == num:
-                            print("High ", end='', file=gamelog)
-                        if self.gs._results['low_holder'] == num:
-                            print("Low ", end='', file=gamelog)
-                        if self.gs._results['jack_holder'] == num:
-                            print("Jack ", end='', file=gamelog)
-                        if self.gs._results['game_holder'] == num:
-                            print("Game ", end='', file=gamelog)
-                        print("[Game points: ",
-                              self.gs._results['game_points'][num], "]",
-                              sep='', file=gamelog)
-                    # Blank lines intentional
-                    if self.gs._results['declarer_set']:
-                        print("Declarer was set.\n", file=gamelog)
-                    else:
-                        print("Declarer made bid.\n", file=gamelog)
-                    print("New scores:", self.gs.scores, file=gamelog)
-                    
                     if status is 'eog':
                         message['win'] = self.gs.winner
-                        # Team TeamW wins!
-                        print("Team", self.players[self.gs.winner].name,
-                              "wins!", file=gamelog)
-                        print(datetime.now(timezone.utc), file=gamelog)
-                        print("################################", file=gamelog)
+
                     else: # Status must be 'eoh': Set up for next hand.
                         message['dlr'] = self.gs.dealer
                         # Player deals.
-                        print(self.players[self.gs.dealer].name, "deals.",
-                              file=gamelog)
                         output = [message.copy() for _ in range(NUM_PLAYERS)]
                         for player in self.players:
                             output[player.pNum]['addC'] = [card.code for card
                                                            in player.hand]
-                            print(player.name, "\'s hand: ", sep='', end = '',
-                                  file=gamelog)
-                            print(", ".join(str(card) for card in player.hand),
-                                  file=gamelog)
                             output[player.pNum]['tgt'] = [player.pNum]
             
         elif status in ['bid', 'eob']:
             message['bid'] = data
-            if self.gs.countercinch:
-                # Dealer Player counter-cinches!
-                print("Dealer", self.players[self.gs.dealer].name,
-                      "counter-cinches!", file=gamelog)
-            else:
-                if data == BID.PASS:
-                    # Player passes.
-                    print(self.players[pNum].name, "passes.", file=gamelog)
-                elif data == BID.CINCH:
-                    # Player cinches.
-                    print(self.players[pNum].name, "cinches.", file=gamelog)
-                else:
-                    # Player bid X.
-                    print(self.players[pNum].name, "bids", 
-                          ''.join([str(data), "."]), file=gamelog)
 
         # Start of game is the same as end of hand except there are different
         # logging requirements, so there's a little bit of duplicated code.
+        # Update: Text logging has been deprecated for now; this duplicated
+        # code could be cleaned up or merged later, but it isn't hurting any-
+        # thing for now.
         elif status is 'sog':
-            print(datetime.now(timezone.utc), file=gamelog)
-            print(self, file=gamelog)
-            print("Game ID:", self.gs.game_id, "\n", file=gamelog)
             message['dlr'] = self.gs.dealer
             # Player deals.
-            print(self.players[self.gs.dealer].name, "deals.",
-                  file=gamelog)
             output = [message.copy() for _ in range(NUM_PLAYERS)]
             for player in self.players:
                 output[player.pNum]['addC'] = [card.code for card
                                                in player.hand]
-                print(player.name, "\'s hand: ", sep='', end = '',
-                      file=gamelog)
-                print(", ".join(str(card) for card in player.hand),
-                      file=gamelog)
                 output[player.pNum]['tgt'] = [player.pNum]        
             
         # Note: New hands are handled differently from all others because they
         # are the only ones dealing with private information. If status is
         # 'eoh'/'sog', output will be a length-4 list containing 4 dicts with
         # 'tgt' containing an integer, and 'addC' containing the new hands. If
-        # not, output will be a length-1 list containing 1 dict with 'tgt' con-
+        # not, output will be a length-1 list containing 1 dict with 'tgt' con
         # taining a length-4 list. (With 4 meaning NUM_PLAYERS, of course.)
         if status not in ['eoh', 'sog']:
             message['tgt'] = [i for i in range(NUM_PLAYERS)]
             output = [message]
-        
-        gamelog.flush()
-        gamelog.close()
-        
-        # TODO These print statements for debugging/testing only.
-        #print("************",
-        #      self.players[self.gs.active_player].name, "is next to act.",
-        #      "************")
+            
+        self.dbevent(output)
         
         return output
 
 
-    def start_game(self, game_id=0):
-        """Start game with id game_id, deal first hands, and send msgs.
+    def start_game(self, plr_arg = ["Test0", "Test1", "Test2", "Test3"]):
+        """Start a new game, deal first hands, and send msgs.
         
-        game_id (int): Assigned by game router. Defaults to 0 for testing.
+        plr_arg (list): List of 4 strings containing the player names.
         """
-        self.players = [Player(x, game_id, "Test"+str(x))
-                        for x in range(NUM_PLAYERS)]
+        # Might as well error check this here. All games must have 4 players.
+        if len(plr_arg) is not NUM_PLAYERS:
+            raise RuntimeError("Tried to start a game with <4 players.")
+        self.players = [Player(x, plr_arg[x]) for x in range(NUM_PLAYERS)]
+        game_id = self.dbstart()
         self.gs = GameState(game_id)
         self.deck = cards.Deck()
         self.deal_hand()
@@ -441,12 +369,70 @@ class Game:
         self.gs.game_mode = GAME_MODE.BID
         self.gs.countercinch = False
         self.gs.trump = None
-
+        
         return self.publish('sog', None, None)
+        
+    def dbstart(self):
+        """Register a new game with the Games table of the sqlite database.
+        
+        Returns the autoincrementing integer value of the row written as the
+        unique game_id."""
+
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+        try:
+            c.execute("INSERT INTO Games VALUES (NULL,?,?,?,?,?)",
+                      (datetime.utcnow().isoformat(),
+                       self.players[0].name, self.players[1].name,
+                       self.players[2].name, self.players[3].name))
+        except sqlite3.OperationalError:
+            # Initialize the runtime database tables for new/clean servers.
+            c.execute("""CREATE TABLE Games (game_id INTEGER PRIMARY KEY,
+                         Timestamp text NOT NULL,
+                         PlayerName0 text NOT NULL,
+                         PlayerName1 text NOT NULL,
+                         PlayerName2 text NOT NULL,
+                         PlayerName3 text NOT NULL)""")
+            # Making an Events table here should remove the need to have
+            # equivalent code in the dbwrite() function.
+            c.execute("""CREATE TABLE Events (event_id INTEGER PRIMARY KEY,
+                         game_id INTEGER NOT NULL,
+                         Timestamp text NOT NULL,
+                         EventString text NOT NULL)""")
+            c.execute("INSERT INTO Games VALUES (NULL,?,?,?,?,?)",
+                      (datetime.utcnow().isoformat(),
+                       self.players[0].name, self.players[1].name,
+                       self.players[2].name, self.players[3].name))
+        c.execute("SELECT last_insert_rowid()")
+        autogen_game_id = c.fetchone()[0] # Unpack len-1 tuple to get int
+        conn.commit()
+        c.close()
+        return autogen_game_id
+        
+    def dbevent(self, event_data):
+        """Write a game action data string to the Events table.
+        
+        The output of publish() will be written exactly as it is generated.
+        This raw data can be mined at a later date to produce stats or human-
+        readable log files. Alternatively, a script could be written to
+        monitor the database and show a live game-in-progress. Maybe."""
+        
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+        c.execute("INSERT INTO Events VALUES (NULL,?,?,?)",
+                  (self.gs.game_id, datetime.utcnow().isoformat(),
+                   str(event_data)))
+        conn.commit()
+        c.close()
+        return None
         
 #test
 if __name__ == '__main__': 
-    print("Creating new game with 4 players.")
+    print("Best you test this in the python environment. Seriously.")
+    print("But here goes. Creating a game.")
     g = Game()
-    g.start_game(4000)
-    g.handle_bid(g.gs.active_player, 0)
+    g.start_game()
+    for _ in range(4):
+        g.handle_bid(g.gs.active_player, 0)
+    print("Game ID:")
+    print(g.gs.game_id)

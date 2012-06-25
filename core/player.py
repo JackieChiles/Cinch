@@ -20,16 +20,13 @@ class Player:
     hand (list): array of card objects, set by Game object
     has_last_state (boolean): does client have latest game state, set by Game
     """
-    def __init__(self, pNum, game_id=0, name="test",
-                 player_type=0):   #set defaults for debugging
+    def __init__(self, pNum, name="test", player_type=0): #Defaults for debug
         """
         Create new Player object.
         """
         self.pNum = pNum
-        
-        self.game_id = game_id  #may not be needed
-        self.name = name  #player name currently lives in client manager;
-                          #do we need it here? (logging info??)
+        self.name = name  #Player name needs to be available to the Player
+                          #object in order to write it to the log database.
         
         self.hand = None
 

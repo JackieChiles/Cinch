@@ -224,7 +224,8 @@ class LobbyHandler(GameRouterHandler):
             players = []
             for client_id in cm.groups[group_id]:
                 #TODO: use appropriate constants here
-                players.append({'name': cm.clients[client_id][0], 'num': cm.clients[client_id][2]})
+                players.append({'name': cm.clients[client_id][0],
+                                'num': cm.clients[client_id][2]})
             games.append({'num': group_id, 'plrs': players})
         
         # Return game list via POST (this is public information)
