@@ -50,7 +50,7 @@ import json
 from sys import stdin # for listening to Manager
 
 # Settings
-SERVER_HOST = ""
+SERVER_HOST = "localhost"
 SERVER_PORT = 2424
 SERVER_URL = "{0}:{1}".format(SERVER_HOST, SERVER_PORT)
 
