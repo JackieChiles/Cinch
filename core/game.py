@@ -21,7 +21,8 @@ except ImportError:
     import core.common as common
     from core.player import Player
     import core.cards as cards
-    from core.gamestate import GameState    
+    from core.gamestate import GameState
+    import db.stats as stats    
 
 #Constants and global variables
 STARTING_HAND_SIZE = 9
@@ -30,6 +31,8 @@ TEAM_SIZE = 2
 NUM_PLAYERS = NUM_TEAMS * TEAM_SIZE
 GAME_MODE = common.enum(PLAY=1, BID=2)
 DB_PATH = 'db/cinch.db'
+MAX_HANDS = 16 # Not part of game rules; intended to prevent AI problems.
+               # Can be modified later if actual gameplay is trending longer.
 
 # Bid constants
 BID = common.enum(PASS=0, CINCH=5)
@@ -146,7 +149,6 @@ class Game:
             self.gs.declarer = player_num
         elif bid_status is 'cntr':
             self.gs.declarer = player_num # Set declarer; bid already cinch.
-            self.gs.countercinch = True
             
         # Is bidding over? Either way, publish and return.
         if self.gs.active_player == self.gs.dealer: #Dealer always last to bid
@@ -229,13 +231,22 @@ class Game:
             if score >= 11:
                 victor = True
                 break
+                
+        # Also, if we've reached MAX_HANDS, end the game anyway.
+        # message['win'] defaults to 0.5; client/database/stats should
+        # interpret a game with a win value of 0.5 as a draw.
+        
+        if self.gs.hand_number == MAX_HANDS:
+            victor = True
         
         # This block breaks if there are more than two teams.        
         if victor:
             if self.gs.scores[self.gs.declarer % TEAM_SIZE] >= 11:
                 self.gs.winner = self.gs.declarer % TEAM_SIZE
-            else:
+            elif self.gs.scores[(self.gs.declarer + 1)% TEAM_SIZE] >= 11:
                 self.gs.winner = (self.gs.declarer + 1) % TEAM_SIZE
+            else:
+                pass # Don't need to set winner if we reached on MAX_HANDS.
             return self.publish('eog', player_num, card)
                 
         # If no victor, set up for next hand.
@@ -248,7 +259,6 @@ class Game:
         self.gs.high_bid = 0
         self.gs.game_mode = GAME_MODE.BID
         self.gs.trump = None
-        self.gs.countercinch = False
 
         return self.publish('eoh', player_num, card)
 
@@ -325,9 +335,9 @@ class Game:
 
         # Start of game is the same as end of hand except there are different
         # logging requirements, so there's a little bit of duplicated code.
-        # Update: Text logging has been deprecated for now; this duplicated
-        # code could be cleaned up or merged later, but it isn't hurting any-
-        # thing for now.
+        # Update: Text logging has been deprecated; this duplicated code 
+        # could be cleaned up or merged later, but it isn't hurting anything
+        # for now.
         elif status is 'sog':
             message['dlr'] = self.gs.dealer
             # Player deals.
@@ -349,6 +359,19 @@ class Game:
             
         self.dbevent(output)
         
+        # At the end of each hand, trigger the script to parse messages for
+        # stats purposes.
+        
+        if status in ['eoh', 'eog']:
+            # TODO: Run this in another thread or something so that if the
+            # database gets out of hand, the game can still proceed.
+            # If that is not viable, we can look at running stats whenever
+            # the server finishes the last active game, or something. Or just
+            # set up cron to do it and have a totally separate script.
+            
+            stats.process(self.gs.game_id, self.gs.hand_number)
+            self.gs.hand_number += 1
+        
         return output
 
 
@@ -367,7 +390,6 @@ class Game:
         self.deal_hand()
         self.gs.active_player = self.gs.next_player(self.gs.dealer)
         self.gs.game_mode = GAME_MODE.BID
-        self.gs.countercinch = False
         self.gs.trump = None
         
         return self.publish('sog', None, None)
@@ -394,9 +416,10 @@ class Game:
                          PlayerName2 text NOT NULL,
                          PlayerName3 text NOT NULL)""")
             # Making an Events table here should remove the need to have
-            # equivalent code in the dbwrite() function.
+            # equivalent code in the dbevent() function.
             c.execute("""CREATE TABLE Events (event_id INTEGER PRIMARY KEY,
                          game_id INTEGER NOT NULL,
+                         HandNumber INTEGER NOT NULL,
                          Timestamp text NOT NULL,
                          EventString text NOT NULL)""")
             c.execute("INSERT INTO Games VALUES (NULL,?,?,?,?,?)",
@@ -419,9 +442,9 @@ class Game:
         
         conn = sqlite3.connect(DB_PATH)
         c = conn.cursor()
-        c.execute("INSERT INTO Events VALUES (NULL,?,?,?)",
-                  (self.gs.game_id, datetime.utcnow().isoformat(),
-                   str(event_data)))
+        c.execute("INSERT INTO Events VALUES (NULL,?,?,?,?)",
+                  (self.gs.game_id, self.gs.hand_number,
+                   datetime.utcnow().isoformat(), str(event_data)))
         conn.commit()
         c.close()
         return None

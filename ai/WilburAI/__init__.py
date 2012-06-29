@@ -5,16 +5,16 @@
 ####################
 
 # Enter the class name specified in core.py for your AI Agent
-agent_classname = "RandomAgent"
+agent_classname = "Wilbur"
 
 # AI Agent description -- used by Manager for identification
 ## starts with triple-underline
-___author  = "M.G."
-___version = "1.1"
+___author  = "JACK!"
+___version = "1.0"
 ___date    = "29 June 2012"
 ___skill   = "0"
-___agent_name  = "Random Agent"
-___description = "Makes random bids and plays."
+___agent_name  = "Wilbur"
+___description = "Helps test bad AI handling."
 
 
 ####################

@@ -32,9 +32,12 @@ class RandomAgent(AIBase):
             elif self.gs['mode'] == 2: # Bid
                 print("pNum", self.pNum, "Thinking about bid...")
                 
-                bid = random.randint(1,4)  # Will never bid cinch
+                if self.gs['high_bid'] < 4:
+                    bid = random.randint(self.gs['high_bid']+1,4) # Never cinch
+                else:
+                    bid = 0
                 r = random.random()
-                if ((bid > self.gs['high_bid']) and (r < 0.75)):
+                if ((bid > 0) and (r < 0.75)):
                     self.bid(bid)
                     print("pNum", self.pNum, "Bidding", self.gs['high_bid']+1)
                 else:

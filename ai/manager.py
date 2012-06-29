@@ -211,10 +211,10 @@ if __name__ == '__main__':
     #onload, create an AI in game 0.
     mgr = AIManager()
     
-    #mgr.create_agent_for_new_game(0) # Uncomment this line to have AI-only game
+    #mgr.create_agent_for_new_game(0) # Uncomment this for an all-AI game.
     time.sleep(1)
     for i in [1,2,3]:
-        mgr.create_agent_for_existing_game(0,0,i)
+        mgr.create_agent_for_existing_game(1,0,i)
     #when mgr is destroyed, all agents shutdown(), so...
     #use below for long testing
 

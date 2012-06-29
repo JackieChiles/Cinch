@@ -357,6 +357,7 @@ class AIBase:
                     elif key == 'addC': # Setup for new hand
                         self.hand = val
                         gs['team_stacks'] = [[], []]
+                        gs['high_bid'] = 0
 
                     elif key == 'mode':  gs['mode'] = val
 
@@ -373,7 +374,9 @@ class AIBase:
                         self.handle_daemon_command("-1")
 
                     else:  #TODO add support for mp, gp keys
-                        print("!!unhandled key:", key)
+                        pass
+                        # print("!!unhandled key:", key)
+                        # Uncomment to test AI key handling
 
         self.act() # Once all updates are processed, act
 

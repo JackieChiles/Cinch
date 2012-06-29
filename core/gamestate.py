@@ -48,7 +48,11 @@ class GameState:
         self.cards_in_play = []
         self.scores = [0]*NUM_TEAMS
         self.team_stacks = [[] for _ in range(NUM_TEAMS)]
-        self.winner = None
+        self.winner = 0.5 # Halfway between Team 0 and 1. Crafty, I know.
+        # Count hands for logging/data collection and also to end the game
+        # after some MAX_HANDS (intended to rein in AI deadlocks).
+        # This starts at 1, and gets incremented in publish().
+        self.hand_number = 1
         
         # Journalist's variables to publish().
         self._t_w_card = None
