@@ -1,4 +1,5 @@
 *__pycache__*
 db/cinch.db
+db/stats.log
 driver.py
 *.pyc
