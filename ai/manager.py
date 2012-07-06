@@ -78,21 +78,24 @@ class AIManager:
             ai_path = os.path.join(ai_path, "ai") #currently in root
         
         dirlist = os.listdir(ai_path)
-        
+
         # Remove __pycache__ and _demo from candidate packages, if present
         try:    dirlist.remove('__pycache__')
         except: pass
-        #try:    dirlist.remove('_demo') #TODO debug uncomment 
-        #except: pass
+        try:    dirlist.remove('_demo')
+        except: pass
+
+        curDir = os.getcwd()
+        os.chdir(ai_path) # Filtering needs to be performed from AI directory
         
         # Filter non-directories from dirlist
         packages = filter(os.path.isdir, dirlist)
-        
+
         # Gather ID info from each package (___things from __init__.py)
         for pkg in packages:
             d = {'pkg': pkg}
             # Read pgk/__init__.py for triple-underscored values;
-            # these are ID values
+            # these are descriptor values
             p = os.path.join(ai_path, pkg, "__init__.py")
             with open(p, mode='r') as fp:
                 for line in iter(fp.readline, ''):
@@ -100,20 +103,37 @@ class AIManager:
                         exec(line, globals(), d) # add line to d
             self.ai_packages.append(d)
 
+        os.chdir(curDir) # Change to old working directory (may be unneeded)
+
     def get_ai_summary(self):
         """Assemble data for choosing/viewing available AI Agents.
 
         Uses data contained in self.ai_packages to send to client. Client will
         use data to build AI Agent selection elements to be used when making
-        new games.
+        new games. All data should be triple-underscored.
 
-        Information will be requested by client via POST. Will likely want to
-        register handler (a la CommChannel) and signature in order to get
-        request directly; registration is done at the root level.
+        Information will be requested by client using the 'ai' message flag.
 
         """
-        #TODO: update IAW game lobby specs
-        raise NotImplementedError("Implementation pending decision on how/what the client will request.")
+        aList = []
+        temp = {}
+        i = 0 # Used for AI ID #
+
+        for pkg in self.ai_packages:  #TODO: may want to sort ai_packages first
+            temp = {'id': i,
+                    'auth': pkg['___author'],
+                    'ver': pkg['___version'],
+                    'date': pkg['___date'],
+                    'skl': pkg['___skill'],
+                    'name': pkg['___agent_name'],
+                    'desc': pkg['___description']
+                    }
+
+            aList.append(temp)
+            i += 1
+
+        return aList
+        
 
     ####################
     # Agent Management
@@ -211,11 +231,11 @@ if __name__ == '__main__':
     #onload, create an AI in game 0.
     mgr = AIManager()
     
-    #mgr.create_agent_for_new_game(0) # Uncomment this for an all-AI game.
-    time.sleep(1)
-    for i in [1,2,3]:
-        mgr.create_agent_for_existing_game(1,0,i)
-    #when mgr is destroyed, all agents shutdown(), so...
-    #use below for long testing
+##    #mgr.create_agent_for_new_game(0) # Uncomment this for an all-AI game.
+##    time.sleep(1)
+##    for i in [1,2,3]:
+##        mgr.create_agent_for_existing_game(1,0,i)
+##    #when mgr is destroyed, all agents shutdown(), so...
+##    #use below for long testing
 
     input("Press enter to kill manager....             ")

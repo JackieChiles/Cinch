@@ -827,30 +827,7 @@ function postData(data) {
 
 function submitAi() {
     postData({ 'ai': 0 });
-    
-    /********TODO: remove this once real data is returned*********/
-    //For now, here's some fake data:
-    viewModel.ai.push({
-        id: 0,
-        author: 'Dewey Cheatum',
-        version: '2.4',
-        date: 'ca. 18000 B.C.',
-        skill: '6E14',
-        name: 'Sooper Dooper AI',
-        description: 'This dude knows how to play some Cinch.'
-    });
-    
-    viewModel.ai.push({
-        id: 1,
-        author: 'Flatfoot Thompson',
-        version: '5',
-        date: '23 April 1987',
-        skill: '12',
-        name: 'Another AI',
-        description: 'Blah blah blah'
-    });
-    /******** End fake data *********/
-    
+
     //Render the newly added UI
     $('#ai-page').trigger('create');
 }

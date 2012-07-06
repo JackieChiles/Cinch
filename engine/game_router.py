@@ -24,7 +24,8 @@ SIGNATURE = common.enum(
     JOIN_GAME=['join', 'pNum'],
     LOBBY = ['lob'],
     GAME_PLAY=['card'],
-    BID=['bid']
+    BID=['bid'],
+    AI_LIST_REQUEST=['ai']
     )
 
 # Enum constants for building POST-response error messages
@@ -37,7 +38,8 @@ ERROR_TYPE = common.enum(
     )
 
 # Global variable
-cm = None   # Used for client manager
+ai_mgr = None   # Used for AI manager, assigned later
+cm = None   # Used for client manager, assigned later
 
 
 class GameRouter:
@@ -45,6 +47,15 @@ class GameRouter:
     def __init__(self):
         self.games = dict() # key=game_id, value=game object
         self.handlers = []
+
+    def attach_ai_manager(self, ai):
+        """Attach AI Manager from the engine to the Game Router module.
+
+        ai (AIManager): AI manager created at the root level.
+
+        """
+        global ai_mgr
+        ai_mgr = ai
 
     def attach_client_manager(self, client_mgr):
         """Attach client manager from the engine to Game Router.
@@ -67,11 +78,14 @@ class GameRouter:
             raise RuntimeError("Client Manager not attached to Game Router.")
         
         # Create action handlers
-        self.handlers.append(NewGameHandler(self, SIGNATURE.NEW_GAME))
-        self.handlers.append(JoinGameHandler(self, SIGNATURE.JOIN_GAME))        
-        self.handlers.append(GamePlayHandler(self, SIGNATURE.GAME_PLAY))
-        self.handlers.append(BidHandler(self, SIGNATURE.BID))
-        self.handlers.append(LobbyHandler(self, SIGNATURE.LOBBY))
+        addHandler = self.handlers.append
+        
+        addHandler(NewGameHandler(self, SIGNATURE.NEW_GAME))
+        addHandler(JoinGameHandler(self, SIGNATURE.JOIN_GAME))        
+        addHandler(GamePlayHandler(self, SIGNATURE.GAME_PLAY))
+        addHandler(BidHandler(self, SIGNATURE.BID))
+        addHandler(LobbyHandler(self, SIGNATURE.LOBBY))
+        addHandler(AIListRequestHandler(self, SIGNATURE.AI_LIST_REQUEST))
 
         # Register each handler with the Comet server
         for h in self.handlers:
@@ -206,6 +220,7 @@ class JoinGameHandler(GameRouterHandler):  ###untested
 
 #####
 #TODO: Implement way to drop from game before/after game start
+#TODO: These handlers need to make better use of constants for strings.
 #####
 
 class LobbyHandler(GameRouterHandler):
@@ -230,6 +245,20 @@ class LobbyHandler(GameRouterHandler):
         
         # Return game list via POST (this is public information)
         return {'gList': games}
+
+
+class AIListRequestHandler(GameRouterHandler):
+    """Gather & send list of AI modules to client."""
+    # Overridden member
+    def respond(self, msg):
+
+        if msg.data['ai'] != '0':
+            # For now, '0' is just a request for all AIs & only supported value
+            return None
+
+        agents = ai_mgr.get_ai_summary()
+        
+        return {'aList': agents}
 
 
 class BidHandler(GameRouterHandler):
