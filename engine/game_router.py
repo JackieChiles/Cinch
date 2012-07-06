@@ -20,7 +20,7 @@ DEFAULT_PNUM = 0 # pNum assigned to player who creates new game
 
 # Message signatures
 SIGNATURE = common.enum(
-    NEW_GAME=['game'],
+    NEW_GAME=['game', 'plrs'],
     JOIN_GAME=['join', 'pNum'],
     LOBBY = ['lob'],
     GAME_PLAY=['card'],
@@ -151,20 +151,28 @@ class NewGameHandler(GameRouterHandler):
             return None
 
         ######
-        # FUTURE: Set limit on # concurrent games and enforce limit here.
+        # TODO-FUTURE: Set limit on # concurrent games and enforce limit here.
         ######
-        
+
         # Create new game object and add to router.games and client_mgr
         new_game = Game()
-        game_id = cm.create_group()
+        game_id = cm.create_group() #TODO: focus here for multi-game support
         self.router.games[game_id] = new_game
         
         # Create GUID for requesting client and add entry to client_mgr
+        #TODO-FUTURE: don't use default pnum, let game creator decide?
         client_id = cm.create_client(pNum=DEFAULT_PNUM)
         cm.add_client_to_group(client_id, game_id)
 
+        # Handle 'plrs' list, creating AI agents as needed
+        player_options = list(map(int, msg.data['plrs'].split(',')))
+        for index, val in enumerate(player_options):
+            if val > 0: # Negative values are for humans, positive for AIs, 0 unused
+                # Create AI in pNum index with agent val
+                ai_mgr.create_agent_for_existing_game(val, game_id, index)
+
         # Return client GUID and player number via POST
-        return {'uid': client_id, 'pNum': DEFAULT_PNUM}
+        return {'uid': client_id, 'pNum': DEFAULT_PNUM} 
 
 
 class JoinGameHandler(GameRouterHandler):  ###untested

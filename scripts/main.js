@@ -431,7 +431,7 @@ function CinchViewModel() {
         var chosenAi = self.chosenAi
         var uploadList = [];
         var currentAi;
-    
+
         //Creates the list of AI modules to request
         for(ai in chosenAi) {
             if(chosenAi.hasOwnProperty(ai)) {
@@ -445,7 +445,7 @@ function CinchViewModel() {
                 }
             }
         }
-        
+
         return uploadList;
     });
     
@@ -646,10 +646,24 @@ function CinchViewModel() {
         openJqmDialog('#bidding-page');
     };
     this.startNew = function() {
+        var options;
+        options = self.uploadAi();
+        
+        //TODO: all this could likely be addressed within uploadAi(); goal here is to give server a single item,
+        // so that an appropriate message signature can be made. otherwise, signature depends on which pNums are made AIs.
+        
+        temp = [-1, -1, -1, -1]; //elements for each possible player; can allow for New Gamer to choose own seat / all AI game.
+
+        for(item in options) { //creates array with agent IDs placed in proper pNum slot
+            temp[options[item].pNum] = options[item].id;
+        }
+        //build player selection string; arrays get unpacked before post, so making a server-side handler fails
+        output = temp.join();
+
         //Hard coding 'game'- new game mode is always 0. Could move to a constant, but WHATEVS
         postData({
-            'game': 0,
-            'agnts': self.uploadAi()
+            game: 0,
+            plrs: output
         });
     };
     

@@ -70,12 +70,9 @@ class AIManager:
         # Get directory listing of ai folder        
         cur = sys.modules[__name__]
 
-        #TODO: make correct one for final impl
-        ai_path = os.getcwd()
-        if ai_path[-2:] == "ai": #currently in AI directory
-            pass
-        else:
-            ai_path = os.path.join(ai_path, "ai") #currently in root
+        ai_path = os.path.join(os.getcwd(), "ai") #currently in root
+
+        self.ai_path = ai_path #store value for later use
         
         dirlist = os.listdir(ai_path)
 
@@ -117,9 +114,10 @@ class AIManager:
         """
         aList = []
         temp = {}
-        i = 0 # Used for AI ID #
+        i = 1 # Used for AI ID #
 
-        for pkg in self.ai_packages:  #TODO: may want to sort ai_packages first
+        #TODO: may want to sort ai_packages first
+        for pkg in self.ai_packages:  
             temp = {'id': i,
                     'auth': pkg['___author'],
                     'ver': pkg['___version'],
@@ -151,6 +149,12 @@ class AIManager:
             # Too many agents on the dance floor
             return None #TODO will need to handle this in a useful way
 
+        model_num = model_num - 1 # IDs sent to client start at 1, not 0
+
+        # Change to AI directory
+        curDir = os.getcwd()
+        os.chdir(self.ai_path)
+        
         # Select AI package
         try:
             pkg = self.ai_packages[model_num]['pkg']
@@ -167,9 +171,10 @@ class AIManager:
         except OSError: # pkg doesn't exist
             agent = None
         finally:
+            os.chdir(curDir) # return to previous directory (may be unneeded)
+            
             return agent
 
-    #TODO: revise these methods after game lobby implemented
     def create_agent_for_existing_game(self, model_num, game_id, pNum):
         """Create new agent and issue 'join game' command to it.
 
@@ -184,6 +189,7 @@ class AIManager:
         # Issue 'join game' command -- arguments are pipe delimited
         self.send_message(agent, data)    
 
+    #This option is currently inactive, as new game requests require a 'plrs' parameter
     def create_agent_for_new_game(self, model_num):
         """Create new agent and issue 'new game' command to it.
 
@@ -222,20 +228,4 @@ class AIManager:
         data = "-1" # -1 = shutdown
         self.send_message(agent_num, data)
 
-        
-#####testing  -- To facilitate testing, create new game with human client,
-        # then run manager.py.
-if __name__ == '__main__':
-    
-    import time
-    #onload, create an AI in game 0.
-    mgr = AIManager()
-    
-##    #mgr.create_agent_for_new_game(0) # Uncomment this for an all-AI game.
-##    time.sleep(1)
-##    for i in [1,2,3]:
-##        mgr.create_agent_for_existing_game(1,0,i)
-##    #when mgr is destroyed, all agents shutdown(), so...
-##    #use below for long testing
-
-    input("Press enter to kill manager....             ")
+#Manager no longer functions in stand-alone mode

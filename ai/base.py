@@ -250,6 +250,7 @@ class AIBase:
             if self.join_game(int(msg[1]), int(msg[2])):
                 self.start_polling_loop() # Join game was successful
 
+        # This option is currently inactive, as new game requests require a 'plrs' parameter now
         elif m_type == 1: # New Game
             if self.request_new_game():
                 self.start_polling_loop() # New game was successful
