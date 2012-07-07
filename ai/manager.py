@@ -76,10 +76,8 @@ class AIManager:
         
         dirlist = os.listdir(ai_path)
 
-        # Remove __pycache__ and _demo from candidate packages, if present
+        # Remove __pycache__ from candidate packages, if present
         try:    dirlist.remove('__pycache__')
-        except: pass
-        try:    dirlist.remove('_demo')
         except: pass
 
         curDir = os.getcwd()
