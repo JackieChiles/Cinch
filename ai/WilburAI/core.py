@@ -4,29 +4,29 @@
 import random
 
 # Import base class for AI agent -- may need to edit import path
-try:
-    from ....base import AIBase
-except:
-    from base import AIBase
+
+from base import AIBase
+from cards import Card
 
 
 class Wilbur(AIBase):
     def __init__(self):
         super().__init__()   # pref. way of calling parent init
 
-        print("WilburAgent AI loaded")
+        print("WilburAI loaded")
 
     def act(self):
         """Overriding base class act."""
         
-        name = self.identify_self()['name']
+        name = self.identity['name']
         if self.pNum==self.gs['active_player']:
             if self.gs['mode'] == 1: # Play
                 print(name, self.pNum, "is playing...")
+                # Play last legal card (opposite of Dave)
                 for c in reversed(self.hand):
                     if self.is_legal_play(c):
                         self.play(c)
-                        print(name, self.pNum, "plays", c)
+                        print(name, self.pNum, "plays", Card(c))
                         break
 
             elif self.gs['mode'] == 2: # Bid

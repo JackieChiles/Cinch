@@ -5,16 +5,16 @@
 ####################
 
 # Enter the class name specified in core.py for your AI Agent
-agent_classname = "Wilbur"
+agent_classname = "Dave"
 
 # AI Agent description -- used by Manager for identification
 ## starts with triple-underline
-___author  = "JACK!"
-___version = "1.0"
-___date    = "29 June 2012"
+___author  = "M.G."
+___version = "1.2"
+___date    = "6 July 2012"
 ___skill   = "0"
-___agent_name  = "Wilbur"
-___description = "Helps test bad AI handling."
+___agent_name  = "Dave"
+___description = "Leads from the left."
 
 
 ####################
