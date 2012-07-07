@@ -846,9 +846,6 @@ function postData(data) {
 
 function submitAi() {
     postData({ 'ai': 0 });
-
-    //Render the newly added UI
-    $('#ai-page').trigger('create');
 }
 
 //TODO: make this a KO subscription?

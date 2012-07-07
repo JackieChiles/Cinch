@@ -58,6 +58,18 @@
     white-space:normal;
 }
 
+.ai li span.label {
+    border-right: 3px solid #555555;
+    display:inline-block;
+    margin-right: 3px;
+    padding-right: 3px;
+    min-width:85px;
+}
+
+.ai li span:last-child {
+    font-weight:normal;
+}
+
 /*****************************************
 ** Bidding and hand-end dialogs         **
 *****************************************/
