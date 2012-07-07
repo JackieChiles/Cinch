@@ -184,6 +184,9 @@ var CinchApp = {
         },
         aList: function(update) {
             viewModel.ai(update.aList);
+            
+            //Initialize the UI for the AI agents
+            $('#ai-list .ai').listview();
         },
         bid: function (update) {
             //Still previous active player, as actvP handler gets pushed into the secondaryActionQueue
@@ -642,7 +645,6 @@ function CinchViewModel() {
         //$.mobile.changePage( 'home.html', { transition: transition || 'slideup'} );
     };
     this.startBidding = function() {
-        self.resetBids();
         openJqmDialog('#bidding-page');
     };
     this.startNew = function() {
@@ -688,6 +690,9 @@ function CinchViewModel() {
             }
         }
         else {
+            //Clear any old bids
+            self.resetBids();
+        
             //Navigate back to game page when in play mode
             $.mobile.changePage( '#game-page', { transition: 'slideup'} );
         }

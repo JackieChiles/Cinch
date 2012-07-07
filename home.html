@@ -30,7 +30,7 @@
             </div>
         </div><!-- /home page -->
         
-        <div data-role="page" id="lobby-page">
+        <div data-role="page" data-title="Cinch - Lobby" id="lobby-page">
             <div data-role="header">
                 <h1>Select a Game</h1>
             </div>
@@ -105,7 +105,7 @@
             </div>
         </div><!-- /game lobby page -->
         
-        <div data-role="page" id="ai-page">
+        <div data-role="page" data-title="Cinch - AI Selection" id="ai-page">
             <div data-role="header">
                 <h1>Select AI Agents (Optional)</h1>
             </div>
@@ -150,17 +150,32 @@
                 <div data-bind="foreach: ai" id="ai-list">
                     <ul data-role="listview" data-inset="true" class="ai">
                         <li data-bind="text: name" data-role="list-divider"></li>
-                        <li data-bind="text: auth"></li>
-                        <li data-bind="text: ver"></li>
-                        <li data-bind="text: date"></li>
-                        <li data-bind="text: skl"></li>
-                        <li data-bind="text: desc"></li>
+                        <li>
+                            <span class="label">Author</span>
+                            <span data-bind="text: auth"></span>
+                        </li>
+                        <li>
+                            <span class="label">Version</span>
+                            <span data-bind="text: ver"></span>
+                        </li>
+                        <li>
+                            <span class="label">Date</span>
+                            <span data-bind="text: date"></span>
+                        </li>
+                        <li>
+                            <span class="label">Skill</span>
+                            <span data-bind="text: skl"></span>
+                        </li>
+                        <li>
+                            <span class="label">Description</span>
+                            <span data-bind="text: desc"></span>
+                        </li>
                     </ul>
                 </div>
             </div>
         </div><!-- /ai page -->
         
-        <div data-role="page" id="bidding-page" class="no-close-dialog">
+        <div data-role="page" data-title="Cinch - Bidding" id="bidding-page" class="no-close-dialog">
             <div data-role="header">
                 <h1>Bidding</h1>
             </div><!-- /header -->
@@ -207,7 +222,7 @@
             </div>
         </div><!-- /bidding page -->
         
-        <div data-role="page" id="hand-end-page" class="no-close-dialog">
+        <div data-role="page" data-title="Cinch - End of Hand" id="hand-end-page" class="no-close-dialog">
             <div data-role="header">
                 <h1>End of Hand</h1>
             </div><!-- /header -->
@@ -263,7 +278,7 @@
             </div>
         </div><!-- /hand-end page -->
         
-        <div data-role="page" id="game-end-page" class="no-close-dialog">
+        <div data-role="page" data-title="Cinch - End of Game" id="game-end-page" class="no-close-dialog">
             <div data-role="header">
                 <h1>Game over</h1>
             </div><!-- /header -->
@@ -297,7 +312,7 @@
             </div>
         </div><!-- /game-end page -->
         
-        <div data-role="page" data-dom-cache="true" id="game-page">
+        <div data-role="page" data-title="Cinch" data-dom-cache="true" id="game-page">
             <div data-role="navbar">
                 <ul>
                     <li>
