@@ -111,6 +111,10 @@
     padding-right:8px!important;
 }
 
+.bid-close {
+    font-weight: bold;
+}
+
 .east-west-seat-container
 {
     margin:0 auto;
@@ -395,19 +399,16 @@
 /* Non-mobile styles*/
 @media all and (min-width: 330px)
 {
-    #right-content
-    {
+    #right-content {
         margin-left:10px;
         width:350px;
     }
     
-    .ui-content#game-content
-    {
+    .ui-content#game-content {
         min-width:900px;
     }
     
-    .no-mobile
-    {
+    .no-mobile {
         display:block;
     }
 }

@@ -432,7 +432,7 @@ function CinchViewModel() {
     this.chosenAi[CinchApp.playerEnum.east] = ko.observable();
     this.uploadAi = ko.computed(function() {
         var chosenAi = self.chosenAi
-        var uploadList = [];
+        var uploadList = ['-1'];
         var currentAi;
 
         //Creates the list of AI modules to request
@@ -440,16 +440,13 @@ function CinchViewModel() {
             if(chosenAi.hasOwnProperty(ai)) {
                 currentAi = chosenAi[ai]();
                 
-                if(currentAi) {
-                    uploadList.push({
-                        pNum: parseInt(ai, 10),
-                        id: chosenAi[ai]().id
-                    });
-                }
+                //Either add the AI to the list or -1 for human
+                uploadList[ai] = (currentAi ? currentAi.id.toString() : '-1')
             }
         }
 
-        return uploadList;
+        //And finally return a four-part string as described in the Wiki
+        return uploadList.join(',');
     });
     
     this.myPlayerNum = ko.observable(0); //Player num assigned by server
@@ -611,6 +608,10 @@ function CinchViewModel() {
     this.responseMode = ko.observable();
     
     //Functions
+    this.endBidding = function() {
+        self.resetBids(); //Clear any old bids
+        $.mobile.changePage( '#game-page', { transition: 'slideup'} ); //Navigate back to game page
+    };
     this.playCard = function(cardNum) {
         var cardToPlay = new Card(cardNum);
         var playerOfCard = self.activePlayer(); //Still "old" activePlayer
@@ -648,24 +649,10 @@ function CinchViewModel() {
         openJqmDialog('#bidding-page');
     };
     this.startNew = function() {
-        var options;
-        options = self.uploadAi();
-        
-        //TODO: all this could likely be addressed within uploadAi(); goal here is to give server a single item,
-        // so that an appropriate message signature can be made. otherwise, signature depends on which pNums are made AIs.
-        
-        temp = [-1, -1, -1, -1]; //elements for each possible player; can allow for New Gamer to choose own seat / all AI game.
-
-        for(item in options) { //creates array with agent IDs placed in proper pNum slot
-            temp[options[item].pNum] = options[item].id;
-        }
-        //build player selection string; arrays get unpacked before post, so making a server-side handler fails
-        output = temp.join();
-
         //Hard coding 'game'- new game mode is always 0. Could move to a constant, but WHATEVS
         postData({
             game: 0,
-            plrs: output
+            plrs: self.uploadAi()
         });
     };
     
@@ -688,13 +675,6 @@ function CinchViewModel() {
                 //Otherwise, game just started, start bidding.
                 self.startBidding();
             }
-        }
-        else {
-            //Clear any old bids
-            self.resetBids();
-        
-            //Navigate back to game page when in play mode
-            $.mobile.changePage( '#game-page', { transition: 'slideup'} );
         }
     });
     this.winner.subscribe(function(newValue) { //TODO: test to determine if hand-end gets processed on time
