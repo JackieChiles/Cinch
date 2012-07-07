@@ -64,9 +64,15 @@ EVENT_JOIN_GAME = 1     #
 EVENT_BID = 2           #
 EVENT_PLAY = 3          #
 
+# Card values used for logging
+RANKS_SHORT = {2:'2', 3:'3', 4:'4', 5:'5', 6:'6', 7:'7', 8:'8', 9:'9',
+               10:'T', 11:'J', 12:'Q', 13:'K', 14:'A'}
+SUITS_SHORT = {0:'C', 1:'D', 2:'H', 3:'S'}
+
 # Hardcoded values to increase performance in decoding cards
 SUIT_TERMS = [0,13,26,39]
 RANKS = range(2,15)
+NUM_RANKS = 13
 
 NUM_TEAMS = 2
 NUM_PLAYERS = 4
@@ -467,14 +473,22 @@ class AIBase:
         self.gs['previous_player'] = self.gs['active_player']
         self.gs['active_player'] = actvP
 
-    def decode_card(self, card_code): #Hardcoding by choice
+    def decode_card(self, card_code): #TODO: make this better
         """Convert card code into rank, suit pair."""
         val = card_code+1
         for term in SUIT_TERMS:
             if val-term in RANKS:
-                return val-term, int(term/13)
+                return val-term, int(term/NUM_RANKS)
         return -1, -1
 
+    def print_card(self, card_code):
+        """Return descriptive string of card; copies Card.__repr__() function."""
+
+        suit = (card_code-1) // NUM_RANKS
+        rank = card_code - suit*NUM_RANKS + 1
+
+        return "{r}{s}".format(r=RANKS_SHORT[rank], s=SUITS_SHORT[suit])
+        
     def is_legal_bid(self, bid):
         """Check if proposed bid is legal.
 

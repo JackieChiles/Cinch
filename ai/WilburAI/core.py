@@ -3,10 +3,8 @@
 
 import random
 
-# Import base class for AI agent -- may need to edit import path
-
+# Import base class for AI agent
 from base import AIBase
-from cards import Card
 
 
 class Wilbur(AIBase):
@@ -26,7 +24,7 @@ class Wilbur(AIBase):
                 for c in reversed(self.hand):
                     if self.is_legal_play(c):
                         self.play(c)
-                        print(name, self.pNum, "plays", Card(c))
+                        print(name, self.pNum, "plays", self.print_card(c))
                         break
 
             elif self.gs['mode'] == 2: # Bid
