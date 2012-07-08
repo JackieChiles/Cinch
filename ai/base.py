@@ -4,7 +4,6 @@
 Method reference:
 
 class AIBase
---identify_self()
 
 --connect()
 --poll_server()
@@ -48,6 +47,7 @@ import urllib.parse
 from http.client import HTTPConnection
 import json
 from sys import stdin # for listening to Manager
+from os import name as osname
 
 # Settings
 SERVER_HOST = "localhost"
@@ -67,7 +67,11 @@ EVENT_PLAY = 3          #
 # Card values used for logging
 RANKS_SHORT = {2:'2', 3:'3', 4:'4', 5:'5', 6:'6', 7:'7', 8:'8', 9:'9',
                10:'T', 11:'J', 12:'Q', 13:'K', 14:'A'}
-SUITS_SHORT = {0:'C', 1:'D', 2:'H', 3:'S'}
+# Code to support deprecated/legacy development platforms:
+if osname == 'nt':
+    SUITS_SHORT = {0:'C', 1:'D', 2:'H', 3:'S'}
+else:
+    SUITS_SHORT = {0:'\u2663', 1:'\u2666', 2:'\u2665', 3:'\u2660'}
 
 # Hardcoded values to increase performance in decoding cards
 SUIT_TERMS = [0,13,26,39]
@@ -128,17 +132,6 @@ class AIBase:
 
         #TODO
         #log final state?
-
-    def identify_self(self):
-        """Provide dict of identifying info (name, version, skill, etc.).
-
-        This function is implemented for each subclass in its package's
-        __init__.py file. See _demo for example.
-
-        TODO: decide if this is useful at all
-        
-        """
-        raise NotImplementedError("identify_self() must be set in __init__.py")
 
     ####################
     # Network communications -- message exchange with game server

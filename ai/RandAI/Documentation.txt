@@ -1,0 +1,1 @@
+Ok. RandAI is an actual (pseudo-)random AI. It 50% passes, 50% bids +1, and randomly chooses a legal card to play when called upon to do so.
