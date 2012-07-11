@@ -22,8 +22,6 @@ def process(gid, hNum):
 
     # Set up logging.
     logging.basicConfig(filename=LOG_FILE,level=LOGGING_LEVEL)
-    logging.debug('Testing debug logging.')
-    logging.error('Testing error logging.')
 
     # Open the database.
     conn = sqlite3.connect(DB_PATH)
@@ -124,13 +122,7 @@ def process(gid, hNum):
             return
             
         try:
-            if count is 0:
-                # For the first row, can't rely on the previous actvP; but
-                # the second player to bid is always 1 past the first.
-                _pNum = (row['actvP'] - 1) % NUM_PLAYERS
-            else:
-                # Otherwise, just look at the previous row.
-                _pNum = (events[count-1]['actvP'])
+            _pNum = row['actor']
         except KeyError as k:
             logging.error('Game %s, hand %s parsing error: %s', gid, hNum, k)
             c.close()
