@@ -6,6 +6,7 @@ TODO: add threading/async capes -- mostly handled already by CometServer?
 
 """
 from threading import Timer #for delayed start
+from time import sleep
 
 # All import paths are relative to the root
 import core.common as common
@@ -170,6 +171,8 @@ class NewGameHandler(GameRouterHandler):
             if val > 0: # Negative values are for humans, positive for AIs, 0 unused
                 # Create AI in pNum index with agent val
                 ai_mgr.create_agent_for_existing_game(val, game_id, index)
+
+            sleep(0.5) # Workaround for apparent race conditions
 
         # Return client GUID and player number via POST
         return {'uid': client_id, 'pNum': DEFAULT_PNUM} 
