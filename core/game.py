@@ -283,6 +283,7 @@ class Game:
         
         # Initialize the output. Message always contains actvP, so do it here.
         message = {'actvP': self.gs.active_player}
+        message['actor'] = pNum
         
         if status in ['sog', 'eob', 'eoh']:
             # Handle switching game modes first.

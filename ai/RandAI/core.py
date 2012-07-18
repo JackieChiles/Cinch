@@ -32,7 +32,7 @@ class Rand(AIBase):
             elif self.gs['mode'] == 2: # Bid
                 print(name, self.pNum, "is bidding...")
                 r = random.random()
-                if self.is_legal_bid(self.gs['high_bid']+1) and (r < 0.6):
+                if self.is_legal_bid(self.gs['high_bid']+1) and (r < 0.5):
                     self.bid(self.gs['high_bid']+1)
                     print(name, self.pNum, "bids", bid)
                 else:
