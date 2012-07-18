@@ -266,8 +266,10 @@ class AIBase:
             try:
                 data = readline()
                 handle_daemon_command(data)
+            except KeyboardInterrupt:
+                self.stop()
             except Exception as e:
-                self.running = False
+                self.stop()
                 raise
 
     def start(self):
