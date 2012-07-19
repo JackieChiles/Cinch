@@ -145,7 +145,8 @@ class AIManager:
         """
         if len(self.agents) > MAX_AGENTS:
             # Too many agents on the dance floor
-            return None #TODO will need to handle this in a useful way
+            print("MAX_AGENTS limit exceeded.")
+            raise RuntimeError
 
         model_num = model_num - 1 # IDs sent to client start at 1, not 0
 
@@ -225,5 +226,7 @@ class AIManager:
         """
         data = "-1" # -1 = shutdown
         self.send_message(agent_num, data)
+        self.agents.pop(agent_num)
+
 
 #Manager no longer functions in stand-alone mode
