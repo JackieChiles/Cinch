@@ -43,7 +43,7 @@ import sys
 import os
 
 # Constants
-MAX_AGENTS = 8 #TODO: change this with respect to server resources
+MAX_AGENTS = 15 #TODO: change this with respect to server resources
 
 
 class AIManager:
