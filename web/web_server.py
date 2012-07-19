@@ -105,9 +105,12 @@ class CometServer(ThreadingMixIn, HTTPServer):
     def handle_msg(self, channel, msg):
         """Handle event with registered channel.
 
-        channel (CommChannel): channel identified by exists_channel that
-            is designated for handling this type of msg
+        msg is an incoming message which is handed to a channel for processing.
+
+        channel (CommChannel): channel designated for handling this
+            type of msg
         msg (Message): Message object message received by server
+
         return: Message response from channel, or None
 
         """
@@ -150,6 +153,7 @@ class CometServer(ThreadingMixIn, HTTPServer):
         else:
             # Set event() flag on handler
             http_handler.event = Event()
+            http_handler.in_use = False
             
             # Add handler to list of active http handlers        
             self.handler_queue.append(http_handler)
@@ -174,7 +178,9 @@ class CometServer(ThreadingMixIn, HTTPServer):
 
         target (str): guid of client
 
-        """        
+        """
+        output = []
+        
         if len(self.message_queue) > 0:
             # Get all message data from message_queue for target
             msgs = [x for x in self.message_queue if x.target==target]
@@ -185,10 +191,7 @@ class CometServer(ThreadingMixIn, HTTPServer):
             if len(msgs) > 0:
                 with self.lock: 
                     for msg in msgs:
-                        self.message_queue.remove(msg)
-
-        else:
-            output = []
+                        self.message_queue.remove(msg)                    
 
         return output
         
@@ -206,14 +209,19 @@ class CometServer(ThreadingMixIn, HTTPServer):
 
         handler = self.retrieve_handler(target)
         if handler is not None:
-            with self.lock:
-                # Gather any messages from queue for target, plus incoming msg
-                # (get_old_messages() will ususally return [])
-                output = self.get_old_messages(target)
-                output.append(msg.data)
+            if handler.in_use is False:
+                handler.in_use = True
+                with self.lock:
+                    # Gather any messages from queue for target, plus incoming msg
+                    # (get_old_messages() will ususally return [])
+                    output = self.get_old_messages(target)
+                    output.append(msg.data)
 
-                handler.send_message(output)
-                handler.event.set() # Release wait()           
+                    handler.send_message(output)
+                    handler.event.set() # Release wait()
+
+            else: # Handler currently in use and will be closed when done
+                self.message_queue.append(msg)
 
         else:  # No handler for msg, so add to queue for later delivery
             self.message_queue.append(msg)
@@ -256,7 +264,7 @@ class HttpHandler(BaseHTTPRequestHandler):
 
             # Attempt to capture request and begin waiting
             if self.server.capture_handler(self):
-                # You can store the result (True/False) from wait if desired
+                # You can store the result (True/False) from wait() if desired
                 self.event.wait(config.COMET_TIMEOUT)
 
                 # Shutdown handler
@@ -314,7 +322,6 @@ class HttpHandler(BaseHTTPRequestHandler):
         else:
            # No handler exists, so print error message
             print("Warn: No handler for query: ", self.data)
-        
 
     def acknowledge_request(self):
         """Send out status code and headers, common between GET and POST."""
@@ -363,7 +370,12 @@ class HttpHandler(BaseHTTPRequestHandler):
             data = {config.COMET_MESSAGE_BLOCK_KEY: data}
  
         output = json.dumps(data)
-        self.wfile.write(output.encode())
+        try:
+            self.wfile.write(output.encode())
+        except ValueError:
+            #this line is being monitored; may have been fixed with Issue #86
+            print("ERROR IN LINE 371 OF WEB_SERVER.PY")
+            raise
 
 
 def boot_server():
