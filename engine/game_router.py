@@ -162,8 +162,8 @@ class NewGameHandler(GameRouterHandler):
         
         # Create GUID for requesting client and add entry to client_mgr
         #TODO-FUTURE: don't use default pnum, let game creator decide?
-        client_id = cm.create_client(pNum=DEFAULT_PNUM)
-        cm.add_client_to_group(client_id, game_id)
+        client_id = cm.create_client()
+        cm.add_client_to_group(client_id, game_id, DEFAULT_PNUM)
 
         # Handle 'plrs' list, creating AI agents as needed
         player_options = list(map(int, msg.data['plrs'].split(',')))
@@ -172,35 +172,26 @@ class NewGameHandler(GameRouterHandler):
                 # Create AI in pNum index with agent val
                 ai_mgr.create_agent_for_existing_game(val, game_id, index)
 
-            sleep(0.5) # Workaround for apparent race conditions
-
         # Return client GUID and player number via POST
         return {'uid': client_id, 'pNum': DEFAULT_PNUM} 
 
 
-class JoinGameHandler(GameRouterHandler):  ###untested
+class JoinGameHandler(GameRouterHandler):  ###mostly tested
     """React to client requests to join a game."""
     # Overriden member
     def respond(self, msg):
-        # TODO: inhibit join request if game started; need flag in Game
-
-        ############## untested
-        # TODO: uncomment this block once client allows players to select seat
-        #############
-
-        # Check if requested seat is a valid seat
-        requested_pNum = int(msg.data['pNum'])
-        poss_nums = [x for x in range(0, MAX_GAME_SIZE)]
-        if requested_pNum not in poss_nums:
-          return get_error(ERROR_TYPE.INVALID_SEAT, requested_pNum)
-
-        # Get list of currently occupied seats in target game
+        # Check if game is full
         game_id = int(msg.data['join'])
         cur_player_nums = cm.get_player_nums_in_group(game_id)
 
-        # Check if game is full
-        if len(poss_nums) == len(cur_player_nums):
+        if len(cur_player_nums) == MAX_GAME_SIZE:
           return get_error(ERROR_TYPE.FULL_GAME)
+
+        # Check if requested seat is a valid seat
+        requested_pNum = int(msg.data['pNum'])
+        if requested_pNum not in range(MAX_GAME_SIZE):
+          return get_error(ERROR_TYPE.INVALID_SEAT, requested_pNum)
+
         # Check if requested seat is occupied
         if requested_pNum in cur_player_nums:
           return get_error(ERROR_TYPE.OCCUPIED_SEAT, pNum)
@@ -209,8 +200,11 @@ class JoinGameHandler(GameRouterHandler):  ###untested
         pNum = requested_pNum
 
         # Create GUID for requesting client and add entry to client_mgr
-        client_id = cm.create_client(pNum=pNum)
-        cm.add_client_to_group(client_id, game_id)
+        client_id = cm.create_client()
+        if client_id is None:
+            return {'err': 'Server unable to handler more players. Try again later.'}
+
+        cm.add_client_to_group(client_id, game_id, pNum)
 
         # Check if game is now full. If so, trigger and announce game start
         if len(cm.groups[game_id]) == MAX_GAME_SIZE:

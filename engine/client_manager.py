@@ -49,28 +49,35 @@ class ClientManager:
         self.clients = dict()
         self.groups = dict()
         
-    def add_client_to_group(self, client, group):
+    def add_client_to_group(self, client, group, pNum):
         """Add client to group.
 
         In current implementation, clients can belong to at most 1 group.
 
         client (str): guid for client
         group (int): id for group
+        pNum (int): player number within group
         
         """
         assert (client in self.clients.keys())
         assert (group in self.groups.keys())
 
-        # Add group to client's info
+        # Add group and pNum to client's info
         self.clients[client][CLIENT_GROUP] = group
+        self.clients[client][CLIENT_PLAYER_NUM] = pNum
 
         # Add client to group's info
-        self.groups[group].append(client)
+        cur_group = self.groups[group]
+        try:
+            cur_group[pNum] = client
+        except IndexError: # Group is not long enough, so extend
+            cur_group.extend([None]*(pNum - len(cur_group) + 1))
+            cur_group[pNum] = client
+        
 
-    def create_client(self, name=None, pNum=-1):
+    def create_client(self, name=None):
         """Create new client in internal map. Return client guid.
 
-        pNum (int): player number within group [optional]
         name (str): player/user name for client [optional]
         
         """
@@ -84,12 +91,10 @@ class ClientManager:
 
             # Prevent infinite loops
             count += count
-            if count == MAX_TRIES:
-                #may want to handle this in a way that involves the client?
-                raise RuntimeError(
-                    "Too many clients. Cannot create new client.")
+            if count > MAX_TRIES:
+                return None # Server unable to create new player
                
-        self.clients[guid] = [name, None, pNum] # Initialize client
+        self.clients[guid] = [name, None, None] # Initialize client
 
         return guid
 
@@ -209,16 +214,16 @@ class ClientManager:
         """
         pNums = []
         try:
-            clients = self.groups[group]
-            for client in clients:
-                c = self.clients[client]
-                if c[CLIENT_PLAYER_NUM] is not None:
-                    pNums.append(c[CLIENT_PLAYER_NUM])
+            clients = [x for x in self.groups[group] if x is not None]
+            for c in clients:
+                pNums.append(c[CLIENT_PLAYER_NUM])
+
+            return pNums
+
         except KeyError:
             return "Cannot get player numbers from Group {0}".format(group)
 
-        return pNums
-        
+
     def set_client_name(self, client, name):
         """Set name for client.
 
