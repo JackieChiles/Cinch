@@ -13,7 +13,7 @@ from threading import Lock, Event
 from urllib.parse import urlparse, parse_qs
 from cgi import escape
 import json
-from collections import deque
+from collections import defaultdict, deque
 
 from web import web_config as config
 from web.channel import CommChannel
@@ -32,8 +32,8 @@ class CometServer(ThreadingMixIn, HTTPServer):
         # For each new request, create a deque
         self.handler_queue = deque(maxlen=max_connections)
 
-        # For temporary message storage        
-        self.message_queue = deque(maxlen=cache_size)
+        # Message buffer        
+        self.message_queue = defaultdict(list)
         
         self.lock = Lock()    # Thread control for server
         self.responders = []  # List of CommChannels for handling POST queries
@@ -180,18 +180,16 @@ class CometServer(ThreadingMixIn, HTTPServer):
 
         """
         output = []
-        
-        if len(self.message_queue) > 0:
-            # Get all message data from message_queue for target
-            msgs = [x for x in self.message_queue if x.target==target]
-            output = [y.data for y in msgs]
 
-            # Remove those messages from message_queue
-            # (Attempts to streamline this block cause Lock failures)
-            if len(msgs) > 0:
-                with self.lock: 
-                    for msg in msgs:
-                        self.message_queue.remove(msg)                    
+        if target in self.message_queue:
+            # Get all message data from message_queue for target
+            with self.lock:
+                msgs = self.message_queue[target]
+                output = [y.data for y in msgs]
+
+                # Remove those messages from message_queue
+                if len(msgs) > 0:
+                    del self.message_queue[target]
 
         return output
         
@@ -221,10 +219,10 @@ class CometServer(ThreadingMixIn, HTTPServer):
                     handler.event.set() # Release wait()
 
             else: # Handler currently in use and will be closed when done
-                self.message_queue.append(msg)
+                self.message_queue[target].append(msg)
 
         else:  # No handler for msg, so add to queue for later delivery
-            self.message_queue.append(msg)
+            self.message_queue[target].append(msg)
             
     def release_handler(self, http_handler):
         """Release handler from handler_queue.
