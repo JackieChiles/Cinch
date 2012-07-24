@@ -390,7 +390,11 @@ function Game(gameObject) {
         return seats;
     });
     self.submitJoin = function(seat) {
-        postData({ 'join': self.number, 'pNum': seat });
+        postData({
+            join: self.number,
+            pNum: seat,
+            name: viewModel.username() || CinchApp.defaultPlayerName
+        });
     };
 }
 
@@ -420,6 +424,8 @@ function CinchViewModel() {
         'You',
         'Opponents'
     ];
+    
+    this.username = ko.observable("");
     
     //Game lobby
     this.games = ko.observableArray([]);
@@ -652,7 +658,8 @@ function CinchViewModel() {
         //Hard coding 'game'- new game mode is always 0. Could move to a constant, but WHATEVS
         postData({
             game: 0,
-            plrs: self.uploadAi()
+            plrs: self.uploadAi(),
+            name: self.username() || CinchApp.defaultPlayerName
         });
     };
     
