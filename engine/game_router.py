@@ -21,8 +21,8 @@ DEFAULT_PNUM = 0 # pNum assigned to player who creates new game
 
 # Message signatures
 SIGNATURE = common.enum(
-    NEW_GAME=['game', 'plrs'],
-    JOIN_GAME=['join', 'pNum'],
+    NEW_GAME=['game', 'plrs', 'name'],
+    JOIN_GAME=['join', 'pNum', 'name'],
     LOBBY = ['lob'],
     GAME_PLAY=['card'],
     BID=['bid'],
