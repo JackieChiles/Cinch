@@ -4,12 +4,12 @@
 import random
 
 # Import base class for AI agent -- may need to edit import path
-from base import AIBase
+from ai.base import AIBase
 
 
 class Dave(AIBase):
-    def __init__(self):
-        super().__init__()   # pref. way of calling parent init
+    def __init__(self, pipe=None):
+        super().__init__(pipe)   # pref. way of calling parent init
 
         print("DaveAI loaded")
 

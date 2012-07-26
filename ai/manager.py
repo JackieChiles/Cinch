@@ -20,7 +20,6 @@ TODO:
     - incorporate into game router
     --- create AI Manager at root level, attach to game router
     --- will need new 'new game/join game' handlers there to support game lobby
-    --- consider moving manager.py to /engine/ (will need to tweak code)
     - limit memory/cpu usage: do here so AI agents can't override
     --- unix can use `resource` module
 
@@ -38,7 +37,7 @@ class AIManager
 -shutdown_agent(agent_num)
 
 """
-import subprocess
+import multiprocessing
 import sys
 import os
 
@@ -57,13 +56,6 @@ class AIManager:
         self.ai_packages = [] # Available AI models
         
         self.get_ai_models()
-
-        # Set path to python executable for create_agent()
-        global python_path
-        if "win" in sys.platform: # Running on Windows
-            python_path = sys.executable
-        else: # Running on UNIX, can use #!
-            python_path = "/usr/bin/python3"
             
     def get_ai_models(self):
         """Scan AI folder for agent models and add to self.models."""
@@ -79,6 +71,10 @@ class AIManager:
         # Remove __pycache__ from candidate packages, if present
         try:    dirlist.remove('__pycache__')
         except: pass
+        try:    dirlist.remove('RandAI')
+        except: pass
+        try:    dirlist.remove('WilburAI')###########
+        except: pass
 
         curDir = os.getcwd()
         os.chdir(ai_path) # Filtering needs to be performed from AI directory
@@ -86,17 +82,13 @@ class AIManager:
         # Filter non-directories from dirlist
         packages = filter(os.path.isdir, dirlist)
 
-        # Gather ID info from each package (___things from __init__.py)
+        # Gather ID info and import each package
         for pkg in packages:
             d = {'pkg': pkg}
-            # Read pgk/__init__.py for triple-underscored values;
-            # these are descriptor values
-            p = os.path.join(ai_path, pkg, "__init__.py")
-            with open(p, mode='r') as fp:
-                for line in iter(fp.readline, ''):
-                    if line[:3] == "___":
-                        exec(line, globals(), d) # add line to d
-            self.ai_packages.append(d)
+            t = "{0}_module".format(pkg)
+
+            exec("import ai.{0} as {1}".format(pkg,t))
+            self.ai_packages.append(locals()[t])
 
         os.chdir(curDir) # Change to old working directory (may be unneeded)
 
@@ -115,14 +107,15 @@ class AIManager:
         i = 1 # Used for AI ID #
 
         #TODO: may want to sort ai_packages first
-        for pkg in self.ai_packages:  
+        for pkg in self.ai_packages:
+            identity = pkg.Agent.identity
             temp = {'id': i,
-                    'auth': pkg['___author'],
-                    'ver': pkg['___version'],
-                    'date': pkg['___date'],
-                    'skl': pkg['___skill'],
-                    'name': pkg['___agent_name'],
-                    'desc': pkg['___description']
+                    'auth': identity['author'],
+                    'ver':  identity['version'],
+                    'date': identity['date'],
+                    'skl':  identity['skill'],
+                    'name': identity['name'],
+                    'desc': identity['description']
                     }
 
             aList.append(temp)
@@ -150,29 +143,28 @@ class AIManager:
 
         model_num = model_num - 1 # IDs sent to client start at 1, not 0
 
-        # Change to AI directory
-        curDir = os.getcwd()
-        os.chdir(self.ai_path)
-        
         # Select AI package
         try:
-            pkg = self.ai_packages[model_num]['pkg']
+            pkg = self.ai_packages[model_num]
         except:
             # model_num out of range
             print("create_agent: invalid model_num", model_num)
             raise
 
-        # Spawn subprocess (uses global python_path set in __init__())
+        agent, parent_conn = None, None
         try:
-            agent = subprocess.Popen([python_path, '-m', pkg], shell=False,
-                                     stdin=subprocess.PIPE)
-            self.agents.append(agent)          
-        except OSError: # pkg doesn't exist
-            agent = None
-        finally:
-            os.chdir(curDir) # return to previous directory (may be unneeded)
+            parent_conn, agent_conn = multiprocessing.Pipe()
+            agent = pkg.Agent(agent_conn)
+            p = multiprocessing.Process(target=agent.start,
+                                        name=pkg.__name__)
+
+            self.agents.append((agent, parent_conn))
+            p.start() #start multiprocessing.Process
             
-            return agent
+        except Exception as e:
+            raise
+            
+        return parent_conn
 
     def create_agent_for_existing_game(self, model_num, game_id, pNum):
         """Create new agent and issue 'join game' command to it.
@@ -181,12 +173,12 @@ class AIManager:
         game_id (int): id of target game for new agent
         
         """
-        agent = self.create_agent(model_num)
+        pipe = self.create_agent(model_num)
 
         data = "2|{0}|{1}".format(game_id, pNum) # 2 = join game
 
         # Issue 'join game' command -- arguments are pipe delimited
-        self.send_message(agent, data)    
+        self.send_message(pipe, data)    
 
     #This option is currently inactive, as new game requests require a 'plrs' parameter
     def create_agent_for_new_game(self, model_num):
@@ -195,25 +187,24 @@ class AIManager:
         model_num (int): index of desired agent model in models[]
 
         """
-        agent = self.create_agent(model_num)
+        pipe = self.create_agent(model_num)
 
         data = "1" # 1 = new game
 
         # Issue 'new game' command
-        self.send_message(agent, data)
+        self.send_message(pipe, data)
 
-    def send_message(self, agent, msg):
+    def send_message(self, pipe, msg):
         """Send specified message to agent via subprocess pipe.
 
-        agent (Popen object): agent subprocess
+        pipe (Pipe): agent info
         msg (str): message
 
         """
         assert isinstance(msg, str)
 
-        p = "".join([msg, '\n'])
         try:
-            agent.stdin.write(p.encode())
+            pipe.send(msg)
         except Exception as e:
             print("Failed to send agent process message", msg, ".")
             raise
@@ -228,5 +219,3 @@ class AIManager:
         self.send_message(agent_num, data)
         self.agents.pop(agent_num)
 
-
-#Manager no longer functions in stand-alone mode

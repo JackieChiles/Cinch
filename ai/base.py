@@ -41,6 +41,8 @@ TODO:
     - if AI are allowed to use DB, impl methods here
     
 """
+import multiprocessing
+
 from _thread import start_new_thread
 from time import sleep
 import urllib.parse
@@ -94,11 +96,12 @@ class AIBase:
     # Agent Management -- Creation/maintenance of Agent; metagame functions
     ####################
 
-    def __init__(self):#TODO: cleanup/make better
+    def __init__(self, pipe=None):#TODO: cleanup/make better
         # Instance variables
         self.uid = 0
         self.manager = None
         self.running = False
+        self.pipe = pipe
         
         # Network comm
         self.conn = {}
@@ -231,6 +234,7 @@ class AIBase:
         - '-1'      Shutdown
 
         """
+        print('msg=', raw_msg)
         msg = raw_msg.split("|")
         try:
             m_type = int(msg[0])
@@ -258,8 +262,8 @@ class AIBase:
             print(m_type)
 
     def run(self):
-        # Read from stdin -- does block, but start() is final action in init
-        readline = stdin.readline
+        # Read from pipe -- does block, but start() is final action in init
+        readline = self.pipe.recv #function pointer-ish
         handle_daemon_command = self.handle_daemon_command
         
         while self.running:

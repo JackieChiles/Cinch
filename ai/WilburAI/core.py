@@ -4,7 +4,7 @@
 import random
 
 # Import base class for AI agent
-from base import AIBase
+from ai.base import AIBase
 
 
 class Wilbur(AIBase):

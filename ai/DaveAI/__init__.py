@@ -31,5 +31,5 @@ Agent.identity = {  'author':   ___author,
                     'name':     ___agent_name,
                     'description':  ___description
                  }
-agent = Agent()
-agent.start()
+#agent = Agent()
+
