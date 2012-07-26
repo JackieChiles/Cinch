@@ -1,4 +1,4 @@
-Instructions for adding AI modules
+ Instructions for adding AI modules
 
 1) Copy the 'demo' folder within this directory. Rename it to suit your needs.
 
