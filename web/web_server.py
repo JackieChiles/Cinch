@@ -159,8 +159,6 @@ class CometServer(ThreadingMixIn, HTTPServer):
             # Add handler to list of active http handlers        
             self.handler_queue.append(http_handler)
 
-            print("handler {0} captured".format(len(self.handler_queue)))
-            
             return True  # Do http_handler.event.wait() from calling method
 
     def retrieve_handler(self, guid):
