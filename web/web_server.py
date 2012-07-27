@@ -46,12 +46,13 @@ class CometServer(ThreadingMixIn, HTTPServer):
         try:
             self.serve_forever()
         except KeyboardInterrupt:   # Exit gracefully
+            # Inhibit new handlers from connecting so server dies on time
+            config.GUID_KEY = None # Causes all GETs to be ignored
             # Release all handler threads so server doesn't wait for timeout
             hq = list(self.handler_queue)
             for h in hq:
-                try:  h.event.set()
-                except:  pass  # h may have exited on its own
-                
+                self.release_handler(h)
+                                
             print("Server halted with keyboard interrupt.\n")
 
     def add_announcer(self, channel):
@@ -157,6 +158,8 @@ class CometServer(ThreadingMixIn, HTTPServer):
             
             # Add handler to list of active http handlers        
             self.handler_queue.append(http_handler)
+
+            print("handler {0} captured".format(len(self.handler_queue)))
             
             return True  # Do http_handler.event.wait() from calling method
 
