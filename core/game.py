@@ -9,20 +9,17 @@ import random
 import sqlite3
 from datetime import datetime, timezone
 
-#this allows game.py to be ran alone from core dir AND as part of cinch.py
-# for development.
-## once final, will use only absolute imports (core.*)
-try:
-    import common as common
-    from player import Player
-    import cards
-    from gamestate import GameState
-except ImportError:
-    import core.common as common
-    from core.player import Player
-    import core.cards as cards
-    from core.gamestate import GameState
-    import db.stats as stats    
+# try:
+    # import common as common
+    # from player import Player
+    # import cards
+    # from gamestate import GameState
+# except ImportError:
+import core.common as common
+from core.player import Player
+import core.cards as cards
+from core.gamestate import GameState
+import db.stats as stats    
 
 #Constants and global variables
 STARTING_HAND_SIZE = 9
