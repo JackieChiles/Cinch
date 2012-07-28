@@ -34,22 +34,19 @@ class AIBase
 
 
 TODO:
-    - redirect print-statements elsewhere (log file?) -- pending logging
     - have 'thinking' timeout value (halt thinking after certain interval)
     --- mandate a timeout; can be a Timer call to change a loop value & publish
     --- can specify timeout in this file? want all agent models equal in this
     - if AI are allowed to use DB, impl methods here
     
 """
-import multiprocessing
-
+from multiprocessing import Pipe
 from _thread import start_new_thread
 from time import sleep
-import urllib.parse
+from urllib.parse import urlencode
 from http.client import HTTPConnection
-import json
-from sys import stdin # for listening to Manager
-from os import name as osname
+from json import loads as json_loads
+
 
 # Settings
 SERVER_HOST = "localhost"
@@ -61,7 +58,7 @@ COMET_DELAY = 3.0 # Seconds to wait between successive Comet polls
 THINKING_TIMEOUT = 10.0 # Secs to allow AI to think before demanding response
 
 # Constants
-EVENT_NEW_GAME = 0      # integer constants for error handling
+EVENT_NEW_GAME = 0      # Integer constants for error handling
 EVENT_JOIN_GAME = 1     #
 EVENT_BID = 2           #
 EVENT_PLAY = 3          #
@@ -70,6 +67,7 @@ EVENT_PLAY = 3          #
 RANKS_SHORT = {2:'2', 3:'3', 4:'4', 5:'5', 6:'6', 7:'7', 8:'8', 9:'9',
                10:'T', 11:'J', 12:'Q', 13:'K', 14:'A'}
 # Code to support deprecated/legacy development platforms:
+from os import name as osname
 if osname == 'nt':
     SUITS_SHORT = {0:'C', 1:'D', 2:'H', 3:'S'}
 else:
@@ -101,7 +99,7 @@ class AIBase:
         self.uid = 0
         self.manager = None
         self.running = False
-        self.pipe = pipe
+        self.pipe = pipe # of type multiprocessing.Pipe
         
         # Network comm
         self.conn = {}
@@ -147,8 +145,8 @@ class AIBase:
         (e.g. trying to send data via post while the comet connection open).
 
         """
-        self.conn['comet'] = HTTPConnection(SERVER_URL)
-        self.conn['post'] = HTTPConnection(SERVER_URL)
+        self.conn['comet'] = HTTPConnection(SERVER_URL, timeout=10)
+        self.conn['post'] = HTTPConnection(SERVER_URL, timeout=10)
 
     def poll_server(self):
         """Do single Comet-style GET request for new messages on Comet server.
@@ -163,7 +161,7 @@ class AIBase:
         data = res.read()
 
         try:
-            return json.loads(data.decode())
+            return json_loads(data.decode())
         except ValueError:  # No JSON object to decode
             return None
 
@@ -189,7 +187,7 @@ class AIBase:
         data (dict): information to send to server
 
         """
-        params = urllib.parse.urlencode(data)
+        params = urlencode(data)
         headers = {"Content-type": "application/x-www-form-urlencoded",
                     "Accept": "text/plain"}
         self.conn['post'].request("POST", "", params, headers)       
@@ -197,7 +195,7 @@ class AIBase:
         data = res.read()
         
         try:
-            return json.loads(data.decode())
+            return json_loads(data.decode())
         except ValueError:  # No JSON object to decode
             return None
 
@@ -220,50 +218,42 @@ class AIBase:
     # Daemon interface -- Comms. with AI Agent Manager & daemon features
     ####################
 
-    def handle_daemon_command(self, raw_msg):
-        """Process command from AI Manager.
+    def handle_daemon_command(self, command):
+        """Process command from AI Manager sent via pipe.
 
         Supported commands:
         - Request new game [request_new_game(self)]
         - Join existing game [join_game(self, game_id, pNum)]
         - Shutdown [stop(self)]
 
-        raw_msg (str): raw data sent by Manager with the following values:
-        - '1'       New Game
-        - '2|x|y'   Join Game #x in Seat y
-        - '-1'      Shutdown
+        raw_msg (tuple of ints): data sent by Manager with following values:
+        - (1,)       New Game
+        - (2,x,y)    Join Game #x in Seat y
+        - (-1,)      Shutdown
 
         """
-        print('msg=', raw_msg)
-        msg = raw_msg.split("|")
-        try:
-            m_type = int(msg[0])
-        except ValueError:
-            if raw_msg == "": # Manager died
-                self.stop()
-                return
-            else:
-                print("invalid daemon msg:", raw_msg)
-                return
+        op = command[0]
 
-        if m_type == -1: # Shutdown (most common)
+        if op == -1: # Shutdown (most common)
+            print("Shutdown command received")
             self.stop()
 
-        elif m_type == 2: # Join Game
-            if self.join_game(int(msg[1]), int(msg[2])):
+        elif op == 2: # Join Game
+            if self.join_game(command[1], command[2]):
                 self.start_polling_loop() # Join game was successful
 
-        # This option is currently inactive, as new game requests require a 'plrs' parameter now
-        elif m_type == 1: # New Game
+        # This option is currently inactive,
+        # as new game requests require a 'plrs' parameter now
+        elif op == 1: # New Game
             if self.request_new_game():
                 self.start_polling_loop() # New game was successful
 
-        else: # Unhandled m_type
-            print(m_type)
+        else:
+            print("unknown op:", op)
 
     def run(self):
-        # Read from pipe -- does block, but start() is final action in init
-        readline = self.pipe.recv #function pointer-ish
+        # Read from pipe -- does block ai thread, but start() is final action
+        readline = self.pipe.recv # Function reference for speed++
         handle_daemon_command = self.handle_daemon_command
         
         while self.running:
@@ -287,7 +277,7 @@ class AIBase:
     # Message Receivers -- Handlers for received messages
     ####################
    
-    def handle_error(self, event, err_msg): #TODO pending logging UI
+    def handle_error(self, event, err_msg): #TODO improve pending logging UI
         """Handler for error messages received from Comet server.
 
         event (int): descriptor for source of error
@@ -303,13 +293,14 @@ class AIBase:
         elif event == EVENT_NEW_GAME:
             print("ERROR", err_msg)
         else:
-            #unidentified error
+            print("ERROR", "Unidentified error.")
             pass
 
     def handle_response(self, response):
         """Handle response from Comet request, e.g. update internal game state.
         
         TODO:Avoid having handler output to stdout in final build. Log instead.
+            --mayebe write all output to the Pipe and let Manager deal w/ it?
 
         response (dict): message from Comet server of form
             {'new': int, 'msgs': list of dicts}
@@ -381,10 +372,21 @@ class AIBase:
 
                     else:  #TODO add support for mp, gp keys
                         pass
-                        # print("!!unhandled key:", key)
-                        # Uncomment to test AI key handling
+                        print("WARN: unhandled key:", key)
 
-        self.act() # Once all updates are processed, act
+        # This is a weird but simple way of handling exceptions raised by
+        # act(). BaseExceptions are properly sent to the manager from the agent
+        # Process(), but most other exceptions are not. However, the following
+        # code will expose the exception properly, while showing a random
+        # BaseException in the process. A minor drawback, but no alternative
+        # is viable.
+        #
+        # Use this construct if you make methods in agents that are not called
+        # through act().
+        try:            
+            self.act()
+        except:
+            raise BaseException
 
     ####################
     # Message Transmitters -- Convenience methods for sending messages
@@ -420,7 +422,7 @@ class AIBase:
         """
         if self.in_game:    # Prevent in-game client from starting new game
             return
-
+        
         data = {'join': game_id, 'pNum': pNum, 'name': "Mr AI"} #TODO make this use AI name declared at the Agent-level init.py
         res = self.send_data(data) # Expects {'uid', 'pNum'} or {'err'}
 

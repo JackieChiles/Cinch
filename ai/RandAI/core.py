@@ -8,14 +8,13 @@ from ai.base import AIBase
 
 
 class Rand(AIBase):
-    def __init__(self):
-        super().__init__()   # pref. way of calling parent init
+    def __init__(self, pipe):
+        super().__init__(pipe)   # pref. way of calling parent init
 
         print("RandAI loaded")
 
     def act(self):
         """Overriding base class act."""
-        
         name = self.identity['name']
         if self.pNum==self.gs['active_player']:
             if self.gs['mode'] == 1: # Play

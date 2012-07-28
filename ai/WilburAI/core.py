@@ -8,8 +8,8 @@ from ai.base import AIBase
 
 
 class Wilbur(AIBase):
-    def __init__(self):
-        super().__init__()   # pref. way of calling parent init
+    def __init__(self, pipe):
+        super().__init__(pipe)   # pref. way of calling parent init
 
         print("WilburAI loaded")
 

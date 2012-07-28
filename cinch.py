@@ -13,6 +13,7 @@ from engine.game_router import GameRouter
 from ai.manager import AIManager
 
 if __name__ == "__main__":
+    # Needed to keep Win32 systems from making bad things with multiprocesses
     freeze_support()
     
     # Create web server
@@ -34,4 +35,9 @@ if __name__ == "__main__":
     chat_engine.register(server)
 
     # Start server
-    server.run_server()
+    server.run_server() # This blocks until killed (usu. by Ctrl-C)
+
+    # Begin cleanup
+    print("Cleaning up...")
+
+    ai_mgr.cleanup()

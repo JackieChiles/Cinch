@@ -42,7 +42,7 @@ import sys
 import os
 
 # Constants
-MAX_AGENTS = 15 #TODO: change this with respect to server resources
+MAX_AGENTS = 20 #TODO: change this with respect to server resources
 
 
 class AIManager:
@@ -52,10 +52,16 @@ class AIManager:
     ####################
 
     def __init__(self):
-        self.agents = [] # Activated AI agents
+        self.agents = [] # Activated (Agent, Pipe, Process) tuples
         self.ai_packages = [] # Available AI models
         
         self.get_ai_models()
+
+    def cleanup(self):
+        """Shut down all active agents."""
+        for agent, pipe, proc in self.agents:
+            self.shutdown_agent(pipe)
+            proc.join()
             
     def get_ai_models(self):
         """Scan AI folder for agent models and add to self.models."""
@@ -70,10 +76,6 @@ class AIManager:
 
         # Remove __pycache__ from candidate packages, if present
         try:    dirlist.remove('__pycache__')
-        except: pass
-        try:    dirlist.remove('RandAI')
-        except: pass
-        try:    dirlist.remove('WilburAI')###########
         except: pass
 
         curDir = os.getcwd()
@@ -90,7 +92,7 @@ class AIManager:
             exec("import ai.{0} as {1}".format(pkg,t))
             self.ai_packages.append(locals()[t])
 
-        os.chdir(curDir) # Change to old working directory (may be unneeded)
+        os.chdir(curDir) # Change to old working directory
 
     def get_ai_summary(self):
         """Assemble data for choosing/viewing available AI Agents.
@@ -106,7 +108,7 @@ class AIManager:
         temp = {}
         i = 1 # Used for AI ID #
 
-        #TODO: may want to sort ai_packages first
+        #TODO: may want to sort ai_packages first, somehow
         for pkg in self.ai_packages:
             identity = pkg.Agent.identity
             temp = {'id': i,
@@ -138,8 +140,7 @@ class AIManager:
         """
         if len(self.agents) > MAX_AGENTS:
             # Too many agents on the dance floor
-            print("MAX_AGENTS limit exceeded.")
-            raise RuntimeError
+            raise RuntimeError("MAX_AGENTS limit exceeded.")
 
         model_num = model_num - 1 # IDs sent to client start at 1, not 0
 
@@ -157,9 +158,8 @@ class AIManager:
             agent = pkg.Agent(agent_conn)
             p = multiprocessing.Process(target=agent.start,
                                         name=pkg.__name__)
-
-            self.agents.append((agent, parent_conn))
-            p.start() #start multiprocessing.Process
+            self.agents.append((agent, parent_conn, p))
+            p.start() # Start multiprocessing.Process
             
         except Exception as e:
             raise
@@ -175,12 +175,11 @@ class AIManager:
         """
         pipe = self.create_agent(model_num)
 
-        data = "2|{0}|{1}".format(game_id, pNum) # 2 = join game
-
-        # Issue 'join game' command -- arguments are pipe delimited
+        data = (2,game_id,pNum) # 2 = join game
         self.send_message(pipe, data)    
 
-    #This option is currently inactive, as new game requests require a 'plrs' parameter
+    #This option is currently inactive,
+    #as new game requests require a 'plrs' parameter
     def create_agent_for_new_game(self, model_num):
         """Create new agent and issue 'new game' command to it.
 
@@ -189,33 +188,27 @@ class AIManager:
         """
         pipe = self.create_agent(model_num)
 
-        data = "1" # 1 = new game
-
-        # Issue 'new game' command
+        data = (1,) # 1 = new game
         self.send_message(pipe, data)
 
     def send_message(self, pipe, msg):
         """Send specified message to agent via subprocess pipe.
 
         pipe (Pipe): agent info
-        msg (str): message
+        msg (tuple): message
 
         """
-        assert isinstance(msg, str)
-
         try:
             pipe.send(msg)
         except Exception as e:
             print("Failed to send agent process message", msg, ".")
             raise
-        
-    def shutdown_agent(self, agent_num):
+
+    def shutdown_agent(self, pipe):
         """Issue shutdown command to agent.
 
-        agent_num (int): index of agents[]
+        pipe (Pipe): Pipe connection to Agent
 
         """
-        data = "-1" # -1 = shutdown
-        self.send_message(agent_num, data)
-        self.agents.pop(agent_num)
-
+        data = (-1,) # -1 = shutdown
+        self.send_message(pipe, data)
