@@ -9,12 +9,6 @@ import random
 import sqlite3
 from datetime import datetime, timezone
 
-# try:
-    # import common as common
-    # from player import Player
-    # import cards
-    # from gamestate import GameState
-# except ImportError:
 import core.common as common
 from core.player import Player
 import core.cards as cards
@@ -46,7 +40,7 @@ class Game:
         deck (object): Deck object containing Card objects
         
     """
-    def __init__(self): #pass newGame params as args (??)
+    def __init__(self):
         self.id = 0     #TODO: have external counter for this
         self.players = []
         self.gs = None
@@ -54,8 +48,8 @@ class Game:
 
     def __repr__(self):
         """Return descriptive string when asked to print object."""
-        return "Cinch game with players: "+", ".join(str(_.name) for _ in
-                                                     self.players)
+        return "Cinch game with players: {0}".format(
+            ", ".join(str(plr.name) for plr in self.players))
 
     def check_bid_legality(self, player, bid):
         """Check a proposed bid for legality against the current gs. Assumes
@@ -89,7 +83,6 @@ class Game:
 
         """
         # Search player's hand for card where card_num = card.code
-        ##MJG: I just added the card.code functionality for convenience.
         has_card = False
         for card in player.hand:
             if card.code == card_num:
@@ -109,6 +102,7 @@ class Game:
         for each_card in player.hand:
             if each_card.suit is self.gs.cards_in_play[0].suit:
                 return False # Could have followed suit with a different card.
+        
         return True          # Couldn't follow suit, throwing off.
         
     def deal_hand(self):
@@ -376,11 +370,12 @@ class Game:
     def start_game(self, plr_arg = ["Test0", "Test1", "Test2", "Test3"]):
         """Start a new game, deal first hands, and send msgs.
         
-        plr_arg (list): List of 4 strings containing the player names.
+        plr_arg (dict): dict of player num, name pairs.
         """
         # Might as well error check this here. All games must have 4 players.
         if len(plr_arg) is not NUM_PLAYERS:
             raise RuntimeError("Tried to start a game with <4 players.")
+
         self.players = [Player(x, plr_arg[x]) for x in range(NUM_PLAYERS)]
         game_id = self.dbstart()
         self.gs = GameState(game_id)

@@ -18,6 +18,7 @@ set_client_name(self, client, name)
 set_client_player_num(self, client, playerNum)
 
 FUTURE: remove unused methods
+TODO: review this module for accuracy of documentation/descriptions
 
 """
 import string
@@ -29,6 +30,17 @@ CLIENT_GROUP = 1
 CLIENT_PLAYER_NUM = 2
 
 MAX_TRIES = 32767
+
+
+def generate_id(size=6):
+    """Generate random character string of specified size.
+
+    Uses digits, upper- and lower-case letters.
+    
+    """
+    chars=string.ascii_letters + string.digits
+    return ''.join(random.choice(chars) for x in range(size))
+
 
 class ClientManager:
     """Provide mapping functions for Clients with respect to the game engine.
@@ -180,7 +192,7 @@ class ClientManager:
 
         """
         try:
-            return self.groups[group]
+            return [x for x in self.groups[group] if x is not None]
         except KeyError:
             raise KeyError("Group {0} does not exist.".format(group))
         
@@ -205,6 +217,25 @@ class ClientManager:
             return self.clients[client][CLIENT_PLAYER_NUM]
         except KeyError:
             raise KeyError("Client {0} does not exist.".format(client))
+    
+    def get_player_names_in_group(self, group):
+        """Return dict of player num & name for clients in group.
+        
+        group (int): group id
+        
+        """
+        players = {} # Key = pNum, value = name
+        try:
+            client_guids = [x for x in self.groups[group] if x is not None]
+            for c in client_guids:
+                pNum = self.clients[c][CLIENT_PLAYER_NUM]
+                name = self.clients[c][CLIENT_NAME]
+                players[pNum] = name
+            
+            return players
+        
+        except KeyError:
+            return "Cannot get player numbers from Group {0}".format(group)
 
     def get_player_nums_in_group(self, group):
         """Return list of player numbers of clients in group.
@@ -214,15 +245,14 @@ class ClientManager:
         """
         pNums = []
         try:
-            clients = [x for x in self.groups[group] if x is not None]
-            for c in clients:
-                pNums.append(c[CLIENT_PLAYER_NUM])
+            client_guids = [x for x in self.groups[group] if x is not None]
+            for c in client_guids:
+                pNums.append(self.clients[c][CLIENT_PLAYER_NUM])
 
             return pNums
 
         except KeyError:
             return "Cannot get player numbers from Group {0}".format(group)
-
 
     def set_client_name(self, client, name):
         """Set name for client.
@@ -248,12 +278,3 @@ class ClientManager:
         
         self.clients[client][CLIENT_PLAYER_NUM] = playerNum
 
-
-def generate_id(size=6):
-    """Generate random character string of specified size.
-
-    Uses digits, upper- and lower-case letters.
-    
-    """
-    chars=string.ascii_letters + string.digits
-    return ''.join(random.choice(chars) for x in range(size))

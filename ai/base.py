@@ -100,7 +100,7 @@ class AIBase:
         self.manager = None
         self.running = False
         self.pipe = pipe # of type multiprocessing.Pipe
-        
+
         # Network comm
         self.conn = {}
         self.connect()
@@ -423,7 +423,7 @@ class AIBase:
         if self.in_game:    # Prevent in-game client from starting new game
             return
         
-        data = {'join': game_id, 'pNum': pNum, 'name': "Mr AI"} #TODO make this use AI name declared at the Agent-level init.py
+        data = {'join': game_id, 'pNum': pNum, 'name': self.identity['name']}
         res = self.send_data(data) # Expects {'uid', 'pNum'} or {'err'}
 
         if 'err' in res:

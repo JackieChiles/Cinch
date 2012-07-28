@@ -162,7 +162,7 @@ class NewGameHandler(GameRouterHandler):
         
         # Create GUID for requesting client and add entry to client_mgr
         #TODO-FUTURE: don't use default pnum, let game creator decide?
-        client_id = cm.create_client()
+        client_id = cm.create_client(name=msg.data['name'])
         cm.add_client_to_group(client_id, game_id, DEFAULT_PNUM)
 
         # Handle 'plrs' list, creating AI agents as needed
@@ -171,7 +171,7 @@ class NewGameHandler(GameRouterHandler):
             if val > 0: # Negative values are for humans, positive for AIs, 0 unused
                 # Create AI in pNum index with agent val
                 ai_mgr.create_agent_for_existing_game(val, game_id, index)
-
+        
         # Return client GUID and player number via POST
         return {'uid': client_id, 'pNum': DEFAULT_PNUM} 
 
@@ -200,24 +200,35 @@ class JoinGameHandler(GameRouterHandler):  ###mostly tested
         pNum = requested_pNum
 
         # Create GUID for requesting client and add entry to client_mgr
-        client_id = cm.create_client()
+        client_id = cm.create_client(name=msg.data['name'])
         if client_id is None:
             return {'err': 'Server unable to handler more players. Try again later.'}
+      
+        # Prepare list of folks already in game for new client
+        folks = cm.get_player_names_in_group(game_id)
+        names = []
+        for folk in folks:
+            names.append({'name': folks[folk], 'pNum': folk})
+        name_msg = Message({'names':names}, target=client_id, source=game_id)
+        self.announce(name_msg)
+      
+        # Announce new player entering game
+        outgoing_data = {'names': [ {'name': msg.data['name'], 'pNum': pNum} ]}
+        tgts = cm.get_clients_in_group(game_id)
+        for tgt in tgts:
+            self.announce(Message(outgoing_data, target=tgt, source=game_id))
 
+        # Notify client manager
         cm.add_client_to_group(client_id, game_id, pNum)
-
+        
         # Check if game is now full. If so, trigger and announce game start
         if len(cm.groups[game_id]) == MAX_GAME_SIZE:
-            # After short delay (so last client to join can receive uid/pNum
-            # response from return statement) start game and send clients
-            # game-start info (hands, active player, etc.)
-            def launch_game(self, game_id):
-                init_data = self.router.games[game_id].start_game()
-                self.announce_msgs_from_game(init_data, game_id)
-                print("Game Router: game started")
-
-            t = Timer(START_GAME_DELAY, launch_game, args=[self, game_id])
-            t.start()
+            # Get previously stored player names
+            players = cm.get_player_names_in_group(game_id)
+            
+            init_data = self.router.games[game_id].start_game(players)
+            self.announce_msgs_from_game(init_data, game_id)
+            print("Game Router: game started")           
 
         # Return client GUID and assigned player number
         return {'uid': client_id, 'pNum': pNum}
@@ -243,7 +254,6 @@ class LobbyHandler(GameRouterHandler):
         for group_id in cm.groups:
             players = []
             for client_id in cm.groups[group_id]:
-                #TODO: use appropriate constants here
                 players.append({'name': cm.clients[client_id][0],
                                 'num': cm.clients[client_id][2]})
             games.append({'num': group_id, 'plrs': players})
@@ -326,7 +336,8 @@ def get_error(err, *args):
         elif err == ERROR_TYPE.ILLEGAL_BID:
             err_val = "Your bid of {0} is illegal.".format(args[0])
         elif err == ERROR_TYPE.ILLEGAL_PLAY:
-            err_val = "Your play of the {0} of {1} is illegal.".format(args[0][0], args[0][1])
+            err_val = "Your play of the {0} of {1} is illegal.".format(
+                        args[0][0], args[0][1])
         else:
             err_val = "Unspecified error type."
 
