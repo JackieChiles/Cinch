@@ -372,7 +372,7 @@ class AIBase:
 
                     else:  #TODO add support for mp, gp keys
                         pass
-                        print("WARN: unhandled key:", key)
+#                        print("WARN: unhandled key:", key)
 
         # This is a weird but simple way of handling exceptions raised by
         # act(). BaseExceptions are properly sent to the manager from the agent
