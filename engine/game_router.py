@@ -5,10 +5,9 @@ TODO: add threading/async capes -- mostly handled already by CometServer?
 
 
 """
-from threading import Timer #for delayed start
+from threading import Timer # For delayed start
 from time import sleep
 
-# All import paths are relative to the root
 import core.common as common
 import core.cards as cards
 from core.game import Game, NUM_PLAYERS
@@ -21,12 +20,12 @@ DEFAULT_PNUM = 0 # pNum assigned to player who creates new game
 
 # Message signatures
 SIGNATURE = common.enum(
-    NEW_GAME=['game', 'plrs', 'name'],
-    JOIN_GAME=['join', 'pNum', 'name'],
+    NEW_GAME = ['game', 'plrs', 'name'],
+    JOIN_GAME = ['join', 'pNum', 'name'],
     LOBBY = ['lob'],
-    GAME_PLAY=['card'],
-    BID=['bid'],
-    AI_LIST_REQUEST=['ai']
+    GAME_PLAY = ['card'],
+    BID = ['bid'],
+    AI_LIST_REQUEST = ['ai']
     )
 
 # Enum constants for building POST-response error messages
@@ -38,7 +37,7 @@ ERROR_TYPE = common.enum(
     ILLEGAL_PLAY=5
     )
 
-# Global variable
+# Global variables
 ai_mgr = None   # Used for AI manager, assigned later
 cm = None   # Used for client manager, assigned later
 
@@ -168,7 +167,7 @@ class NewGameHandler(GameRouterHandler):
         # Handle 'plrs' list, creating AI agents as needed
         player_options = list(map(int, msg.data['plrs'].split(',')))
         for index, val in enumerate(player_options):
-            if val > 0: # Negative values are for humans, positive for AIs, 0 unused
+            if val > 0: # humans < 0, AIs > 0, 0 unused
                 # Create AI in pNum index with agent val
                 ai_mgr.create_agent_for_existing_game(val, game_id, index)
 
@@ -176,7 +175,7 @@ class NewGameHandler(GameRouterHandler):
         return {'uid': client_id, 'pNum': DEFAULT_PNUM} 
 
 
-class JoinGameHandler(GameRouterHandler):  ###mostly tested
+class JoinGameHandler(GameRouterHandler):
     """React to client requests to join a game."""
     # Overriden member
     def respond(self, msg):
@@ -202,11 +201,12 @@ class JoinGameHandler(GameRouterHandler):  ###mostly tested
         # Create GUID for requesting client and add entry to client_mgr
         client_id = cm.create_client(name=msg.data['name'])
         if client_id is None:
-            return {'err': 'Server unable to handler more players. Try again later.'}
+            return {'err':
+                    'Server unable to handler more players. Try again later.'}
       
         # Prepare list of folks already in game for new client
         names = []
-        players = cm.get_player_names_in_group(game_id) #returns dict; called here before new player added
+        players = cm.get_player_names_in_group(game_id)
         for key in players:
             names.append({'pNum': key, 'name': players[key]})
         name_msg = Message({'names':names}, target=client_id, source=game_id)
@@ -223,7 +223,7 @@ class JoinGameHandler(GameRouterHandler):  ###mostly tested
         
         # Check if game is now full. If so, trigger and announce game start
         if len(cm.groups[game_id]) == MAX_GAME_SIZE:
-            players = cm.get_player_names_in_group(game_id) #called here after new player added
+            players = cm.get_player_names_in_group(game_id)
             
             init_data = self.router.games[game_id].start_game(players)
             self.announce_msgs_from_game(init_data, game_id)
@@ -244,7 +244,7 @@ class LobbyHandler(GameRouterHandler):
     def respond(self, msg):
         
         if msg.data['lob'] != '0':
-            # May support other types of game lobby requests in the future
+            # May support other types of game lobby requests in the future.
             # For now, '0' is just a request for all current games
             return None
             
@@ -254,10 +254,10 @@ class LobbyHandler(GameRouterHandler):
             client_group = cm.groups[group_id]
             players = []
             for pNum in client_group:
-                # Translate client_group into proper format for Cinch client
+                # Prepare client_group info for Cinch client
                 guid = client_group[pNum]
-                players.append({'name': cm.clients[guid][0],   ###todo-refactor to make clients objects
-                                'num': cm.clients[guid][2]})
+                players.append({'name': cm.clients[guid].name,
+                                'num': cm.clients[guid].pNum})
             games.append({'num': group_id, 'plrs': players})
         
         # Return game list via POST (this is public information)
@@ -312,13 +312,16 @@ class GamePlayHandler(GameRouterHandler):
         if response is False:
             decoded = cards.decode(card_num)
             
-            # Pass in a tuple of the suit and rank names for the illegal play error message
-            return get_error(ERROR_TYPE.ILLEGAL_PLAY, (cards.RANKS_BY_NUM[decoded[0]], cards.SUITS_BY_NUM[decoded[1]]))
+            # Pass in a tuple of the suit and rank names for the error message
+            return get_error(ERROR_TYPE.ILLEGAL_PLAY, 
+                              (cards.RANKS_BY_NUM[decoded[0]], 
+                               cards.SUITS_BY_NUM[decoded[1]])
+                            )
 
         try:
             self.announce_msgs_from_game(response, game_id)
-        except TypeError:   # handle_card_played returns None
-            return None     # when inactive player tries to play a card
+        except TypeError:   # handle_card_played = None when
+            return None     #   inactive player tries to play
    
 
 def get_error(err, *args):
