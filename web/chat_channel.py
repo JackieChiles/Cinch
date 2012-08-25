@@ -53,7 +53,7 @@ class ChatEngine(CommChannel):
 
         # Package into Message and notify the server
         ## uNum is the clients ID number within the chat room (cf. pNum)
-        uNum = recipients.index(incoming_msg.source)
+        uNum = cm.get_player_num_by_client(incoming_msg.source)
         msg_data = {'uNum':uNum, 'msg':chat}
         for r in recipients:
             self.announce(Message(msg_data, r))

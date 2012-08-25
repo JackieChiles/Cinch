@@ -157,7 +157,7 @@ class NewGameHandler(GameRouterHandler):
 
         # Create new game object and add to router.games and client_mgr
         new_game = Game()
-        game_id = cm.create_group() #TODO: focus here for multi-game support
+        game_id = cm.create_group()
         self.router.games[game_id] = new_game
         
         # Create GUID for requesting client and add entry to client_mgr
@@ -171,7 +171,7 @@ class NewGameHandler(GameRouterHandler):
             if val > 0: # Negative values are for humans, positive for AIs, 0 unused
                 # Create AI in pNum index with agent val
                 ai_mgr.create_agent_for_existing_game(val, game_id, index)
-        
+
         # Return client GUID and player number via POST
         return {'uid': client_id, 'pNum': DEFAULT_PNUM} 
 
@@ -182,8 +182,8 @@ class JoinGameHandler(GameRouterHandler):  ###mostly tested
     def respond(self, msg):
         # Check if game is full
         game_id = int(msg.data['join'])
-        cur_player_nums = cm.get_player_nums_in_group(game_id)
-
+        cur_player_nums = cm.get_player_nums_in_group(game_id)       
+        
         if len(cur_player_nums) == MAX_GAME_SIZE:
           return get_error(ERROR_TYPE.FULL_GAME)
 
@@ -205,10 +205,10 @@ class JoinGameHandler(GameRouterHandler):  ###mostly tested
             return {'err': 'Server unable to handler more players. Try again later.'}
       
         # Prepare list of folks already in game for new client
-        folks = cm.get_player_names_in_group(game_id)
         names = []
-        for folk in folks:
-            names.append({'name': folks[folk], 'pNum': folk})
+        players = cm.get_player_names_in_group(game_id) #returns dict; called here before new player added
+        for key in players:
+            names.append({'pNum': key, 'name': players[key]})
         name_msg = Message({'names':names}, target=client_id, source=game_id)
         self.announce(name_msg)
       
@@ -223,8 +223,7 @@ class JoinGameHandler(GameRouterHandler):  ###mostly tested
         
         # Check if game is now full. If so, trigger and announce game start
         if len(cm.groups[game_id]) == MAX_GAME_SIZE:
-            # Get previously stored player names
-            players = cm.get_player_names_in_group(game_id)
+            players = cm.get_player_names_in_group(game_id) #called here after new player added
             
             init_data = self.router.games[game_id].start_game(players)
             self.announce_msgs_from_game(init_data, game_id)
@@ -251,11 +250,14 @@ class LobbyHandler(GameRouterHandler):
             
         games = []
         
-        for group_id in cm.groups:
+        for group_id in cm.groups.keys():
+            client_group = cm.groups[group_id]
             players = []
-            for client_id in cm.groups[group_id]:
-                players.append({'name': cm.clients[client_id][0],
-                                'num': cm.clients[client_id][2]})
+            for pNum in client_group:
+                # Translate client_group into proper format for Cinch client
+                guid = client_group[pNum]
+                players.append({'name': cm.clients[guid][0],   ###todo-refactor to make clients objects
+                                'num': cm.clients[guid][2]})
             games.append({'num': group_id, 'plrs': players})
         
         # Return game list via POST (this is public information)

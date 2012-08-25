@@ -79,13 +79,7 @@ class ClientManager:
         self.clients[client][CLIENT_PLAYER_NUM] = pNum
 
         # Add client to group's info
-        cur_group = self.groups[group]
-        try:
-            cur_group[pNum] = client
-        except IndexError: # Group is not long enough, so extend
-            cur_group.extend([None]*(pNum - len(cur_group) + 1))
-            cur_group[pNum] = client
-        
+        self.groups[group][pNum] = client
 
     def create_client(self, name=None):
         """Create new client in internal map. Return client guid.
@@ -122,7 +116,7 @@ class ClientManager:
             last_group = -1
 
         ident = last_group + 1        
-        self.groups[ident] = []     # client IDs will be added to this list
+        self.groups[ident] = {}     # client IDs will be added to this list
 
         return ident
 
@@ -139,7 +133,7 @@ class ClientManager:
         except KeyError:
             raise KeyError("Client {0} does not exist.".format(ident))
 
-        if groups is not None:
+        if group is not None:
             try:
                 self.groups[group].remove(ident)
             except KeyError:
@@ -166,11 +160,13 @@ class ClientManager:
         pNum (int): local player num w/in group
 
         """
-        for client_id in self.groups[group]:
-            if self.clients[client_id][CLIENT_PLAYER_NUM] == pNum:
-                return client_id
+        assert (group in self.groups.keys())
 
-        return None
+        client_group = self.groups[group]        
+        try:
+            return client_group[pNum]
+        except KeyError:
+            return None
 
     def get_client_info(self, client):
         """Return group_id, playerNum for client.
@@ -186,13 +182,13 @@ class ClientManager:
             raise KeyError("Client {0} does not exist.".format(client))
 
     def get_clients_in_group(self, group):
-        """Return list of clients associated with group.
+        """Return list of client guids associated with group.
 
         group (int): id for group
 
         """
         try:
-            return [x for x in self.groups[group] if x is not None]
+            return self.groups[group].values()
         except KeyError:
             raise KeyError("Group {0} does not exist.".format(group))
         
@@ -226,7 +222,7 @@ class ClientManager:
         """
         players = {} # Key = pNum, value = name
         try:
-            client_guids = [x for x in self.groups[group] if x is not None]
+            client_guids = self.groups[group].values()
             for c in client_guids:
                 pNum = self.clients[c][CLIENT_PLAYER_NUM]
                 name = self.clients[c][CLIENT_NAME]
@@ -243,16 +239,21 @@ class ClientManager:
         group (int): group id
 
         """
-        pNums = []
         try:
-            client_guids = [x for x in self.groups[group] if x is not None]
+            return self.groups[group].keys()
+        except KeyError:
+            return "Cannot get player numbers from Group {0}".format(group)
+
+        '''pNums = []
+        try:
+            client_guids = self.groups[group].values()
             for c in client_guids:
                 pNums.append(self.clients[c][CLIENT_PLAYER_NUM])
 
             return pNums
 
         except KeyError:
-            return "Cannot get player numbers from Group {0}".format(group)
+            return "Cannot get player numbers from Group {0}".format(group)'''
 
     def set_client_name(self, client, name):
         """Set name for client.
