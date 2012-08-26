@@ -2,6 +2,7 @@
 """
 game engine
 """
+import logging.config
 from multiprocessing import freeze_support
 
 import web.web_server
@@ -15,6 +16,8 @@ from ai.manager import AIManager
 if __name__ == "__main__":
     # Needed to keep Win32 systems from making bad things with multiprocesses
     freeze_support()
+    
+    logging.config.fileConfig('logging.config')
     
     # Create web server
     server = web.web_server.boot_server()

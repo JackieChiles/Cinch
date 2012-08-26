@@ -4,40 +4,42 @@
 import random
 
 # Import base class for AI agent -- may need to edit import path
-from ai.base import AIBase
+from ai.base import AIBase, log
 
 
 class Dave(AIBase):
     def __init__(self, pipe):
-        super().__init__(pipe)   # pref. way of calling parent init
+        super().__init__(pipe, self.identity)  # Call to parent init
 
-        print("DaveAI loaded")
+        log.info("{0}AI loaded".format(self.name))
 
     def act(self):
         """Overriding base class act."""
-        name = self.identity['name']
         if self.pNum==self.gs['active_player']:
             if self.gs['mode'] == 1: # Play
-                print(name, self.pNum, "is playing...")
+                log.info("{0} {1} is playing...".format(self.name, self.pNum))
                 #Play first legal card
                 for c in self.hand:
                     if self.is_legal_play(c):
                         self.play(c)
-                        print(name, self.pNum, "plays", self.print_card(c))
+                        log.info("{0} {1} plays {2}".format(
+                                self.name, self.pNum, self.print_card(c)))
                         break
 
             elif self.gs['mode'] == 2: # Bid
-                print(name, self.pNum, "is bidding...")
+                log.info("{0} {1} is bidding...".format(self.name, self.pNum))
                 
                 if self.gs['high_bid'] < 4:
                     bid = random.randint(self.gs['high_bid']+1,4) # Never cinch
                 else:
                     bid = 0
-                print(name, self.pNum, "considers bidding", bid)
+                log.info("{0} {1} considers bidding {2}...".format(
+                        self.name, self.pNum, bid))
+
                 r = random.random()
                 if ((bid > 0) and (r < 0.75)):
                     self.bid(bid)
-                    print(name, self.pNum, "bids", bid)
+                    log.info("{0} {1} bids {2}".format(self.name, self.pNum, bid))
                 else:
                     self.bid(0)
-                    print(name, self.pNum, "passes.")
+                    log.info("{0} {1} passes.".format(self.name, self.pNum))

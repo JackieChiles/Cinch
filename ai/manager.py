@@ -41,6 +41,10 @@ import multiprocessing
 import sys
 import os
 
+import logging
+log = logging.getLogger(__name__)
+
+
 # Constants
 MAX_AGENTS = 20 #TODO: change this with respect to server resources
 
@@ -56,15 +60,18 @@ class AIManager:
         self.ai_packages = [] # Available AI models
         
         self.get_ai_models()
+        log.info("AI Manager ready for action.")
 
     def cleanup(self):
         """Shut down all active agents."""
         for agent, pipe, proc in self.agents:
+            log.info("Shutting down AI agent...")
             self.shutdown_agent(pipe)
             proc.join()
             
     def get_ai_models(self):
         """Scan AI folder for agent models and add to self.models."""
+        log.info("Searching for AI packages...")
         # Get directory listing of ai folder        
         cur = sys.modules[__name__]
 
@@ -91,8 +98,12 @@ class AIManager:
 
             exec("import ai.{0} as {1}".format(pkg,t))
             self.ai_packages.append(locals()[t])
+            log.info("Found AI Model {0}".format(
+                        locals()[t].Agent.identity['name']))
 
         os.chdir(curDir) # Change to old working directory
+        log.info("AI Model data loaded ({0} models).".format(
+                    len(self.ai_packages)))
 
     def get_ai_summary(self):
         """Assemble data for choosing/viewing available AI Agents.
@@ -109,6 +120,7 @@ class AIManager:
         i = 1 # Used for AI ID #
 
         #TODO: may want to sort ai_packages first, somehow
+
         for pkg in self.ai_packages:
             identity = pkg.Agent.identity
             temp = {'id': i,
@@ -140,17 +152,19 @@ class AIManager:
         """
         if len(self.agents) > MAX_AGENTS:
             # Too many agents on the dance floor
-            raise RuntimeError("MAX_AGENTS limit exceeded.")
+            log.warning("MAX_AGENTS limit exceeded.")
+            return None
 
         model_num = model_num - 1 # IDs sent to client start at 1, not 0
 
         # Select AI package
         try:
             pkg = self.ai_packages[model_num]
-        except:
-            # model_num out of range
-            print("create_agent: invalid model_num", model_num)
-            raise
+        except IndexError: # model_num out of range
+            log.warning("model_num={0} out of range;"
+                        " defaulting to model_num=0".format(model_num))
+            model_num = 0
+            pkg = self.ai_packages[0]
 
         agent, parent_conn = None, None
         try:
@@ -158,11 +172,15 @@ class AIManager:
             agent = pkg.Agent(agent_conn)
             p = multiprocessing.Process(target=agent.start,
                                         name=pkg.__name__)
+            log.debug("Thread created for model_num={0}".format(model_num))
+            
             self.agents.append((agent, parent_conn, p))
             p.start() # Start multiprocessing.Process
+            log.debug("Thread.start() ran for model_num={0}".format(model_num))
             
-        except Exception as e:
-            raise
+        except Exception:
+            log.exception("Error creating agent")
+            return None
             
         return parent_conn
 
@@ -176,20 +194,22 @@ class AIManager:
         pipe = self.create_agent(model_num)
 
         data = (2,game_id,pNum) # 2 = join game
-        self.send_message(pipe, data)    
+        self.send_message(pipe, data)
+        log.info("Agent with model_num={0} and pNum={1} created"
+                 " for game {2}".format(model_num, pNum, game_id))
 
     #This option is currently inactive,
     #as new game requests require a 'plrs' parameter
-    def create_agent_for_new_game(self, model_num):
-        """Create new agent and issue 'new game' command to it.
+#    def create_agent_for_new_game(self, model_num):
+#        """Create new agent and issue 'new game' command to it.
 
-        model_num (int): index of desired agent model in models[]
+#        model_num (int): index of desired agent model in models[]
 
-        """
-        pipe = self.create_agent(model_num)
+#        """
+#        pipe = self.create_agent(model_num)
 
-        data = (1,) # 1 = new game
-        self.send_message(pipe, data)
+#        data = (1,) # 1 = new game
+#        self.send_message(pipe, data)
 
     def send_message(self, pipe, msg):
         """Send specified message to agent via subprocess pipe.
@@ -200,9 +220,9 @@ class AIManager:
         """
         try:
             pipe.send(msg)
-        except Exception as e:
-            print("Failed to send agent process message", msg, ".")
-            raise
+        except Exception:
+            log.exception("Failed to send agent message '{0}' via pipe {1}."
+                          "".format(msg, pipe))
 
     def shutdown_agent(self, pipe):
         """Issue shutdown command to agent.

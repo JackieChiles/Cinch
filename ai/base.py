@@ -47,6 +47,8 @@ from urllib.parse import urlencode
 from http.client import HTTPConnection
 from json import loads as json_loads
 
+import logging
+log = logging.getLogger(__name__)
 
 # Settings
 SERVER_HOST = "localhost"
@@ -94,12 +96,13 @@ class AIBase:
     # Agent Management -- Creation/maintenance of Agent; metagame functions
     ####################
 
-    def __init__(self, pipe=None):#TODO: cleanup/make better
+    def __init__(self, pipe, identity):#TODO: cleanup/make better
         # Instance variables
         self.uid = 0
         self.manager = None
         self.running = False
         self.pipe = pipe # of type multiprocessing.Pipe
+        self.name = identity['name']
 
         # Network comm
         self.conn = {}
@@ -118,7 +121,7 @@ class AIBase:
         gs['scores'] = [0,0]    # Defined for 2-team game
         gs['team_stacks'] = [[],[]]
         self.gs = gs
-
+        
     def __del__(self):
         """Safely shutdown AI Agent subprocess."""
         # Kill Comet server connection
@@ -126,7 +129,8 @@ class AIBase:
         try:
             for conn in self.conn.values():  conn.close()
         except:
-            print("cant stop conns")
+            log.debug("Failed to close active conn; "
+                      "may have been closed elsewhere or finished naturally.")
         finally:
             # Halt daemon loop
             self.running = False
@@ -204,7 +208,7 @@ class AIBase:
         if self.comet_enabled:  # Prevent multiple simultaneous polling loops
             return
         if not self.in_game:    # Don't waste resources if not in game
-            print("Agent not in-game; don't start polling loop.")
+            log.debug("Agent not in-game; don't start polling loop.")
             return
         
         self.comet_enabled = True
@@ -235,7 +239,7 @@ class AIBase:
         op = command[0]
 
         if op == -1: # Shutdown (most common)
-            print("Shutdown command received")
+            log.info("AI Agent received shutdown command")
             self.stop()
 
         elif op == 2: # Join Game
@@ -249,7 +253,7 @@ class AIBase:
                 self.start_polling_loop() # New game was successful
 
         else:
-            print("unknown op:", op)
+            log.warn("Unknown daemon command: {0}".format(op))
 
     def run(self):
         # Read from pipe -- does block ai thread, but start() is final action
@@ -264,13 +268,16 @@ class AIBase:
                 self.stop()
             except Exception as e:
                 self.stop()
-                raise
+                log.exception("Killing daemon loop...")
+                return
 
     def start(self):
+        log.debug("AI Agent listening on Manager pipe")
         self.running = True
         self.run()
 
     def stop(self):
+        log.debug("AI Agent stopped listening on Manager pipe")
         self.running = False
 
     ####################
@@ -285,23 +292,19 @@ class AIBase:
 
         """
         if event == EVENT_PLAY:
-            print("ERROR", err_msg)
+            log.warn(err_msg)
         elif event == EVENT_BID:
-            print("ERROR", err_msg)
+            log.warn(err_msg)
         elif event == EVENT_JOIN_GAME:
-            print("ERROR", err_msg)
+            log.warn(err_msg)
         elif event == EVENT_NEW_GAME:
-            print("ERROR", err_msg)
+            log.warn(err_msg)
         else:
-            print("ERROR", "Unidentified error.")
-            pass
+            log.warn("Unidentified error")
 
     def handle_response(self, response):
         """Handle response from Comet request, e.g. update internal game state.
         
-        TODO:Avoid having handler output to stdout in final build. Log instead.
-            --mayebe write all output to the Pipe and let Manager deal w/ it?
-
         response (dict): message from Comet server of form
             {'new': int, 'msgs': list of dicts}
 
@@ -367,19 +370,19 @@ class AIBase:
                     elif key == 'win':
                         # finalize log & shutdown
                         gs['mode'] = -1 #TODO handle End of Game
-                        print("AI Ending Game")
+                        log.info("Game ending, AI shutting down")
                         self.handle_daemon_command("-1")
 
-                    else:  #TODO add support for mp, gp keys
+                    else:  #TODO add support for mp, gp, name, etc. keys
                         pass
-#                        print("WARN: unhandled key:", key)
+#####TODO                        print("WARN: unhandled key:", key)
 
         # This is a weird but simple way of handling exceptions raised by
         # act(). BaseExceptions are properly sent to the manager from the agent
         # Process(), but most other exceptions are not. However, the following
         # code will expose the exception properly, while showing a random
         # BaseException in the process. A minor drawback, but no alternative
-        # is viable.
+        # is currently viable.
         #
         # Use this construct if you make methods in agents that are not called
         # through act().
