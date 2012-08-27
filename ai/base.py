@@ -46,6 +46,7 @@ from time import sleep
 from urllib.parse import urlencode
 from http.client import HTTPConnection
 from json import loads as json_loads
+from math import floor
 
 import logging
 log = logging.getLogger(__name__)
@@ -76,8 +77,6 @@ else:
     SUITS_SHORT = {0:'\u2663', 1:'\u2666', 2:'\u2665', 3:'\u2660'}
 
 # Hardcoded values to increase performance in decoding cards
-SUIT_TERMS = [0,13,26,39]
-RANKS = range(2,15)
 NUM_RANKS = 13
 
 NUM_TEAMS = 2
@@ -477,13 +476,12 @@ class AIBase:
         self.gs['previous_player'] = self.gs['active_player']
         self.gs['active_player'] = actvP
 
-    def decode_card(self, card_code): #TODO: make this better
-        """Convert card code into rank, suit pair."""
-        val = card_code+1
-        for term in SUIT_TERMS:
-            if val-term in RANKS:
-                return val-term, int(term/NUM_RANKS)
-        return -1, -1
+    def decode_card(self, card_code):
+        """Decode card encoding into (rank, suit) pair."""
+        suit = floor((card_code - 1) / NUM_RANKS)
+        rank = card_code - (suit * NUM_RANKS) + 1
+        
+        return rank, suit
 
     def print_card(self, card_code):
         """Return descriptive string of card; copies Card.__repr__() function."""

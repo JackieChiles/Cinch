@@ -100,13 +100,9 @@ class Deck(list):
         return c
 
 
-SUIT_TERMS = [NUM_RANKS*x for x in range(NUM_SUITS)]
 def decode(card_code):
     """Decode card encoding into (rank, suit) pair."""
-    val = card_code+1
-    for term in SUIT_TERMS:
-        if val - term in RANKS_BY_NUM:
-            return (val-term, int(term/NUM_RANKS))
-
-    return 0, 0
-
+    suit = floor((card_code - 1) / NUM_RANKS)
+    rank = card_code - (suit * NUM_RANKS) + 1
+    
+    return rank, suit
