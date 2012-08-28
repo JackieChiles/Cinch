@@ -12,12 +12,16 @@ get_client_by_player_num(self, group, pNum)
 def get_client_info(self, client)
 get_clients_in_group(self, group)
 get_group_by_client(self, client)
+get_player_names_in_group(self, group)
 get_player_num_by_client(self, client)
 get_player_nums_in_group(self, group)
 
 """
 import string
 import random
+
+import logging
+log = logging.getLogger(__name__)
 
 
 MAX_TRIES = 32767
@@ -37,7 +41,6 @@ class Client:
     """Container class for client pNum, user name, group number."""
     def __init__(self, name='anon'):
         self.name = name
-        self.guid = None #to be implemented
         self.pNum = None
         self.group = None
         
@@ -122,13 +125,13 @@ class ClientManager:
             del self.clients[ident]
 
         except KeyError:
-            raise KeyError("Client {0} does not exist.".format(ident))
+            log.exception("Client {0} does not exist.".format(ident))
 
         if group is not None:
             try:
                 self.groups[group].remove(ident)
             except KeyError:
-                raise KeyError("Group {0} does not exist.".format(group))
+                log.exception("Group {0} does not exist.".format(group))
 
     def del_group(self, group_id):
         """Delete group and clear group assignments of associated clients.
@@ -142,7 +145,7 @@ class ClientManager:
 
             del self.groups[group_id]
         except KeyError:
-            raise KeyError("Group {0} does not exist.".format(group_id))
+            log.exception("Group {0} does not exist.".format(group_id))
 
     def get_client_by_player_num(self, group_id, pNum):
         """Return client guid of player pNum from group.
@@ -154,7 +157,7 @@ class ClientManager:
         try:
             group = self.groups[group_id]
         except KeyError:
-            raise KeyError("No group with group_id {0} found.".format(group_id))
+            log.exception("No group with group_id {0} found.".format(group_id))
 
         try:
             return group[pNum]
@@ -172,7 +175,7 @@ class ClientManager:
             pNum = self.clients[client].pNum 
             return group, pNum
         except KeyError:
-            raise KeyError("Client {0} does not exist.".format(client))
+            log.exception("Client {0} does not exist.".format(client))
 
     def get_clients_in_group(self, group_id):
         """Return list of client guids associated with group.
@@ -183,7 +186,7 @@ class ClientManager:
         try:
             return self.groups[group_id].values()
         except KeyError:
-            raise KeyError("Group {0} does not exist.".format(group_id))
+            log.exception("Group {0} does not exist.".format(group_id))
         
     def get_group_by_client(self, client):
         """Return group that contains client.
@@ -194,19 +197,8 @@ class ClientManager:
         try:
             return self.clients[client].group
         except KeyError:
-            raise KeyError("Client {0} does not exist.".format(client))
+            log.exception("Client {0} does not exist.".format(client))
 
-    def get_player_num_by_client(self, client):
-        """Return playerNum for client.
-
-        client (str): guid of client
-
-        """
-        try:
-            return self.clients[client].pNum 
-        except KeyError:
-            raise KeyError("Client {0} does not exist.".format(client))
-    
     def get_player_names_in_group(self, group):
         """Return dict of player num & name for clients in group.
         
@@ -224,7 +216,21 @@ class ClientManager:
             return players
         
         except KeyError:
-            return "Cannot get player numbers from Group {0}".format(group)
+            log.exception("Cannot get player numbers from Group {0}"
+                    "".format(group))
+            return {}
+
+    def get_player_num_by_client(self, client):
+        """Return playerNum for client.
+
+        client (str): guid of client
+
+        """
+        try:
+            return self.clients[client].pNum 
+        except KeyError:
+            log.exception("Client {0} does not exist.".format(client))
+            return -1
 
     def get_player_nums_in_group(self, group):
         """Return list of player numbers of clients in group.
@@ -235,5 +241,6 @@ class ClientManager:
         try:
             return self.groups[group].keys()
         except KeyError:
-            return "Cannot get player numbers from Group {0}".format(group)
-
+            log.exception("Cannot get player numbers from Group {0}"
+                    "".format(group))
+            return []

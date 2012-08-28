@@ -23,6 +23,6 @@ class Player:
 
     def __repr__(self):
         """Return descriptive string when asked to print object."""
-        return "Player {0} with {1} cards in hand.".format(self.name,
-                                                           len(self.hand))
+        return "Player {0} with {1} cards in hand.".format(
+                self.name, len(self.hand))
 

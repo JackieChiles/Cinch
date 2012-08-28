@@ -7,6 +7,7 @@ implementation.
 """
 import random
 import os
+from math import floor
 
 
 # Provide two-way lookup for ranks and suits by name and number.

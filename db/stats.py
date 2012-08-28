@@ -10,7 +10,7 @@ process(gid, hNum): Grab all events with the chosen game id (gid) and hand
 """
 
 import sqlite3
-import logging
+import logging      #Will leave the logging facilities here alone.
 import ast
 
 DB_PATH = 'db/cinch.db'

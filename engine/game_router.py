@@ -8,6 +8,9 @@ TODO: add threading/async capes -- mostly handled already by CometServer?
 from threading import Timer # For delayed start
 from time import sleep
 
+import logging
+log = logging.getLogger(__name__)
+
 import core.common as common
 import core.cards as cards
 from core.game import Game, NUM_PLAYERS
@@ -227,7 +230,7 @@ class JoinGameHandler(GameRouterHandler):
             
             init_data = self.router.games[game_id].start_game(players)
             self.announce_msgs_from_game(init_data, game_id)
-            print("Game Router: game started")           
+            log.info("Game Router: game started")           
 
         # Return client GUID and assigned player number
         return {'uid': client_id, 'pNum': pNum}
@@ -348,7 +351,7 @@ def get_error(err, *args):
 
     except IndexError:
         # Argument missing from args
-        raise RuntimeError("get_error_string: Need more args for error_id {0}."
-                           .format(error_id))
+        log.exception("get_error_string: Need more args for error_id {0}."
+                "".format(error_id))
 
     return {'err': err_val}

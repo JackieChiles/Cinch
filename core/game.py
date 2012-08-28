@@ -9,18 +9,22 @@ import random
 import sqlite3
 from datetime import datetime, timezone
 
+import logging
+log = logging.getLogger(__name__)
+
 import core.common as common
 from core.player import Player
 import core.cards as cards
 from core.gamestate import GameState
 import db.stats as stats    
 
+
 #Constants and global variables
 STARTING_HAND_SIZE = 9
 NUM_TEAMS = 2
 TEAM_SIZE = 2
 NUM_PLAYERS = NUM_TEAMS * TEAM_SIZE
-GAME_MODE = common.enum(PLAY=1, BID=2)
+GAME_MODE = common.enum(PLAY=1, BID=2) #TODO replace this enum with a dict & remove common.py:enum()
 DB_PATH = 'db/cinch.db'
 MAX_HANDS = 16 # Not part of game rules; intended to prevent AI problems.
                # Can be modified later if actual gameplay is trending longer.
@@ -150,8 +154,6 @@ class Game:
             self.gs.active_player = self.gs.next_player(self.gs.active_player)
             return self.publish('bid', player_num, bid)
             
-        raise NotImplementedError("Bid handling incomplete") # Debugging.
-                
     def handle_card_played(self, player_num, card_num):
         """Invoke play processing logic on incoming play and send update to
         clients, or indicate illegal play to single player.
@@ -166,7 +168,7 @@ class Game:
         # Check that player_num is active player.
         #----------------------------------------
         if player_num is not self.gs.active_player:
-            print("Non-active player attempted to play a card.") # Debugging
+            log.info("Non-active player attempted to play a card.")
             return None # Ignore
 
         if not (self.check_play_legality(self.players[player_num], card_num)):
@@ -204,7 +206,7 @@ class Game:
         # Check for end of hand and handle, otherwise return.
         #----------------------------------------------------
         
-        # This is error checking to verify that all players have equal hand
+        # TODO: This is error checking to verify that all players have equal hand
         # sizes. Later, we can just check players[0].hand for cards.
         cards_left = 0
         for player in self.players:
@@ -374,7 +376,8 @@ class Game:
         """
         # Might as well error check this here. All games must have 4 players.
         if len(plr_arg) is not NUM_PLAYERS:
-            raise RuntimeError("Tried to start a game with <4 players.")
+            log.exception("Tried to start a game with <{0} players."
+                          "".format(NUM_PLAYERS))
 
         self.players = [Player(x, plr_arg[x]) for x in range(NUM_PLAYERS)]
         game_id = self.dbstart()

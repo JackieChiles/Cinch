@@ -21,7 +21,6 @@ class Message:
 
     def __repr__(self):
         """Return descriptive string of Message."""
-        return "From: {0}\nTo: {1}\nData: {2}".format(self.source,
-                                                      self.target,
-                                                      self.data)
+        return "From: {0}\nTo: {1}\nData: {2}".format(
+                self.source, self.target, self.data)
 

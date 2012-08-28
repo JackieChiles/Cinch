@@ -1,21 +1,16 @@
 #!/usr/bin/python3
+import core.common as common
+import core.cards as cards
 
-#import
+import logging
+log = logging.getLogger(__name__)
 
-#this allows game.py to be ran alone from core dir AND as part of cinch.py
-# for development.
-## once final, will use only absolute imports (core.*)
-try:
-    import common
-    import cards
-except ImportError:
-    import core.common as common
-    import core.cards as cards
-    
+   
 # Constants; these can be replaced later
 NUM_TEAMS = 2
 TEAM_SIZE = 2
 NUM_PLAYERS = NUM_TEAMS * TEAM_SIZE
+
 
 class GameState:
     """
@@ -36,7 +31,6 @@ class GameState:
     scores (list of integers): score for each team
     team_stacks (list of lists of Card objects): Cards taken this hand
     """
-
     def __init__(self, game_id):
         self.game_id = game_id
         self.game_mode = 2 # Change this later to MODE BID or whatever.
@@ -144,7 +138,6 @@ class GameState:
                 if team_total == current_best_game_point_total:
                     game_holder = None
          
-         
         # All cards accounted for, now assign temp points to teams.
         temp_points = [0]*TEAM_SIZE # Initialize to be able to increment
         temp_points[high_holder] += 1
@@ -154,19 +147,17 @@ class GameState:
         if game_holder is not None:
             temp_points[game_holder] += 1
          
-        # Compare to bids and adjust scores.
-         
+        # Compare to bids and adjust scores.         
         declaring_team = self.declarer % TEAM_SIZE
          
-        # Handle cinching and getting set.
-         
+        # Handle cinching and getting set.         
         if self.high_bid == 5: # Don't hardcode this, it's CINCH.
-            if temp_points[declaring_team] == 4:       # Made it.
-                if self.scores[declaring_team] == 0:         # Auto-win.
+            if temp_points[declaring_team] == 4:         # Made it.
+                if self.scores[declaring_team] == 0:     # Auto-win.
                     temp_points[declaring_team] = 11
                 else:
                     temp_points[declaring_team] = 10
-            else:                                           # Ouch, set.
+            else:                                        # Ouch, set.
                 temp_points[declaring_team] = -10
                 declarer_set = True
         else:
@@ -183,8 +174,8 @@ class GameState:
                             game_holder = game_holder,
                             declarer_set = declarer_set,
                             game_points = game_points)
-
         return
+
         
 if __name__ == "__main__":
-    print("Are your cats old enough to learn about Jesus?")  
+    log.warning("Are your cats old enough to learn about Jesus?")  

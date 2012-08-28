@@ -15,6 +15,9 @@ from cgi import escape
 import json
 from collections import defaultdict, deque
 
+import logging
+log = logging.getLogger(__name__)
+
 from web import web_config as config
 from web.channel import CommChannel
 from web.message import Message
@@ -53,7 +56,7 @@ class CometServer(ThreadingMixIn, HTTPServer):
             for h in hq:
                 self.release_handler(h)
                                 
-            print("Server halted with keyboard interrupt.\n")
+            log.info("Server halted with keyboard interrupt.")
 
     def add_announcer(self, channel):
         """Register channel as an announcer to the server.
@@ -320,7 +323,7 @@ class HttpHandler(BaseHTTPRequestHandler):
 
         else:
            # No handler exists, so print error message
-            print("Warn: No handler for query: ", self.data)
+            log.warning("Warn: No handler for query: {0}".format(self.data))
 
     def acknowledge_request(self):
         """Send out status code and headers, common between GET and POST."""
@@ -372,9 +375,8 @@ class HttpHandler(BaseHTTPRequestHandler):
         try:
             self.wfile.write(output.encode())
         except ValueError:
-            #this line is being monitored; may have been fixed with Issue #86
-            print("ERROR IN LINE 371 OF WEB_SERVER.PY")
-            raise
+            log.exception("Failed to send data: {0} under mode {1}"
+                    "".format(data, mode))
 
 
 def boot_server():
@@ -382,9 +384,9 @@ def boot_server():
     try:
         server = CometServer(config.HOSTNAME, config.PORT)
     except:
-        print("Error booting server.\n")
-        raise
+        raise RuntimeError("Error starting web server.")
     
-    print("Server started.")
-    print("Suppressing GET/POST output.")
+    log.info("Server started.")
+    log.debug("Suppressing GET/POST output.")
+    
     return server
