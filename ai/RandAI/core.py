@@ -22,10 +22,11 @@ class Rand(AIBase):
                 for c in self.hand:
                     if self.is_legal_play(c):
                         legal_cards.append(c)
-                chosen_card = random.randint(0,len(legal_cards)-1)
-                self.play(legal_cards[chosen_card])
+                chosen_card_pos = random.randint(0,len(legal_cards)-1)
+                chosen_card = legal_cards[chosen_card_pos]
+                self.play(chosen_card)
                 log.info("{0} {1} plays {2}".format(
-                        self.name, self.pNum, self.print_card(c)))
+                        self.name, self.pNum, self.print_card(chosen_card)))
 
             elif self.gs['mode'] == 2: # Bid
                 log.info("{0} {1} is bidding...".format(self.name, self.pNum))
