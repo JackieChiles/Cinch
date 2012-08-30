@@ -276,50 +276,49 @@
                     </div>
                     
                     <div class="ui-block-a">
-                        <div data-bind="text: gamePoints()[0]" class="ui-bar ui-bar-c hand-end-info"></div>
+                        <div data-bind="text: gamePoints()[myTeamNum()]" class="ui-bar ui-bar-c hand-end-info"></div>
                     </div>
                     <div class="ui-block-b">
-                        <div data-bind="text: gamePoints()[1]" class="ui-bar ui-bar-c hand-end-info"></div>
+                        <!-- The 1 - myTeamNum() method with of course only work with two teams -->
+                        <div data-bind="text: gamePoints()[1 - myTeamNum()]" class="ui-bar ui-bar-c hand-end-info"></div>
                     </div>
                 </div>
                 
-                <button data-bind="click: startBidding">Continue</button>
-            </div>
-        </div><!-- /hand-end page -->
-        
-        <div data-role="page" data-title="Cinch - End of Game" id="game-end-page" class="no-close-dialog">
-            <div data-role="header">
-                <h1>Game over</h1>
-            </div><!-- /header -->
-	    
-            <div data-role="content">
-                <h3>
-                    <span data-bind="text: winnerName"></span> win!
-                </h3>
+                <div data-bind="visible: typeof winner() === 'undefined'">
+                    <button data-bind="click: startBidding">Continue</button>
+                </div>
                 
-                <hr />
+                <div data-bind="visible: typeof winner() !== 'undefined'">
+                    <hr />
                 
-                <h3>Final scores</h3>
-                
-                <div class="ui-grid-a">
-                    <div class="ui-block-a">
-                        <div class="ui-bar ui-bar-c">You</div>
-                    </div>
-                    <div class="ui-block-b">
-                        <div class="ui-bar ui-bar-c">Opponents</div>
+                    <h3>
+                        <span data-bind="text: winnerName"></span> win!
+                    </h3>
+                    
+                    <hr />
+                    
+                    <h3>Final scores</h3>
+                    
+                    <div class="ui-grid-a">
+                        <div class="ui-block-a">
+                            <div class="ui-bar ui-bar-c">You</div>
+                        </div>
+                        <div class="ui-block-b">
+                            <div class="ui-bar ui-bar-c">Opponents</div>
+                        </div>
+                        
+                        <div class="ui-block-a">
+                            <div data-bind="text: gameScores()[myTeamNum()]" class="ui-bar ui-bar-c hand-end-info"></div>
+                        </div>
+                        <div class="ui-block-b">
+                            <div data-bind="text: gameScores()[1 - myTeamNum()]" class="ui-bar ui-bar-c hand-end-info"></div>
+                        </div>
                     </div>
                     
-                    <div class="ui-block-a">
-                        <div data-bind="text: gameScores()[0]" class="ui-bar ui-bar-c hand-end-info"></div>
-                    </div>
-                    <div class="ui-block-b">
-                        <div data-bind="text: gameScores()[1]" class="ui-bar ui-bar-c hand-end-info"></div>
-                    </div>
+                    <button data-bind="click: returnHome">Continue</button>
                 </div>
-                
-                <button data-bind="click: returnHome">Continue</button>
             </div>
-        </div><!-- /game-end page -->
+        </div><!-- /hand-end page -->
         
         <div data-role="page" data-title="Cinch" data-dom-cache="true" id="game-page">
             <div data-role="navbar">
@@ -327,13 +326,13 @@
                     <li>
                         <span class="ui-btn ui-btn-inline ui-btn-up-a">
                             <h3>Your score</h3>
-                            <span data-bind="text: gameScores()[0]"></span>
+                            <span data-bind="text: gameScores()[myTeamNum()]"></span>
                         </span>
                     </li>
                     <li>
                         <span class="ui-btn ui-btn-inline ui-btn-up-a">
                             <h3>Their score</h3>
-                            <span data-bind="text: gameScores()[1]"></span>
+                            <span data-bind="text: gameScores()[1 - myTeamNum()]"></span>
                         </span>
                     </li>
                     <li>

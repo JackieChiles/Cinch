@@ -20,6 +20,7 @@ import db.stats as stats
 
 
 #Constants and global variables
+WINNING_SCORE = 11
 STARTING_HAND_SIZE = 9
 NUM_TEAMS = 2
 TEAM_SIZE = 2
@@ -221,7 +222,7 @@ class Game:
         self.gs.score_hand()
         victor = False
         for score in self.gs.scores:
-            if score >= 11:
+            if score >= WINNING_SCORE:
                 victor = True
                 break
                 
@@ -234,9 +235,9 @@ class Game:
         
         # This block breaks if there are more than two teams.        
         if victor:
-            if self.gs.scores[self.gs.declarer % TEAM_SIZE] >= 11:
+            if self.gs.scores[self.gs.declarer % TEAM_SIZE] >= WINNING_SCORE:
                 self.gs.winner = self.gs.declarer % TEAM_SIZE
-            elif self.gs.scores[(self.gs.declarer + 1)% TEAM_SIZE] >= 11:
+            elif self.gs.scores[(self.gs.declarer + 1)% TEAM_SIZE] >= WINNING_SCORE:
                 self.gs.winner = (self.gs.declarer + 1) % TEAM_SIZE
             else:
                 pass # Don't need to set winner if we reached on MAX_HANDS.

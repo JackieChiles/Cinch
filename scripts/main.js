@@ -236,7 +236,13 @@ var CinchApp = {
             viewModel.unlockBoard();
             startLongPoll();
         },
-        win: function (update) { viewModel.winner(update.win); }
+        win: function (update) {
+            //Game is over, so update match and game points and winner value
+            //This will trigger the hand-end dialog with the game-end information enabled
+            viewModel.matchPoints(update.mp || []);
+            viewModel.gamePoints(update.gp || []);
+            viewModel.winner(update.win);
+        }
     }
 };
 
@@ -420,10 +426,6 @@ function CinchViewModel() {
         'Your partner',
         'Right opponent'
     ];
-    this.teamNames = [
-        'You',
-        'Opponents'
-    ];
     
     this.username = ko.observable("");
     
@@ -456,6 +458,21 @@ function CinchViewModel() {
     });
     
     this.myPlayerNum = ko.observable(0); //Player num assigned by server
+    this.myTeamNum = ko.computed(function() {
+        //Team number according to server
+        return self.myPlayerNum() % CinchApp.NUM_TEAMS;
+    });
+    this.teamNames = ko.computed(function() {
+        var i = 0;
+        var list = [];
+        
+        for(i = 0; i < CinchApp.NUM_TEAMS; i++) {
+            //For now, any team other than 'yours' will be called 'Opponents'
+            list.push(self.myTeamNum() === i ? 'You' : 'Opponents');
+        }
+        
+        return list;
+    });
     this.activePlayer = ko.observable(); //Relative to client (self is always CinchApp.playerEnum.south)
     this.isActivePlayer = ko.computed(function() {
         //Client is always CinchApp.playerEnum.south
@@ -474,8 +491,8 @@ function CinchViewModel() {
     });
     this.winner = ko.observable(); //Integer, winning team. Will be 0 for players 0 & 2 and 1 for players 1 and 3.
     this.winnerName = ko.computed(function() {
-        //Winning team is "You" if self.winner() matches your team, otherwise "Opponents"
-        return self.myPlayerNum() % CinchApp.NUM_TEAMS == self.winner() ? self.teamNames[0] : self.teamNames[1];
+        //Return name of the winning team
+        return self.teamNames()[self.winner() % CinchApp.NUM_TEAMS];
     });
     this.gameMode = ko.observable();
     this.isGameStarted = ko.computed(function() {
@@ -494,7 +511,7 @@ function CinchViewModel() {
         for(i = 0; i < matchPointStrings.length; i++) {
             if(matchPointStrings[i].indexOf(type) > -1) {
                 //Return the team that got the point
-                return self.teamNames[i] || '';
+                return self.teamNames()[i] || '';
             }
         }
         
@@ -690,7 +707,7 @@ function CinchViewModel() {
             //end of hand procedures. So re-push this till later. Twice.
             CinchApp.secondaryActionQueue.push(function() {
                 CinchApp.secondaryActionQueue.push(function() {
-                    openJqmDialog('#game-end-page');
+                    openJqmDialog('#hand-end-page');
                 });
             });
         });
