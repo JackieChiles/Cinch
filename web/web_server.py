@@ -49,14 +49,17 @@ class CometServer(ThreadingMixIn, HTTPServer):
         try:
             self.serve_forever()
         except KeyboardInterrupt:   # Exit gracefully
+            log.info("Server halted with keyboard interrupt.")
+        except:
+            log.exception("Server halted unexpectedly.")
+        finally:
+            log.info("Shutting down server...")
             # Inhibit new handlers from connecting so server dies on time
             config.GUID_KEY = None # Causes all GETs to be ignored
             # Release all handler threads so server doesn't wait for timeout
             hq = list(self.handler_queue)
             for h in hq:
                 self.release_handler(h)
-                                
-            log.info("Server halted with keyboard interrupt.")
 
     def add_announcer(self, channel):
         """Register channel as an announcer to the server.
