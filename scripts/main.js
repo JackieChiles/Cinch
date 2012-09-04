@@ -92,6 +92,7 @@ var CinchApp = {
     CARD_IMAGE_EXTENSION: '.png',
     NONE_BID_DISPLAY: '-',
     defaultPlayerName: 'Anonymous',
+    systemUser: 'System',
     faceDownCard: function() {
         //Represents face-down cards in other players' hands, used in KO arrays for those hands
         //You may not pay 3 colorless to morph
@@ -224,9 +225,21 @@ var CinchApp = {
             viewModel.gameMode(update.mode);
         },
         msg: function (update) { outputMessage(update.msg, viewModel.playerNames[serverToClientPNum(parseInt(update.uNum, 10))]); },
+        names: function (update) {
+            var i = 0;
+            var names = update.names;
+            
+            for(i = 0; i < names.length; i++) {
+                //Store name
+                viewModel.playerNames[serverToClientPNum(names[i].pNum)] = names[i].name;
+                
+                //Announce player's arrival
+                outputMessage('Player ' + names[i].name + ' is now in the game.', CinchApp.systemUser);
+            }
+        },
         playC: function (update) { viewModel.playCard(update.playC); },
         pNum: function (update) { viewModel.myPlayerNum(update.pNum); },
-        remP: function (update) { handleEndTrick(update.remP); },
+        remP: function (update) { handleEndTrick(update.remP); }, //TODO: move code from handleEndTrick here and use update.playC in it
         sco: function (update) { viewModel.gameScores(update.sco); },
         trp: function (update) { viewModel.trump(update.trp); },
         uid: function (update) {
@@ -285,7 +298,7 @@ $('#home-page').live('pageinit', function () {
         });
         
         $('#play-surface').attr('width', CinchApp.PLAY_SURFACE_WIDTH).attr('height', CinchApp.PLAY_SURFACE_HEIGHT);
-        outputMessage("Welcome to Cinch- it's pretty rad here.", 'System');
+        outputMessage("Welcome to Cinch- it's pretty rad here.", CinchApp.systemUser);
         
         //TODO: Actually handle incompatible browsers
         if (Modernizr.canvas && Modernizr.canvastext) {
@@ -592,6 +605,9 @@ function CinchViewModel() {
         
         return Math.max.apply(null, bidValues);
     });
+    this.highBidName = ko.computed(function() {
+        return CinchApp.bidNames[self.highBid()] || CinchApp.NONE_BID_DISPLAY;
+    });
     this.possibleBids = [];
     
     //Create the possible bids
@@ -632,7 +648,6 @@ function CinchViewModel() {
     
     //Functions
     this.endBidding = function() {
-        self.resetBids(); //Clear any old bids
         $.mobile.changePage( '#game-page', { transition: 'slideup'} ); //Navigate back to game page
     };
     this.playCard = function(cardNum) {
@@ -691,7 +706,13 @@ function CinchViewModel() {
                     //Need to ensure this is ran after all other end of trick actions, but
                     //we can't guarantee key order in the updates. So re-push this till later.
                     CinchApp.secondaryActionQueue.push(function() {
+                        //Clear any old bids
+                        self.resetBids();
+                    
                         openJqmDialog('#hand-end-page');
+                        
+                        //Clear trump so it isn't displayed at the beginning of the next hand
+                        self.trump(null);
                     });
                 });
             }
