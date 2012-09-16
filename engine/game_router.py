@@ -1,6 +1,28 @@
 #!/usr/bin/python3
 """Game router for Cinch.
 
+File contents:
+
+-class GameRouter
+--attach_ai_manager()
+--attach_client_manager()
+--register_handlers()
+--get_client_guids()
+
+-class GameRouterHandler(CommChannel)
+--register()
+--announce_msgs_from_game()
+
+-class NewGameHandler(GameRouterHandler)
+-class JoinGameHandler(GameRouterHandler)
+-class LobbyHandler(GameRouterHandler)
+-class AIListRequestHandler(GameRouterHandler)
+-class GamePlayHandler(GameRouterHandler)
+-class AIListRequestHandler(GameRouterHandler)
+
+-get_error()
+
+
 TODO: add threading/async capes -- mostly handled already by CometServer?
 
 
