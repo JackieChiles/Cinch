@@ -17,7 +17,6 @@ class AIBase
 --start()
 --stop()
 
---handle_error(event, err_msg)
 --handle_response(response)
 
 --bid(bid)
@@ -95,12 +94,12 @@ class AIBase:
     # Agent Management -- Creation/maintenance of Agent; metagame functions
     ####################
 
-    def __init__(self, pipe, identity):#TODO: cleanup/make better
+    def __init__(self, pipe, identity):
         # Instance variables
         self.uid = 0
         self.manager = None
         self.running = False
-        self.pipe = pipe # of type multiprocessing.Pipe
+        self.pipe = pipe # type = multiprocessing.Pipe
         self.name = identity['name']
 
         # Network comm
@@ -134,8 +133,7 @@ class AIBase:
             # Halt daemon loop
             self.running = False
 
-        #TODO
-        #log final state?
+        #TODO - log final state?
 
     ####################
     # Network communications -- message exchange with game server
@@ -176,11 +174,11 @@ class AIBase:
         while self.comet_enabled:
             try:
                 response = poll()
-                if response is not None: #TODO try-catch this better/faster
+                if response is not None:
                     handle(response)
 
             except Exception: # Wait longer for connection to finalize 
-                sleep(COMET_DELAY/2)
+                sleep(3)
         
     def send_data(self, data):
         """Send data via POST request to Comet server.
@@ -282,24 +280,6 @@ class AIBase:
     ####################
     # Message Receivers -- Handlers for received messages
     ####################
-   
-    def handle_error(self, event, err_msg): #TODO improve pending logging UI
-        """Handler for error messages received from Comet server.
-
-        event (int): descriptor for source of error
-        err_msg (str): body of error message
-
-        """
-        if event == EVENT_PLAY:
-            log.warn(err_msg)
-        elif event == EVENT_BID:
-            log.warn(err_msg)
-        elif event == EVENT_JOIN_GAME:
-            log.warn(err_msg)
-        elif event == EVENT_NEW_GAME:
-            log.warn(err_msg)
-        else:
-            log.warn("Unidentified error")
 
     def handle_response(self, response):
         """Handle response from Comet request, e.g. update internal game state.
@@ -372,24 +352,27 @@ class AIBase:
                         log.info("Game ending, AI shutting down")
                         self.handle_daemon_command("-1")
 
-                    else:  #TODO add support for mp, gp, name, etc. keys
-                        pass
-#####TODO                        print("WARN: unhandled key:", key)
+                    else:
+                        # See docstring for handle_other_key
+                        self.handle_other_key(val)
 
-        # This is a weird but simple way of handling exceptions raised by
-        # act(). BaseExceptions are properly sent to the manager from the agent
-        # Process(), but most other exceptions are not. However, the following
-        # code will expose the exception properly, while showing a random
-        # BaseException in the process. A minor drawback, but no alternative
-        # is currently viable.
-        #
-        # Use this construct if you make methods in agents that are not called
-        # through act().
         try:            
             self.act()
-        except:
-            raise BaseException
+        except Exception as e:
+            log.exception(e)
 
+    def handle_other_key(self, val):
+        '''Override this method within each agent's core.py as desired. This 
+        is to be used to handle message keys that are ignored by base.py (e.g.
+        scores, player names). If ignored keys are being handled in identical 
+        ways by all agents in their handle_other_key overrides, refactor to 
+        include that functionality in handle_response().
+        
+        val (str): message key
+
+        '''
+        pass
+        
     ####################
     # Message Transmitters -- Convenience methods for sending messages
     ####################
@@ -402,9 +385,11 @@ class AIBase:
         """
         res = self.send_data({'uid':self.uid, 'bid':bid}) # Expects nothing
 
-        #Bid may be illegal anyway
+        # Bid may be illegal anyway
         if res:
-            self.handle_error(EVENT_BID, res['err'])
+            log.error("Agent made illegal bid of {0}; adjusting bid to PASS."
+                        "".format(bid))
+            self.bid(0) # Pass
 
     def chat(self, chat_msg):
         """Send chat-style message to Comet server (for debugging & hijinks).
@@ -429,7 +414,7 @@ class AIBase:
         res = self.send_data(data) # Expects {'uid', 'pNum'} or {'err'}
 
         if 'err' in res:
-            self.handle_error(EVENT_JOIN_GAME, res['err'])
+            log.error("Error joining game: {0}".format(res['err']))
             return False
         else:
             self.uid, self.pNum = res['uid'], res['pNum']
@@ -446,9 +431,11 @@ class AIBase:
         """
         res = self.send_data({'uid':self.uid, 'card':card_val}) # Expects null
 
-        #Play may be deemed illegal by server anyway
+        # Play may be deemed illegal by server anyway
         if res:
-            self.handle_error(EVENT_PLAY, res['err'])
+            # No fallback option defined for an illegal play
+            log.error("Agent made illegal play with card_val {0}"
+                        "".format(card_val))
         
     def request_new_game(self):
         """Instruct Agent to request new game from server."""
@@ -459,7 +446,7 @@ class AIBase:
         res = self.send_data(data) # Expects {'uid', 'pNum'}
 
         if 'err' in res:
-            self.handle_error(EVENT_NEW_GAME, res['err'])
+            log.error("Error requesting new game.")
             return False
         else:
             self.uid, self.pNum = res['uid'], res['pNum']
@@ -484,7 +471,7 @@ class AIBase:
         return rank, suit
 
     def print_card(self, card_code):
-        """Return descriptive string of card; copies Card.__repr__() function."""
+        """Return descriptive string of card; copies Card.__repr__() method."""
 
         suit = (card_code-1) // NUM_RANKS
         rank = card_code - suit*NUM_RANKS + 1
@@ -498,9 +485,9 @@ class AIBase:
 
         """
         if bid == 0:
-            return True # always legal to pass
+            return True # Always legal to pass
         elif bid < 0 or bid > 5:
-            return False # bid out of bounds
+            return False # Bid out of bounds
         elif bid > self.gs['high_bid']:
             return True
         elif bid == 5 & self.pNum == self.gs['dealer']:
