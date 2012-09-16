@@ -13,6 +13,7 @@ File contents:
 --register()
 --announce_msgs_from_game()
 
+-class ServerMonitor(CommChannel)
 -class NewGameHandler(GameRouterHandler)
 -class JoinGameHandler(GameRouterHandler)
 -class LobbyHandler(GameRouterHandler)
@@ -28,7 +29,8 @@ TODO: add threading/async capes -- mostly handled already by CometServer?
 
 """
 from threading import Timer # For delayed start
-from time import sleep
+from time import sleep, time
+from _thread import start_new_thread # For timeout handler
 
 import logging
 log = logging.getLogger(__name__)
@@ -42,6 +44,9 @@ from web.channel import CommChannel
 MAX_GAME_SIZE = NUM_PLAYERS # Max number of players in a game
 START_GAME_DELAY = 3.0 # Time to wait between last player joining and starting
 DEFAULT_PNUM = 0 # pNum assigned to player who creates new game
+
+GAME_TIMEOUT_INTERVAL = 60 # Secs to allow game to get no traffic before ending
+                           # Ensure this is greater than COMET_TIMEOUT on svr!
 
 # Message signatures
 SIGNATURE = common.enum(
@@ -71,7 +76,15 @@ class GameRouter:
     """Manage handlers for traffic between games and clients."""
     def __init__(self):
         self.games = dict() # key=game_id, value=game object
+        self.gametimes = dict() #key=game_id, value=last_time of client contact
         self.handlers = []
+        
+        # Start game timeout thread
+        self.running = True
+        start_new_thread(self.handle_timeout, ())
+        
+    def __del__(self):
+        self.running = False
 
     def attach_ai_manager(self, ai):
         """Attach AI Manager from the engine to the Game Router module.
@@ -101,6 +114,8 @@ class GameRouter:
         """
         if cm is None:
             raise RuntimeError("Client Manager not attached to Game Router.")
+        # Create monitor for GET requests on server (used for game timeouts)
+        server.monitor = ServerMonitor(self)
         
         # Create action handlers
         addHandler = self.handlers.append
@@ -118,7 +133,24 @@ class GameRouter:
             
     def get_client_guids(self, guid):
         return cm.get_clients_in_group(cm.get_group_by_client(guid))
+        
+    def handle_timeout(self):
+        """Periodically check for "stale" games. Terminate any that have not
+        received a GET request in the last GAME_TIMEOUT_INTERVAL."""
+        while self.running:
+            now = time() // 1
 
+            for game_id in self.gametimes: #TODO verify this code block
+                if (now - self.gametimes[game_id]) > GAME_TIMEOUT_INTERVAL:
+                    # Cleanup self.games
+                    del self.games[game_id]
+                    # Cleanup client manager
+                    cm.del_group(game_id)
+                    
+                    log.info("Game {0} timed out.".format(game_id))
+            
+            sleep(GAME_TIMEOUT_INTERVAL)
+        
 
 #--------------------
 # Base class for game router internal handlers
@@ -130,7 +162,7 @@ class GameRouterHandler(CommChannel):
         router (GameRouter): reference to game router object
         signature (list): message signature to be handled
         """
-        CommChannel.__init__(self)
+        super().__init__()
 
         self.router = router
         self.signature = signature
@@ -166,6 +198,23 @@ class GameRouterHandler(CommChannel):
 #--------------------
 # Handlers for specific message types / actions
 #--------------------
+class ServerMonitor(CommChannel):
+    """Listens to all GET requests made on the server for guids & updates
+    timeout information for active games."""
+    def __init__(self, router):
+        super().__init__()
+        self.router = router # router = GameRouter
+        
+    # Overriden member
+    def respond(self, msg):
+        '''msg is a guid string here, NOT a Message object.'''
+        # Get game id of client
+        game_id, _ = cm.get_client_info(msg)
+        if game_id is not None:
+            # Update last timestamp of game
+            self.router.gametimes[game_id] = time() // 1
+        
+        
 class NewGameHandler(GameRouterHandler):
     """React to New Game requests from server."""
     # Overridden member

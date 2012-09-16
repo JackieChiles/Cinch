@@ -9,7 +9,7 @@ create_group(self)
 del_client(self, ident)
 del_group(self, ident)
 get_client_by_player_num(self, group, pNum)
-def get_client_info(self, client)
+get_client_info(self, client)
 get_clients_in_group(self, group)
 get_group_by_client(self, client)
 get_player_names_in_group(self, group)
@@ -140,7 +140,9 @@ class ClientManager:
 
         """
         try:
-            for client in self.groups[group_id]:
+            group = self.groups[group_id]
+            for pNum in group:
+                client = self.clients[group[pNum]]
                 client.group = None
 
             del self.groups[group_id]

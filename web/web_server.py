@@ -39,6 +39,7 @@ class CometServer(ThreadingMixIn, HTTPServer):
         self.message_queue = defaultdict(list)
         
         self.lock = Lock()    # Thread control for server
+        self.monitor = None   # Special CommChannel used to monitor GET queries
         self.responders = []  # List of CommChannels for handling POST queries
 
     ####################
@@ -81,7 +82,7 @@ class CometServer(ThreadingMixIn, HTTPServer):
         channel.add_announce_callback(handler)
 
     def add_responder(self, channel, signature):
-        """Register responser for handling incoming data/requests.
+        """Register responder for handling incoming data/requests.
 
         channel (CommChannel): external object that cares to handle messages
         signature (list): list of keys for JSON encoded dictionary of data
@@ -137,11 +138,19 @@ class CometServer(ThreadingMixIn, HTTPServer):
     def capture_handler(self, http_handler):
         """Add http_handler to handler_queue and set event flags for later.
         
-        Captures handler for later writing to by notify().
+        Captures handler for later writing to by notify(). POST handlers are not
+        captured.
         
-        http_handler (HttpHandler): request handler
+        http_handler (HttpHandler): GET request handler
         
         """
+        # Pass incoming message off to server monitor
+        try:
+            self.monitor.respond(http_handler.guid)
+        except:
+            log.debug("No server monitor present.")
+            pass # No monitor configured
+
         # Check if handler for guid is already in queue. If so, close out all
         # old ones. Should only be at most one handler per guid, but loop just
         # in case.
@@ -262,6 +271,7 @@ class HttpHandler(BaseHTTPRequestHandler):
         # content. This lets browser finish request cleanly.
         self.acknowledge_request()
 
+
         # If valid Comet request, capture handler for future notification
         if config.GUID_KEY in self.data:
             # Extract client guid from data
@@ -270,6 +280,8 @@ class HttpHandler(BaseHTTPRequestHandler):
             # Attempt to capture request and begin waiting
             if self.server.capture_handler(self):
                 # You can store the result (True/False) from wait() if desired
+                # wait() will return either when the handler gets released
+                # (by receiving data) or when COMET_TIMEOUT has elapsed.
                 self.event.wait(config.COMET_TIMEOUT)
 
                 # Shutdown handler
@@ -326,7 +338,7 @@ class HttpHandler(BaseHTTPRequestHandler):
 
         else:
            # No handler exists, so print error message
-            log.warning("Warn: No handler for query: {0}".format(self.data))
+            log.warning("No handler for query: {0}".format(self.data))
 
     def acknowledge_request(self):
         """Send out status code and headers, common between GET and POST."""

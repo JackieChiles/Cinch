@@ -25,7 +25,7 @@ STARTING_HAND_SIZE = 9
 NUM_TEAMS = 2
 TEAM_SIZE = 2
 NUM_PLAYERS = NUM_TEAMS * TEAM_SIZE
-GAME_MODE = common.enum(PLAY=1, BID=2) #TODO replace this enum with a dict & remove common.py:enum()
+GAME_MODE = common.enum(PLAY=1, BID=2)
 DB_PATH = 'db/cinch.db'
 MAX_HANDS = 16 # Not part of game rules; intended to prevent AI problems.
                # Can be modified later if actual gameplay is trending longer.
