@@ -18,7 +18,7 @@ Sections lifted from the wikipedia entry for "Auction Pitch", the closest approx
 <th>Name</th><th>Description</th><th>Who Scores?</th>
 </tr>
 <tr>
-<td>High</td><td>highest trump out</td><td>original/eventual owner</td>
+<td>High</td><td>highest trump out</td><td>original (eventual) owner</td>
 </tr>
 <tr>
 <td>Low</td><td>lowest trump out</td><td>original owner</td>

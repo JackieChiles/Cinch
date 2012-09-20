@@ -43,3 +43,18 @@ class Dave(AIBase):
                 else:
                     self.bid(0)
                     log.info("{0} {1} passes.".format(self.name, self.pNum))
+    
+    def handle_response(self, response):
+        """Overriding base class handle_response. This is to demonstrate how
+        to hijack the normal response handler to do custom stuff without
+        copying the entire function.
+        
+        response (dict): message from Comet server
+        
+        """
+        for msg in response['msgs']:
+            if 'addC' in msg: # Start of hand
+                self.chat("Good luck everyone. You'll need it.")
+
+        super().handle_response(response) # Return message to default handler    
+    

@@ -356,6 +356,8 @@ class AIBase:
                         # See docstring for handle_other_key
                         self.handle_other_key(val)
 
+        self.gs = gs # Oops.
+
         try:            
             self.act()
         except Exception as e:
@@ -410,7 +412,8 @@ class AIBase:
         if self.in_game:    # Prevent in-game client from starting new game
             return
         
-        data = {'join': game_id, 'pNum': pNum, 'name': self.identity['name']}
+        data = {'join': game_id, 'pNum': pNum, 'name': "{0}/{1}".format(
+                self.identity['name'], pNum)}
         res = self.send_data(data) # Expects {'uid', 'pNum'} or {'err'}
 
         if 'err' in res:
@@ -468,7 +471,7 @@ class AIBase:
         suit = floor((card_code - 1) / NUM_RANKS)
         rank = card_code - (suit * NUM_RANKS) + 1
         
-        return rank, suit
+        return rank, suit # rank and suit are integers
 
     def print_card(self, card_code):
         """Return descriptive string of card; copies Card.__repr__() method."""

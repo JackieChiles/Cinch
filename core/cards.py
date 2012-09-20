@@ -51,7 +51,6 @@ class Card:
         self.code = None # We could set this on creation...
         self.owner = None # Not this, though.
         
-        
     def __lt__(self, other):
         """Implemented to make class sortable."""
         return ((self.suit == other.suit and self.rank < other.rank) or

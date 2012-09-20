@@ -1,0 +1,2 @@
+First iteration of "intelligent" AI -- as in, doesn't just play randomly or 
+simply. This will probably be more of a tech demo than an effective AI agent.
