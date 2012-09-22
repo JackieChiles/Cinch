@@ -23,9 +23,9 @@ class Hal(AIBase):
 
     def act(self):
         """Overriding base class act."""
-        label = "{0}/{1}".format(self.name, self.pNum) # Clean up logging lines
-        
+
         if self.pNum==self.gs['active_player']:
+            label = "{0}/{1}".format(self.name, self.pNum) # Clean up logging
 
             #====================
             # Play logic
@@ -36,8 +36,6 @@ class Hal(AIBase):
                 for c in self.hand:
                     if self.is_legal_play(c):
                         self.play(c)
-                        log.info("{0} plays {1}".format(
-                                    label, self.print_card(c)))
                         break
 
             #====================
@@ -55,22 +53,27 @@ class Hal(AIBase):
                     bid += 1
                 elif r < .02: # 2% of time Agent would bid 2 more
                     bid += 2
+                    
+                r = random.random()
+                if (r < .50) and (bid > 0): # Half the time bid conservatively
+                    bid -= 1
 
+                #TODO make use of super().is_legal_bid() (needs refactoring)
                 # Transmit bid                            
                 if bid > self.gs['high_bid']:
                     self.bid(bid)
-                    log.info("{0} bids {1}".format(label, bid))
+                    #log.info("{0} bids {1}".format(label, bid))
                 else:
-                    # Check if stuck dealer (dealer wants to pass on high of 0)
+                    # Check if stuck dealer (is dealer and all other folks pass)
                     if ((self.gs['dealer'] == self.pNum) and 
                             (self.gs['high_bid'] == 0)):
+                       log.info("{0} is stuck as dealer".format(label))
                        self.bid(1) # Make minimum legal bid
-                       log.info("{0} is dealer-stuck, bids {1}."
-                                "".format(label, bid))
+
 
                     else:
                         self.bid(0) # Bid isn't legal or bid is 0, so pass
-                        log.info("{0} passes.".format(label))
+                        #log.info("{0} passes.".format(label))
     
     def think_on_bid(self):
         """Evaluate hand and return proposed bid.

@@ -101,6 +101,7 @@ class AIBase:
         self.running = False
         self.pipe = pipe # type = multiprocessing.Pipe
         self.name = identity['name']
+        self.label = self.name
 
         # Network comm
         self.conn = {}
@@ -392,6 +393,11 @@ class AIBase:
             log.error("Agent made illegal bid of {0}; adjusting bid to PASS."
                         "".format(bid))
             self.bid(0) # Pass
+        else:
+            if bid > 0:
+                log.info("{0} bids {1}".format(self.label, bid))
+            else:
+                log.info("{0} passes".format(self.label))
 
     def chat(self, chat_msg):
         """Send chat-style message to Comet server (for debugging & hijinks).
@@ -421,6 +427,7 @@ class AIBase:
             return False
         else:
             self.uid, self.pNum = res['uid'], res['pNum']
+            self.label = "{0}/{1}".format(self.name, self.pNum)
             self.in_game = True
             self.chat("AI Agent in seat #{0}.".format(self.pNum))
             return True
@@ -439,7 +446,11 @@ class AIBase:
             # No fallback option defined for an illegal play
             log.error("Agent made illegal play with card_val {0}"
                         "".format(card_val))
-        
+        else:
+            log.info("{0} plays {1}".format(self.label, 
+                                            self.print_card(card_val)))
+    
+    # Currently not functional
     def request_new_game(self):
         """Instruct Agent to request new game from server."""
         if self.in_game:    # Prevent in-game client from creating new game
