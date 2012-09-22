@@ -11,8 +11,6 @@ class Rand(AIBase):
     def __init__(self, pipe):
         super().__init__(pipe, self.identity)  # Call to parent init
 
-        log.info("{0}AI loaded".format(self.name))
-
     def act(self):
         """Overriding base class act."""
         if self.pNum==self.gs['active_player']:

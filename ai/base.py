@@ -120,6 +120,8 @@ class AIBase:
         gs['scores'] = [0,0]    # Defined for 2-team game
         gs['team_stacks'] = [[],[]]
         self.gs = gs
+
+        log.info("{0}AI loaded".format(self.name))
         
     def __del__(self):
         """Safely shutdown AI Agent subprocess."""
@@ -270,12 +272,13 @@ class AIBase:
                 return
 
     def start(self):
-        log.debug("AI Agent listening on Manager pipe")
+        log.debug("AI Agent {0} listening on Manager pipe".format(self.label))
         self.running = True
         self.run()
 
     def stop(self):
-        log.debug("AI Agent stopped listening on Manager pipe")
+        log.debug("AI Agent {0} stopped listening on Manager pipe"
+                  "".format(self.label))
         self.running = False
 
     ####################
@@ -534,6 +537,10 @@ class AIBase:
                             return False # Could've followed suit but didn't
 
                     return True # Throwing off
+    
+    def get_legal_plays(self):
+        """Create subset of hand of legal plays."""
+        return list(filter(self.is_legal_play, self.hand))
 
     ####################
     # Intelligence -- Implement in subclasses

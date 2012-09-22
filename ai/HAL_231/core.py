@@ -9,12 +9,13 @@ from core.cards import * # Not best practices, but it makes life good here
 from ai.base import AIBase, log
 
 
+FACE_CARDS = [cdACE, cdKING, cdQUEEN, cdJACK]
+
+
 class Hal(AIBase):
     def __init__(self, pipe):
         super().__init__(pipe, self.identity)  # Call to parent init
 
-        log.info("{0}AI loaded".format(self.name))
-        
         self.target_suit = None # If agent wins bid, set this as trump
         self.fancy_cards = None
         self.hand_by_suit = None
@@ -32,11 +33,22 @@ class Hal(AIBase):
             #====================
             if self.gs['mode'] == 1: # Play
                 log.info("{0} is playing...".format(label))
-                #Play first legal card
-                for c in self.hand:
-                    if self.is_legal_play(c):
-                        self.play(c)
-                        break
+                
+                legal_plays = self.get_legal_plays()
+                
+                # Perform play analysis
+                play = self.think_on_play(legal_plays)
+                
+                # Make final play determination
+                if self.is_legal_play(play):
+                    self.play(play)
+                else:
+                    #Make a legal play
+                    log.error("Agent decided on illegal play ({0}); "
+                              "forcing legal play".format(play))
+                    
+                    #Play first legal card
+                    self.play(legal_plays[0])
 
             #====================
             # Bid logic
@@ -58,22 +70,26 @@ class Hal(AIBase):
                 if (r < .50) and (bid > 0): # Half the time bid conservatively
                     bid -= 1
 
-                #TODO make use of super().is_legal_bid() (needs refactoring)
-                # Transmit bid                            
-                if bid > self.gs['high_bid']:
-                    self.bid(bid)
-                    #log.info("{0} bids {1}".format(label, bid))
+                # Make final bid determination
+
+                # Check if stuck as dealer
+                #  (agent wants to pass as dealer & all other folks pass)
+                if ((self.gs['dealer'] == self.pNum) and  
+                        (self.gs['high_bid'] == 0) and
+                        (bid == 0)):
+                    log.info("{0} is stuck as dealer".format(label))
+                    bid = 1 # Make minimum legal bid
                 else:
-                    # Check if stuck dealer (is dealer and all other folks pass)
-                    if ((self.gs['dealer'] == self.pNum) and 
-                            (self.gs['high_bid'] == 0)):
-                       log.info("{0} is stuck as dealer".format(label))
-                       self.bid(1) # Make minimum legal bid
+                    if bid <= self.gs['high_bid']:
+                        bid = 0 # Pass
 
-
-                    else:
-                        self.bid(0) # Bid isn't legal or bid is 0, so pass
-                        #log.info("{0} passes.".format(label))
+                # Transmit bid
+                if self.is_legal_bid(bid):
+                    self.bid(bid)
+                else:
+                    log.error("Agent failed to make legal bid of {0}".format(
+                            bid))
+                    self.bid(0) # Try passing
     
     def think_on_bid(self):
         """Evaluate hand and return proposed bid.
@@ -123,6 +139,16 @@ class Hal(AIBase):
             
         self.target_suit = big_suit  # Use this if we win bid
         return max_points
+    
+    def think_on_play(self, legal_plays):
+        """Perform play analysis.
+        
+        legal_plays (list): list of card_vals that are deemed legal plays
+        
+        """
+        #TODO this
+        
+        return legal_plays[0]
     
     def fancify_hand(self):
         """Deocde and store hand for easier manipulation."""
