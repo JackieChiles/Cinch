@@ -1,33 +1,42 @@
 #!/usr/bin/python3
 """
-Provide facilities for Deck and Card objects for Cinch card game, which
-will include Cinch-specific properties as needed. It is undesirable to
-delegate all Cinch-specific properties to higher level objects for this
-implementation.
+Define basic properties of cards and decks of cards. 
 """
 import random
-import os
+from os import name as os_name
 from math import floor
 
 
+# Constants to use for card identification -- copying style from VB
+cdCLUBS = 0;        cdDIAMONDS = 1;         cdHEARTS = 2;       cdSPADES = 3
+cdTWO = 2;          cdTHREE = 3;            cdFOUR = 4;         cdFIVE = 5
+cdSIX = 6;          cdSEVEN = 7;            cdEIGHT = 8;        cdNINE= 9
+cdTEN = 10;         cdJACK = 11;            cdQUEEN = 12;       cdKING = 13
+cdACE = 14
+
 # Provide two-way lookup for ranks and suits by name and number.
-RANKS_BY_NUM = {2:'two', 3:'three', 4:'four', 5:'five', 6:'six', 7:'seven',
-                8:'eight', 9:'nine', 10:'ten', 11:'jack', 12:'queen',
-                13:'king', 14:'ace'}
-RANKS_BY_NAME = {v:k for k, v in RANKS_BY_NUM.items()}
-RANKS_SHORT = {2:'2', 3:'3', 4:'4', 5:'5', 6:'6', 7:'7', 8:'8', 9:'9',
-               10:'T', 11:'J', 12:'Q', 13:'K', 14:'A'}
-SUITS_BY_NUM = {0:'clubs', 1:'diamonds', 2:'hearts', 3:'spades'}
-SUITS_BY_NAME = {v:k for k, v in SUITS_BY_NUM.items()}
+RANKS_BY_NUM = {cdTWO:'Two',        cdTHREE:'Three',    cdFOUR:'Four',  
+                cdFIVE:'Five',      cdSIX:'Six',        cdSEVEN:'Seven',
+                cdEIGHT:'Eight',    cdNINE:'Nine',      cdTEN:'Ten', 
+                cdJACK:'Jack',      cdQUEEN:'Queen',    cdKING:'King',     
+                cdACE:'Ace'}
+
+RANKS_SHORT = {cdTWO:'2',   cdTHREE:'3',    cdFOUR:'4',     cdFIVE:'5', 
+               cdSIX:'6',   cdSEVEN:'7',    cdEIGHT:'8',    cdNINE:'9',
+               cdTEN:'T',   cdJACK:'J',     cdQUEEN:'Q',    cdKING:'K',
+               cdACE:'A'}
+
+SUITS_BY_NUM = {cdCLUBS:'Clubs', cdDIAMONDS:'Diamonds', cdHEARTS:'Hearts', 
+                cdSPADES:'Spades'}
+
+# Code to support deprecated/legacy development platforms:
+if os_name == 'nt':
+    SUITS_SHORT = {0:'C', 1:'D', 2:'H', 3:'S'}
+else: # Unicode is awesome
+    SUITS_SHORT = {0:'\u2663', 1:'\u2666', 2:'\u2665', 3:'\u2660'}
 
 NUM_RANKS = 13
 NUM_SUITS = 4
-
-# Code to support deprecated/legacy development platforms:
-if os.name == 'nt':
-    SUITS_SHORT = {0:'C', 1:'D', 2:'H', 3:'S'}
-else:
-    SUITS_SHORT = {0:'\u2663', 1:'\u2666', 2:'\u2665', 3:'\u2660'}
 
 
 class Card:
@@ -48,8 +57,8 @@ class Card:
         else:
             self.rank = rank_or_code
             self.suit = suit
-        self.code = None # We could set this on creation...
-        self.owner = None # Not this, though.
+        self.code = self.encode()
+        self.owner = None
         
     def __lt__(self, other):
         """Implemented to make class sortable."""
@@ -96,7 +105,6 @@ class Deck(list):
         Avoids need for separate 'shuffle' method.
         """
         c = self.pop(random.randint(0, len(self)-1))
-        c.code = c.encode()
         return c
 
 
