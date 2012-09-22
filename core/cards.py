@@ -14,6 +14,8 @@ cdSIX = 6;          cdSEVEN = 7;            cdEIGHT = 8;        cdNINE= 9
 cdTEN = 10;         cdJACK = 11;            cdQUEEN = 12;       cdKING = 13
 cdACE = 14
 
+__all__ = ["cdCLUBS", "cdDIAMONDS", "cdHEARTS", "cdSPADES", "cdTWO", "cdTHREE", "cdFOUR", "cdFIVE", "cdSIX", "cdSEVEN", "cdEIGHT", "cdNINE", "cdTEN", "cdJACK", "cdQUEEN", "cdKING", "cdACE"]
+
 # Provide two-way lookup for ranks and suits by name and number.
 RANKS_BY_NUM = {cdTWO:'Two',        cdTHREE:'Three',    cdFOUR:'Four',  
                 cdFIVE:'Five',      cdSIX:'Six',        cdSEVEN:'Seven',

@@ -4,7 +4,8 @@
 import random
 from collections import defaultdict
 
-# Import base class for AI agent -- may need to edit import path
+# Import base class for AI agent
+from core.cards import * # Not best practices, but it makes life good here
 from ai.base import AIBase, log
 
 
@@ -82,20 +83,18 @@ class Hal(AIBase):
         suit_points = defaultdict(int)
         
         for suit in self.hand_by_suit:
-            #TODO make use of constants, move card constants to common.py, etc
-
             this_suit = [x.rank for x in self.hand_by_suit[suit]]
 
             # If high card in suit is A, K, or Q, add a point to this suit
-            if max(this_suit) in [12, 13, 14]:
+            if max(this_suit) in [cdQUEEN, cdKING, cdACE]:
                 suit_points[suit] += 1
                 
             # If low card in suit is 2, 3, or 4, add a point to this suit
-            if min(this_suit) in [2, 3, 4]:
+            if min(this_suit) in [cdTWO, cdTHREE, cdFOUR]:
                 suit_points[suit] += 1
                 
             # If jack of suit is present, add a point to this suit
-            if 11 in this_suit: # Jack = 11
+            if cdJACK in this_suit: # Jack = 11
                 suit_points[suit] += 1
         
         # Select max of suit_points; if tied, pick suit with most cards
