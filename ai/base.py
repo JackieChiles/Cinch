@@ -231,12 +231,13 @@ class AIBase:
         - Shutdown [stop(self)]
 
         raw_msg (tuple of ints): data sent by Manager with following values:
-        - (1,)       New Game
+        - (1)        New Game
         - (2,x,y)    Join Game #x in Seat y
         - (-1,)      Shutdown
 
         """
         op = command[0]
+        print("!!!!!!!  ", op)
 
         if op == -1: # Shutdown (most common)
             log.info("AI Agent received shutdown command")
@@ -353,8 +354,9 @@ class AIBase:
                     elif key == 'win':
                         # finalize log & shutdown
                         gs['mode'] = -1 #TODO handle End of Game
-                        log.info("Game ending, AI shutting down")
-                        self.handle_daemon_command("-1")
+                        log.info("Game ending, {0} shutting down".format(
+                                self.label))
+                        self.handle_daemon_command(-1)
 
                     else:
                         # See docstring for handle_other_key
@@ -453,14 +455,20 @@ class AIBase:
             log.info("{0} plays {1}".format(self.label, 
                                             self.print_card(card_val)))
     
-    # Currently not functional
     def request_new_game(self):
-        """Instruct Agent to request new game from server."""
+        """Instruct Agent to request new game from server. Used only for 
+        AI-only games.
+        
+        plrs (string): CSV agent model num list 
+        
+        """
         if self.in_game:    # Prevent in-game client from creating new game
             return
 
-        data = {'game': 0}
-        res = self.send_data(data) # Expects {'uid', 'pNum'}
+        # It thinks it's people
+        data = {'game':0, 'plrs':"-3,-3,-3,-3", 'name': "{0}/0".format(
+                self.identity['name'])}
+        res = self.send_data(data) # Expected return is {'uid', 'pNum'}
 
         if 'err' in res:
             log.error("Error requesting new game.")

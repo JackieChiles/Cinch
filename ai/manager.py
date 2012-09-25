@@ -120,7 +120,6 @@ class AIManager:
         i = 1 # Used for AI ID #
 
         #TODO: may want to sort ai_packages first, somehow
-
         for pkg in self.ai_packages:
             identity = pkg.Agent.identity
             temp = {'id': i,
@@ -136,7 +135,6 @@ class AIManager:
             i += 1
 
         return aList
-        
 
     ####################
     # Agent Management
@@ -198,18 +196,25 @@ class AIManager:
         log.info("Agent with model_num={0} and pNum={1} created"
                  " for game {2}".format(model_num, pNum, game_id))
 
-    #This option is currently inactive,
-    #as new game requests require a 'plrs' parameter
-#    def create_agent_for_new_game(self, model_num):
-#        """Create new agent and issue 'new game' command to it.
+    def create_agent_for_new_game(self, model_num, plrs=None):
+        """Create new agent and issue 'new game' command to it. Can only be
+        invoked via command console.
 
-#        model_num (int): index of desired agent model in models[]
+        model_num (int): index of desired agent model in models[]
 
-#        """
-#        pipe = self.create_agent(model_num)
+        """
+        pipe = self.create_agent(model_num)
+        data = (1,)
+        self.send_message(pipe, data)
+        log.info("Agent with model_num={0} creating new game".format(model_num))
 
-#        data = (1,) # 1 = new game
-#        self.send_message(pipe, data)
+        if plrs is None: # AI Agent will be playing a mirror match
+            plrs = "{0},{1},{2}".format(model_num,model_num,model_num)
+
+        n = 1
+        for p in plrs.split(","): # Spawn AI agents from plrs for games
+            self.create_agent_for_existing_game(int(p), -1, n)
+            n = n+1
 
     def send_message(self, pipe, msg):
         """Send specified message to agent via subprocess pipe.

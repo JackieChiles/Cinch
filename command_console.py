@@ -26,7 +26,7 @@ if __name__ == "__main__":
     print("="*40)
     print("Connection established with Cinch server")
     print()
-    print("Typing 'help' is a good start.")    
+    print("Typing 'help' is a good start; 'exit' quits the command console.")    
 
     # Begin menu interface with user
     while True:
@@ -38,8 +38,6 @@ if __name__ == "__main__":
             conn_out.send(val)
             print(conn_in.recv())
     
-
-
     conn_out.close()
     conn_in.close()
     listener.close()

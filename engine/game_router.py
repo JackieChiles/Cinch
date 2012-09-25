@@ -255,6 +255,9 @@ class JoinGameHandler(GameRouterHandler):
     def respond(self, msg):
         # Check if game is full
         game_id = int(msg.data['join'])
+        if game_id == -1: # -1 = join newest game
+            game_id = len(self.router.games) - 1
+
         cur_player_nums = cm.get_player_nums_in_group(game_id)       
         
         if len(cur_player_nums) == MAX_GAME_SIZE:
