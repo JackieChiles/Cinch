@@ -140,10 +140,12 @@ class GameRouter:
         while self.running:
             now = time() // 1
 
-            for game_id in self.gametimes: #TODO verify this code block
+            for game_id in list(self.gametimes):
                 if (now - self.gametimes[game_id]) > GAME_TIMEOUT_INTERVAL:
                     # Cleanup self.games
                     del self.games[game_id]
+                    # Cleanup self.gametimes
+                    del self.gametimes[game_id]
                     # Cleanup client manager
                     cm.del_group(game_id)
                     
@@ -206,10 +208,9 @@ class ServerMonitor(CommChannel):
         self.router = router # router = GameRouter
         
     # Overriden member
-    def respond(self, msg):
-        '''msg is a guid string here, NOT a Message object.'''
+    def respond(self, guid):
         # Get game id of client
-        game_id, _ = cm.get_client_info(msg)
+        game_id, _ = cm.get_client_info(guid)
         if game_id is not None:
             # Update last timestamp of game
             self.router.gametimes[game_id] = time() // 1

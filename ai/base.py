@@ -231,24 +231,23 @@ class AIBase:
         - Shutdown [stop(self)]
 
         raw_msg (tuple of ints): data sent by Manager with following values:
-        - (1)        New Game
+        - (1,)        New Game
         - (2,x,y)    Join Game #x in Seat y
         - (-1,)      Shutdown
 
         """
         op = command[0]
-        print("!!!!!!!  ", op)
 
-        if op == -1: # Shutdown (most common)
-            log.info("AI Agent received shutdown command")
+        if op == -1: # Shutdown
+            log.info("AI Agent {0} received shutdown command".format(
+                        self.label))
             self.stop()
+            self.stop_polling_loop()
 
         elif op == 2: # Join Game
             if self.join_game(command[1], command[2]):
                 self.start_polling_loop() # Join game was successful
 
-        # This option is currently inactive,
-        # as new game requests require a 'plrs' parameter now
         elif op == 1: # New Game
             if self.request_new_game():
                 self.start_polling_loop() # New game was successful
@@ -356,7 +355,7 @@ class AIBase:
                         gs['mode'] = -1 #TODO handle End of Game
                         log.info("Game ending, {0} shutting down".format(
                                 self.label))
-                        self.handle_daemon_command(-1)
+                        self.handle_daemon_command((-1,)) # Force tuple
 
                     else:
                         # See docstring for handle_other_key
@@ -475,6 +474,7 @@ class AIBase:
             return False
         else:
             self.uid, self.pNum = res['uid'], res['pNum']
+            self.label = "{0}/{1}".format(self.name, self.pNum)
             self.in_game = True
             self.chat("AI Agent in seat #{0}.".format(self.pNum))
             return True
