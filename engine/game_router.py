@@ -46,7 +46,7 @@ START_GAME_DELAY = 3.0 # Time to wait between last player joining and starting
 DEFAULT_PNUM = 0 # pNum assigned to player who creates new game
 
 GAME_TIMEOUT_INTERVAL = 60 # Secs to allow game to get no traffic before ending
-                           # Ensure this is greater than COMET_TIMEOUT on svr!
+                           # Ensure this exceeds COMET_TIMEOUT on server!
 
 # Message signatures
 SIGNATURE = common.enum(
@@ -114,6 +114,7 @@ class GameRouter:
         """
         if cm is None:
             raise RuntimeError("Client Manager not attached to Game Router.")
+
         # Create monitor for GET requests on server (used for game timeouts)
         server.monitor = ServerMonitor(self)
         
@@ -136,7 +137,10 @@ class GameRouter:
         
     def handle_timeout(self):
         """Periodically check for "stale" games. Terminate any that have not
-        received a GET request in the last GAME_TIMEOUT_INTERVAL."""
+        received a GET request in the last GAME_TIMEOUT_INTERVAL. Games with
+        AI players will (should) never go stale.
+        
+        """
         while self.running:
             now = time() // 1
 
@@ -172,6 +176,7 @@ class GameRouterHandler(CommChannel):
     def register(self, server):
         """
         server (CometServer): reference to web server
+
         """
         server.add_responder(self, self.signature)
         server.add_announcer(self)
