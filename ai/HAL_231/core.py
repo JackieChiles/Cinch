@@ -5,11 +5,11 @@ import random
 from collections import defaultdict
 
 # Import base class for AI agent
-from core.cards import * # Not best practices, but it makes life good here
+import core.cards as cards
 from ai.base import AIBase, log
 
 
-FACE_CARDS = [cdACE, cdKING, cdQUEEN, cdJACK]
+FACE_CARDS = [cards.ACE, cards.KING, cards.QUEEN, cards.JACK]
 
 
 class Hal(AIBase):
@@ -26,7 +26,7 @@ class Hal(AIBase):
         """Overriding base class act."""
 
         if self.pNum==self.gs['active_player']:
-            label = "{0}/{1}".format(self.name, self.pNum) # Clean up logging
+            label = "{0}/{1}".format(self.name, self.pNum) # Cleans up logging
 
             #====================
             # Play logic
@@ -36,7 +36,7 @@ class Hal(AIBase):
                 
                 legal_plays = self.get_legal_plays()
                 
-                # Perform play analysis
+                # Perform play analysis -- filter out illegal plays now
                 play = self.think_on_play(legal_plays)
                 
                 # Make final play determination
@@ -105,15 +105,15 @@ class Hal(AIBase):
             this_suit = [x.rank for x in self.hand_by_suit[suit]]
 
             # If high card in suit is A, K, or Q, add a point to this suit
-            if max(this_suit) in [cdQUEEN, cdKING, cdACE]:
+            if max(this_suit) in [cards.QUEEN, cards.KING, cards.ACE]:
                 suit_points[suit] += 1
                 
             # If low card in suit is 2, 3, or 4, add a point to this suit
-            if min(this_suit) in [cdTWO, cdTHREE, cdFOUR]:
+            if min(this_suit) in [cards.TWO, cards.THREE, cards.FOUR]:
                 suit_points[suit] += 1
                 
             # If jack of suit is present, add a point to this suit
-            if cdJACK in this_suit: # Jack = 11
+            if cards.JACK in this_suit: # Jack = 11
                 suit_points[suit] += 1
         
         # Select max of suit_points; if tied, pick suit with most cards
@@ -191,4 +191,4 @@ class MyCard:
         self.suit = suit
         
     def __repr__(self):
-        return "{0}/{1}-{2}".format(self.val, self.rank, self.suit)
+        return "{1}{2} ({0})".format(self.val, self.rank, self.suit)
