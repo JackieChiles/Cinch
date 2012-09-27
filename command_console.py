@@ -1,4 +1,4 @@
-#!/bin/python3
+#!/usr/bin/python3
 """Provide interface for sending commands to live Cinch server."""
 from multiprocessing.connection import Client, Listener
 from time import sleep
