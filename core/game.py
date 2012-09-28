@@ -352,7 +352,7 @@ class Game:
             message['tgt'] = [i for i in range(NUM_PLAYERS)]
             output = [message]
             
-        self.dbevent(output)
+        #self.dbevent(output)
         
         # At the end of each hand, trigger the script to parse messages for
         # stats purposes.
