@@ -296,10 +296,10 @@ class JoinGameHandler(GameRouterHandler):
         self.announce(name_msg)
       
         # Announce new player entering game
-        outgoing_data = {'names': [ {'name': msg.data['name'], 'pNum': pNum} ]}
         tgts = cm.get_clients_in_group(game_id)
         for tgt in tgts:
-            self.announce(Message(outgoing_data, target=tgt, source=game_id))
+            out_data = {'names': [ {'name': msg.data['name'], 'pNum': pNum} ]}
+            self.announce(Message(out_data, target=tgt, source=game_id))
 
         # Notify client manager
         cm.add_client_to_group(client_id, game_id, pNum)
