@@ -37,6 +37,9 @@ if __name__ == "__main__":
         else:
             conn_out.send(val)
             print(conn_in.recv())
+            
+            if "halt" == val:
+                break # User took server down, so exit here too.
     
     conn_out.close()
     conn_in.close()
