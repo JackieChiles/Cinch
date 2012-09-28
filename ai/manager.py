@@ -40,6 +40,7 @@ class AIManager
 import multiprocessing
 import sys
 import os
+from time import sleep
 
 import logging
 log = logging.getLogger(__name__)
@@ -208,6 +209,8 @@ class AIManager:
         self.send_message(pipe, data)
         log.info("Agent with model_num={0} creating new game".format(model_num))
 
+        sleep(0.4) # Allow time for game to be created (suspected race cond.)
+        
         if plrs is None: # AI Agent will be playing a mirror match
             plrs = "{0},{1},{2}".format(model_num,model_num,model_num)
 
