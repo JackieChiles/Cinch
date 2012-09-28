@@ -297,7 +297,7 @@ class JoinGameHandler(GameRouterHandler):
       
         # Announce new player entering game
         tgts = cm.get_clients_in_group(game_id)
-        for tgt in tgts:
+        for tgt in tgts: #TODO this occasionally causes Runtime Error (dictionary changed size during iteration). Can't explain that.
             out_data = {'names': [ {'name': msg.data['name'], 'pNum': pNum} ]}
             self.announce(Message(out_data, target=tgt, source=game_id))
 
