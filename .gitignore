@@ -2,4 +2,6 @@
 db/cinch.db
 db/stats.log
 driver.py
+reset.sh
+server-reset.php
 *.pyc
