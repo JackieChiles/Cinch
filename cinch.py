@@ -79,15 +79,28 @@ class Cinch:
                     break
 
                 # Handle msg here & gather response
-                print(msg)
                 response = msg
                 
                 if 'help' == msg:
                     response = """Valid commands:
+    ai x [y] - create AI-only game with players 
+        x - agent model number
+        y - 'plrs' string no quotes/spaces (e.g. "1,2,3"); if omitted, then
+            AI plays self. ONLY use 3 items!
     help - show this message
     halt - stops Cinch server
     show games - get listing of all active games
 """
+
+                elif 'ai' == msg[:2]:
+                    cmd = msg.split()
+                    
+                    # Direct AI Manager to follow command
+                    if len(cmd) == 3:
+                        self.ai_mgr.create_agent_for_new_game(int(cmd[1]),
+                                                              cmd[2])
+                    else:
+                        self.ai_mgr.create_agent_for_new_game(int(cmd[1]))
 
                 elif 'halt' == msg:
                     self.server.shutdown()

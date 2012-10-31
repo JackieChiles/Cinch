@@ -50,6 +50,8 @@ from math import floor
 import logging
 log = logging.getLogger(__name__)
 
+from core.cards import RANKS_SHORT, SUITS_SHORT, NUM_RANKS
+
 # Settings
 SERVER_HOST = "localhost"
 SERVER_PORT = 2424
@@ -65,25 +67,14 @@ EVENT_JOIN_GAME = 1     #
 EVENT_BID = 2           #
 EVENT_PLAY = 3          #
 
-# Card values used for logging
-RANKS_SHORT = {2:'2', 3:'3', 4:'4', 5:'5', 6:'6', 7:'7', 8:'8', 9:'9',
-               10:'T', 11:'J', 12:'Q', 13:'K', 14:'A'}
-# Code to support deprecated/legacy development platforms:
-from os import name as osname
-if osname == 'nt':
-    SUITS_SHORT = {0:'C', 1:'D', 2:'H', 3:'S'}
-else:
-    SUITS_SHORT = {0:'\u2663', 1:'\u2666', 2:'\u2665', 3:'\u2660'}
-
 # Hardcoded values to increase performance in decoding cards
-NUM_RANKS = 13
 
 NUM_TEAMS = 2
 NUM_PLAYERS = 4
 
 GAME_UPDATE_KEYS = ['trp', 'playC', 'remP', 'sco', 'win', 'dlr', 'addC','mode']
 GAMESTATE_KEYS = ['mode','trump','dealer','high_bid','declarer',
-                  'previous_player','active_player','cip','scores',
+                  'actor', 'active_player','cip','scores',
                   'team_stacks']
 
 
@@ -231,23 +222,23 @@ class AIBase:
         - Shutdown [stop(self)]
 
         raw_msg (tuple of ints): data sent by Manager with following values:
-        - (1,)       New Game
+        - (1,)        New Game
         - (2,x,y)    Join Game #x in Seat y
         - (-1,)      Shutdown
 
         """
         op = command[0]
 
-        if op == -1: # Shutdown (most common)
-            log.info("AI Agent received shutdown command")
+        if op == -1: # Shutdown
+            log.info("AI Agent {0} received shutdown command".format(
+                        self.label))
             self.stop()
+            self.stop_polling_loop()
 
         elif op == 2: # Join Game
             if self.join_game(command[1], command[2]):
                 self.start_polling_loop() # Join game was successful
 
-        # This option is currently inactive,
-        # as new game requests require a 'plrs' parameter now
         elif op == 1: # New Game
             if self.request_new_game():
                 self.start_polling_loop() # New game was successful
@@ -324,7 +315,7 @@ class AIBase:
                         gs['cip'].append(val)
 
                         # If I am prev. player, then I just played
-                        if gs['previous_player'] == self.pNum:
+                        if msg['actor'] == self.pNum:
                             self.hand.remove(val)
                             
                     elif key == 'remP':
@@ -335,7 +326,7 @@ class AIBase:
                     elif key == 'bid':
                         # Update high bid if needed
                         gs['high_bid'] = max(val, gs['high_bid'])
-                        gs['declarer'] = gs['previous_player']
+                        gs['declarer'] = msg['actor']
 
                     elif key == 'addC': # Setup for new hand
                         self.hand = val
@@ -353,14 +344,15 @@ class AIBase:
                     elif key == 'win':
                         # finalize log & shutdown
                         gs['mode'] = -1 #TODO handle End of Game
-                        log.info("Game ending, AI shutting down")
-                        self.handle_daemon_command("-1")
+                        log.info("Game ending, {0} shutting down".format(
+                                self.label))
+                        self.handle_daemon_command((-1,)) # Force tuple
 
                     else:
                         # See docstring for handle_other_key
                         self.handle_other_key(val)
 
-        self.gs = gs # Oops.
+        self.gs = gs
 
         try:            
             self.act()
@@ -447,26 +439,33 @@ class AIBase:
         # Play may be deemed illegal by server anyway
         if res:
             # No fallback option defined for an illegal play
-            log.error("Agent made illegal play with card_val {0}"
-                        "".format(card_val))
+            log.error("{1} made illegal play with card_val {0}"
+                        "".format(self.print_card(card_val), self.label))
         else:
             log.info("{0} plays {1}".format(self.label, 
                                             self.print_card(card_val)))
     
-    # Currently not functional
     def request_new_game(self):
-        """Instruct Agent to request new game from server."""
+        """Instruct Agent to request new game from server. Used only for 
+        AI-only games.
+        
+        plrs (string): CSV agent model num list 
+        
+        """
         if self.in_game:    # Prevent in-game client from creating new game
             return
 
-        data = {'game': 0}
-        res = self.send_data(data) # Expects {'uid', 'pNum'}
+        # It thinks it's people (Manager will take care of the players)
+        data = {'game':0, 'plrs':"-3,-3,-3,-3", 'name': "{0}/0".format(
+                self.identity['name'])}
+        res = self.send_data(data) # Expected return is {'uid', 'pNum'}
 
         if 'err' in res:
             log.error("Error requesting new game.")
             return False
         else:
             self.uid, self.pNum = res['uid'], res['pNum']
+            self.label = "{0}/{1}".format(self.name, self.pNum)
             self.in_game = True
             self.chat("AI Agent in seat #{0}.".format(self.pNum))
             return True
@@ -477,7 +476,6 @@ class AIBase:
 
     def activate_player(self, actvP):
         """Advance active player value to actvP."""
-        self.gs['previous_player'] = self.gs['active_player']
         self.gs['active_player'] = actvP
 
     def decode_card(self, card_code):
@@ -486,6 +484,14 @@ class AIBase:
         rank = card_code - (suit * NUM_RANKS) + 1
         
         return rank, suit # rank and suit are integers
+        
+    def encode_card(self, rank, suit):
+        """Encode rank,suit pair into integer in range 1-52.
+        
+        rank (int), suit (int): rank and suit of card to encode.
+        
+        """
+        return (rank-1) + (suit*NUM_RANKS)
 
     def print_card(self, card_code):
         """Return descriptive string of card; copies Card.__repr__() method."""
@@ -538,9 +544,47 @@ class AIBase:
 
                     return True # Throwing off
     
-    def get_legal_plays(self):
+    def get_legal_plays(self, as_card_objects=False):
         """Create subset of hand of legal plays."""
-        return list(filter(self.is_legal_play, self.hand))
+        card_vals = list(filter(self.is_legal_play, self.hand))
+        
+        if as_card_objects:
+            objs = []
+    
+            for val in card_vals:
+                r, s = self.decode_card(val)
+                objs.append(MyCard(val, r, s))
+            return objs
+            
+        else:
+            return card_vals
+        
+    def get_winning_card(self, cards_in_play, card_led):
+        """Return the card that wins a trick with cards_in_play. Used to
+        evaluate outcome of potential plays.
+        
+        cards_in_play (list): list of card objects in a trick
+        card_led (MyCard object): card led that trick (also in in cards_in_play)
+        
+        """
+        trump = self.gs['trump']
+        
+        # Determine winning suit (either trump or suit led)
+        winning_suit = card_led.suit
+        for card in cards_in_play:
+            if trump == card.suit:
+                winning_suit = trump
+                break
+
+        cur_highest_rank = 0
+        for card in cards_in_play:
+            #print(card, card.__class__)
+            if card.suit == winning_suit:
+                if card.rank > cur_highest_rank:
+                    cur_highest_rank = card.rank
+                    cur_highest_card = card
+
+        return cur_highest_card
 
     ####################
     # Intelligence -- Implement in subclasses
@@ -561,7 +605,20 @@ class AIBase:
 
         """
         raise NotImplementedError("act() needs to be implemented in subclass.")
-    
+
+
+class MyCard:
+    # Helper class for organizing cards. Moved to base.py as this (or something
+    # like this) is going to be essential for all AIs.
+    def __init__(self, val, rank, suit):
+        # val, rank, and suit are all integers
+        self.val = val
+        self.rank = rank
+        self.suit = suit
+        
+    def __repr__(self):
+        return "{1}{2} ({0})".format(self.val, RANKS_SHORT[self.rank],
+                                     SUITS_SHORT[self.suit])
 ##############
 # Important
 ##############

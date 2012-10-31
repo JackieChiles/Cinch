@@ -7,29 +7,27 @@ from os import name as os_name
 from math import floor
 
 
-# Constants to use for card identification -- copying style from VB
-cdCLUBS = 0;        cdDIAMONDS = 1;         cdHEARTS = 2;       cdSPADES = 3
-cdTWO = 2;          cdTHREE = 3;            cdFOUR = 4;         cdFIVE = 5
-cdSIX = 6;          cdSEVEN = 7;            cdEIGHT = 8;        cdNINE= 9
-cdTEN = 10;         cdJACK = 11;            cdQUEEN = 12;       cdKING = 13
-cdACE = 14
-
-__all__ = ["cdCLUBS", "cdDIAMONDS", "cdHEARTS", "cdSPADES", "cdTWO", "cdTHREE", "cdFOUR", "cdFIVE", "cdSIX", "cdSEVEN", "cdEIGHT", "cdNINE", "cdTEN", "cdJACK", "cdQUEEN", "cdKING", "cdACE"]
+# Constants to use for card identification
+CLUBS = 0;        DIAMONDS = 1;         HEARTS = 2;       SPADES = 3
+TWO = 2;          THREE = 3;            FOUR = 4;         FIVE = 5
+SIX = 6;          SEVEN = 7;            EIGHT = 8;        NINE= 9
+TEN = 10;         JACK = 11;            QUEEN = 12;       KING = 13
+ACE = 14
 
 # Provide two-way lookup for ranks and suits by name and number.
-RANKS_BY_NUM = {cdTWO:'Two',        cdTHREE:'Three',    cdFOUR:'Four',  
-                cdFIVE:'Five',      cdSIX:'Six',        cdSEVEN:'Seven',
-                cdEIGHT:'Eight',    cdNINE:'Nine',      cdTEN:'Ten', 
-                cdJACK:'Jack',      cdQUEEN:'Queen',    cdKING:'King',     
-                cdACE:'Ace'}
+RANKS_BY_NUM = {TWO:'Two',        THREE:'Three',    FOUR:'Four',  
+                FIVE:'Five',      SIX:'Six',        SEVEN:'Seven',
+                EIGHT:'Eight',    NINE:'Nine',      TEN:'Ten', 
+                JACK:'Jack',      QUEEN:'Queen',    KING:'King',     
+                ACE:'Ace'}
 
-RANKS_SHORT = {cdTWO:'2',   cdTHREE:'3',    cdFOUR:'4',     cdFIVE:'5', 
-               cdSIX:'6',   cdSEVEN:'7',    cdEIGHT:'8',    cdNINE:'9',
-               cdTEN:'T',   cdJACK:'J',     cdQUEEN:'Q',    cdKING:'K',
-               cdACE:'A'}
+RANKS_SHORT = {TWO:'2',   THREE:'3',    FOUR:'4',     FIVE:'5', 
+               SIX:'6',   SEVEN:'7',    EIGHT:'8',    NINE:'9',
+               TEN:'T',   JACK:'J',     QUEEN:'Q',    KING:'K',
+               ACE:'A'}
 
-SUITS_BY_NUM = {cdCLUBS:'Clubs', cdDIAMONDS:'Diamonds', cdHEARTS:'Hearts', 
-                cdSPADES:'Spades'}
+SUITS_BY_NUM = {CLUBS:'Clubs', DIAMONDS:'Diamonds', HEARTS:'Hearts', 
+                SPADES:'Spades'}
 
 # Code to support deprecated/legacy development platforms:
 if os_name == 'nt':

@@ -46,7 +46,7 @@ START_GAME_DELAY = 3.0 # Time to wait between last player joining and starting
 DEFAULT_PNUM = 0 # pNum assigned to player who creates new game
 
 GAME_TIMEOUT_INTERVAL = 60 # Secs to allow game to get no traffic before ending
-                           # Ensure this is greater than COMET_TIMEOUT on svr!
+                           # Ensure this exceeds COMET_TIMEOUT on server!
 
 # Message signatures
 SIGNATURE = common.enum(
@@ -114,6 +114,7 @@ class GameRouter:
         """
         if cm is None:
             raise RuntimeError("Client Manager not attached to Game Router.")
+
         # Create monitor for GET requests on server (used for game timeouts)
         server.monitor = ServerMonitor(self)
         
@@ -136,14 +137,19 @@ class GameRouter:
         
     def handle_timeout(self):
         """Periodically check for "stale" games. Terminate any that have not
-        received a GET request in the last GAME_TIMEOUT_INTERVAL."""
+        received a GET request in the last GAME_TIMEOUT_INTERVAL. Games with
+        AI players will (should) never go stale.
+        
+        """
         while self.running:
             now = time() // 1
 
-            for game_id in self.gametimes: #TODO verify this code block
+            for game_id in list(self.gametimes):
                 if (now - self.gametimes[game_id]) > GAME_TIMEOUT_INTERVAL:
                     # Cleanup self.games
                     del self.games[game_id]
+                    # Cleanup self.gametimes
+                    del self.gametimes[game_id]
                     # Cleanup client manager
                     cm.del_group(game_id)
                     
@@ -170,6 +176,7 @@ class GameRouterHandler(CommChannel):
     def register(self, server):
         """
         server (CometServer): reference to web server
+
         """
         server.add_responder(self, self.signature)
         server.add_announcer(self)
@@ -206,10 +213,9 @@ class ServerMonitor(CommChannel):
         self.router = router # router = GameRouter
         
     # Overriden member
-    def respond(self, msg):
-        '''msg is a guid string here, NOT a Message object.'''
+    def respond(self, guid):
         # Get game id of client
-        game_id, _ = cm.get_client_info(msg)
+        game_id, _ = cm.get_client_info(guid)
         if game_id is not None:
             # Update last timestamp of game
             self.router.gametimes[game_id] = time() // 1
@@ -255,6 +261,9 @@ class JoinGameHandler(GameRouterHandler):
     def respond(self, msg):
         # Check if game is full
         game_id = int(msg.data['join'])
+        if game_id == -1: # -1 = join newest game
+            game_id = len(self.router.games) - 1
+
         cur_player_nums = cm.get_player_nums_in_group(game_id)       
         
         if len(cur_player_nums) == MAX_GAME_SIZE:
@@ -287,10 +296,10 @@ class JoinGameHandler(GameRouterHandler):
         self.announce(name_msg)
       
         # Announce new player entering game
-        outgoing_data = {'names': [ {'name': msg.data['name'], 'pNum': pNum} ]}
         tgts = cm.get_clients_in_group(game_id)
-        for tgt in tgts:
-            self.announce(Message(outgoing_data, target=tgt, source=game_id))
+        for tgt in tgts: #TODO this occasionally causes Runtime Error (dictionary changed size during iteration). Can't explain that.
+            out_data = {'names': [ {'name': msg.data['name'], 'pNum': pNum} ]}
+            self.announce(Message(out_data, target=tgt, source=game_id))
 
         # Notify client manager
         cm.add_client_to_group(client_id, game_id, pNum)
