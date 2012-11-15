@@ -352,20 +352,18 @@ class Game:
             message['tgt'] = [i for i in range(NUM_PLAYERS)]
             output = [message]
             
-        #self.dbevent(output)
-        
-        # At the end of each hand, trigger the script to parse messages for
-        # stats purposes.
+        self.dbevent(self.dbconnection, output)
         
         if status in ['eoh', 'eog']:
-            # TODO: Run this in another thread or something so that if the
-            # database gets out of hand, the game can still proceed.
-            # If that is not viable, we can look at running stats whenever
-            # the server finishes the last active game, or something. Or just
-            # set up cron to do it and have a totally separate script.
-            
-            stats.process(self.gs.game_id, self.gs.hand_number)
             self.gs.hand_number += 1
+        
+        if status in ['eog']:
+            self.dbstop(self.dbconnection)
+            # This ugly hack because the only function for stats processing
+            # (currently) does it on a per-hand basis. This will loop through
+            # all hands in the current (just-ended) game and process them.
+            for hNum in range(1, self.gs.hand_number):
+                stats.process(self.gs.game_id, hNum)
         
         return output
 
@@ -381,7 +379,7 @@ class Game:
                           "".format(NUM_PLAYERS))
 
         self.players = [Player(x, plr_arg[x]) for x in range(NUM_PLAYERS)]
-        game_id = self.dbstart()
+        game_id, self.dbconnection = self.dbstart()
         self.gs = GameState(game_id)
         self.deck = cards.Deck()
         self.deal_hand()
@@ -395,17 +393,19 @@ class Game:
         """Register a new game with the Games table of the sqlite database.
         
         Returns the autoincrementing integer value of the row written as the
-        unique game_id."""
+        unique game_id, as well as the connection to the database."""
 
-        conn = sqlite3.connect(DB_PATH)
+        conn = sqlite3.connect(DB_PATH, check_same_thread = False)
         c = conn.cursor()
         try:
+            log.debug("Trying to add a row for the new game.")
             c.execute("INSERT INTO Games VALUES (NULL,?,?,?,?,?)",
                       (datetime.utcnow().isoformat(),
                        self.players[0].name, self.players[1].name,
                        self.players[2].name, self.players[3].name))
         except sqlite3.OperationalError:
             # Initialize the runtime database tables for new/clean servers.
+            log.debug("Trying to initialize games table.")
             c.execute("""CREATE TABLE Games (game_id INTEGER PRIMARY KEY,
                          Timestamp text NOT NULL,
                          PlayerName0 text NOT NULL,
@@ -425,23 +425,25 @@ class Game:
                        self.players[2].name, self.players[3].name))
         c.execute("SELECT last_insert_rowid()")
         autogen_game_id = c.fetchone()[0] # Unpack len-1 tuple to get int
+        log.debug("Grabbed a game_id from the database.")
         conn.commit()
-        c.close()
-        return autogen_game_id
+        return autogen_game_id, conn
         
-    def dbevent(self, event_data):
+    def dbevent(self, conn, event_data):
         """Write a game action data string to the Events table.
         
         The output of publish() will be written exactly as it is generated.
         This raw data can be mined at a later date to produce stats or human-
-        readable log files. Alternatively, a script could be written to
-        monitor the database and show a live game-in-progress. Maybe."""
-        
-        conn = sqlite3.connect(DB_PATH)
+        readable log files."""
         c = conn.cursor()
         c.execute("INSERT INTO Events VALUES (NULL,?,?,?,?)",
                   (self.gs.game_id, self.gs.hand_number,
                    datetime.utcnow().isoformat(), str(event_data)))
+        return None
+        
+    def dbstop(self, conn):
+        """Commit previously written game data and close the connection."""
+        c = conn.cursor()
         conn.commit()
         c.close()
         return None

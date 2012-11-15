@@ -141,7 +141,7 @@ class Hal(AIBase):
                     self.move_card(card, self.play_zone, self.seen_zone)
                 
             if 'win' in msg:
-                print("WIN RATIO: {0} / {1} = {2}".format(self.wincount, self.trickcount, self.wincount/self.trickcount))
+                self.log("WIN RATIO: {0} / {1} = {2}".format(self.wincount, self.trickcount, self.wincount/self.trickcount))
 
                 
             # add 'amusing' responses from
