@@ -86,12 +86,7 @@ var CinchApp = {
         ? 'http://ravenholm.dyndns.tv:2424' //Legend url
         : 'http://localhost:2424', //Development URL
     actions: {
-        actvP: function (update) {
-            //Must wait until after other handlers are called because some depend on previous activePlayer (like playC)
-            CinchApp.secondaryActionQueue.push(function () {
-                viewModel.activePlayer(serverToClientPNum(update.actvP));
-            });
-        },
+        actvP: function (update) { viewModel.activePlayer(serverToClientPNum(update.actvP)); },
         addC: function (update) {
             //Must wait until after other handlers are called in case cards need to be removed first (from playC handler)      
             CinchApp.secondaryActionQueue.push(function () {
@@ -119,10 +114,7 @@ var CinchApp = {
             //Initialize the UI for the AI agents
             $('#ai-list .ai').listview();
         },
-        bid: function (update) {
-            //Still previous active player, as actvP handler gets pushed into the secondaryActionQueue
-            viewModel.currentBids[viewModel.activePlayer()](update.bid);
-        },
+        bid: function (update) { viewModel.currentBids[update.actor](update.bid); },
         dlr: function (update) { viewModel.dealer(serverToClientPNum(update.dlr)); },
         err: function (update) { outputErrorMessage(update.err); },
         gList: function (update) {
@@ -167,7 +159,7 @@ var CinchApp = {
                 outputMessage('Player ' + names[i].name + ' is now in the game.', CinchApp.systemUser);
             }
         },
-        playC: function (update) { viewModel.playCard(update.playC); },
+        playC: function (update) { viewModel.playCard(update.playC, update.actor); },
         pNum: function (update) { viewModel.myPlayerNum(update.pNum); },
         remP: function (update) {
             CinchApp.trickWinner = serverToClientPNum(update.remP);

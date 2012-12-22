@@ -216,21 +216,20 @@ function CinchViewModel() {
     self.endBidding = function() {
         $.mobile.changePage( '#game-page', { transition: 'slideup'} ); //Navigate back to game page
     };
-    self.playCard = function(cardNum) {
+    self.playCard = function(cardNum, playerNum) {
         var cardToPlay = new Card(cardNum);
-        var playerOfCard = self.activePlayer(); //Still "old" activePlayer
         
         //Put animation at front of secondary queue, so it always is handled
         //before end of trick procedures
         CinchApp.secondaryActionQueue.unshift(function() {
-            cardToPlay.play(playerOfCard);
+            cardToPlay.play(playerNum);
         });
 
-        if(playerOfCard === CinchApp.playerEnum.south) { //Client player
+        if(playerNum === CinchApp.playerEnum.south) { //Client player
             self.encodedCards.remove(cardNum);
         }
         else {
-            self.cardsInAllHands[playerOfCard].pop();
+            self.cardsInAllHands[playerNum].pop();
         }
     };
     self.resetBids = function() {
