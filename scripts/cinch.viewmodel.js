@@ -1,31 +1,24 @@
-/////////////////////////////////////////////////////////////////
-// Knockout.js viewmodel                                       //
-/////////////////////////////////////////////////////////////////
+// Knockout.js viewmodel
+
 function CinchViewModel() {
-    var self = this; //Since this is here, recommend changing all  `this` to `self`
+    var self = this;
     var i = 0;
     var bidValidFunction;
     
     //Data
-    this.playerNames = [  
-        'You',
-        'Left opponent',
-        'Your partner',
-        'Right opponent'
-    ];
-    
-    this.username = ko.observable("");
+    self.playerNames = ['You', 'Left opponent', 'Your partner', 'Right opponent'];  
+    self.username = ko.observable("");
     
     //Game lobby
-    this.games = ko.observableArray([]);
+    self.games = ko.observableArray([]);
     
     //AI module selection
-    this.ai = ko.observableArray([]);
-    this.chosenAi = {}; //Contains AI modules chosen by user
-    this.chosenAi[CinchApp.playerEnum.west] = ko.observable();
-    this.chosenAi[CinchApp.playerEnum.north] = ko.observable();
-    this.chosenAi[CinchApp.playerEnum.east] = ko.observable();
-    this.uploadAi = ko.computed(function() {
+    self.ai = ko.observableArray([]);
+    self.chosenAi = {}; //Contains AI modules chosen by user
+    self.chosenAi[CinchApp.playerEnum.west] = ko.observable();
+    self.chosenAi[CinchApp.playerEnum.north] = ko.observable();
+    self.chosenAi[CinchApp.playerEnum.east] = ko.observable();
+    self.uploadAi = ko.computed(function() {
         var chosenAi = self.chosenAi
         var uploadList = ['-1'];
         var currentAi;
@@ -44,12 +37,12 @@ function CinchViewModel() {
         return uploadList.join(',');
     });
     
-    this.myPlayerNum = ko.observable(0); //Player num assigned by server
-    this.myTeamNum = ko.computed(function() {
+    self.myPlayerNum = ko.observable(0); //Player num assigned by server
+    self.myTeamNum = ko.computed(function() {
         //Team number according to server
         return self.myPlayerNum() % CinchApp.numTeams;
     });
-    this.teamNames = ko.computed(function() {
+    self.teamNames = ko.computed(function() {
         var i = 0;
         var list = [];
         
@@ -60,35 +53,35 @@ function CinchViewModel() {
         
         return list;
     });
-    this.activePlayer = ko.observable(); //Relative to client (self is always CinchApp.playerEnum.south)
-    this.isActivePlayer = ko.computed(function() {
+    self.activePlayer = ko.observable(); //Relative to client (self is always CinchApp.playerEnum.south)
+    self.isActivePlayer = ko.computed(function() {
         //Client is always CinchApp.playerEnum.south
         return self.activePlayer() === CinchApp.playerEnum.south;
     });
-    this.activePlayerName = ko.computed(function() {
+    self.activePlayerName = ko.computed(function() {
         return self.playerNames[self.activePlayer()];
     });
-    this.dealer = ko.observable(); //Relative to client (self is always CinchApp.playerEnum.south)
-    this.dealerName = ko.computed(function() {
+    self.dealer = ko.observable(); //Relative to client (self is always CinchApp.playerEnum.south)
+    self.dealerName = ko.computed(function() {
         return self.playerNames[self.dealer()];
     });
-    this.trump = ko.observable();
-    this.trumpName = ko.computed(function() {
+    self.trump = ko.observable();
+    self.trumpName = ko.computed(function() {
         return CinchApp.suitNames[self.trump()];
     });
-    this.winner = ko.observable(); //Integer, winning team. Will be 0 for players 0 & 2 and 1 for players 1 and 3.
-    this.winnerName = ko.computed(function() {
+    self.winner = ko.observable(); //Integer, winning team. Will be 0 for players 0 & 2 and 1 for players 1 and 3.
+    self.winnerName = ko.computed(function() {
         //Return name of the winning team
         return self.teamNames()[self.winner() % CinchApp.numTeams];
     });
-    this.gameMode = ko.observable();
-    this.isGameStarted = ko.computed(function() {
+    self.gameMode = ko.observable();
+    self.isGameStarted = ko.computed(function() {
         return self.gameMode() === CinchApp.gameModeEnum.play || self.gameMode() === CinchApp.gameModeEnum.bid;
     });
-    this.gameScores = ko.observableArray([0, 0]);
-    this.encodedCards = ko.observableArray([]);
-    this.gamePoints = ko.observable([]);
-    this.matchPoints = ko.observable([]); //Encoded strings representing taking teams of high, low, jack, and game from server
+    self.gameScores = ko.observableArray([0, 0]);
+    self.encodedCards = ko.observableArray([]);
+    self.gamePoints = ko.observable([]);
+    self.matchPoints = ko.observable([]); //Encoded strings representing taking teams of high, low, jack, and game from server
     
     //"Private" function used to process gamePoints
     var getMatchPointTeam = function(type) {
@@ -107,21 +100,20 @@ function CinchViewModel() {
     };
     
     //These are just team strings used for display, not the team integer values
-    //TODO: use string constants for game point types
-    this.highTeam = ko.computed(function() {
-        return getMatchPointTeam('h');
+    self.highTeam = ko.computed(function() {
+        return getMatchPointTeam(CinchApp.pointTypes.high);
     });
-    this.lowTeam = ko.computed(function() {
-        return getMatchPointTeam('l');
+    self.lowTeam = ko.computed(function() {
+        return getMatchPointTeam(CinchApp.pointTypes.low);
     });
-    this.jackTeam = ko.computed(function() {
-        return getMatchPointTeam('j');
+    self.jackTeam = ko.computed(function() {
+        return getMatchPointTeam(CinchApp.pointTypes.jack);
     });
-    this.gameTeam = ko.computed(function() {
-        return getMatchPointTeam('g');
+    self.gameTeam = ko.computed(function() {
+        return getMatchPointTeam(CinchApp.pointTypes.game);
     });
     
-    this.cardsInHand = ko.computed(function() {
+    self.cardsInHand = ko.computed(function() {
         //Will re-compute every time cards are added removed to hand (encodedCards)
         var j = 0;
         var handArray = [];
@@ -134,22 +126,22 @@ function CinchViewModel() {
     });
     
     //An array of items for each player's hand, indexed by CinchApp.playerEnum
-    this.cardsInAllHands = [
-        null, //Unused placeholder to keep indexing straight. Hand for client (face-up cards) is this.cardsInHand.
+    self.cardsInAllHands = [
+        null, //Unused placeholder to keep indexing straight. Hand for client (face-up cards) is self.cardsInHand.
         ko.observableArray([]),
         ko.observableArray([]),
         ko.observableArray([])
     ];
-    this.chats = ko.observableArray([]);
-    this.debugMessages = ko.observableArray([]);
-    this.currentBids = [];
+    self.chats = ko.observableArray([]);
+    self.debugMessages = ko.observableArray([]);
+    self.currentBids = [];
     
     //Initialize currentBids
     for(i = 0; i < CinchApp.numPlayers; i++) {
-        this.currentBids.push(ko.observable(CinchApp.bidEnum.none));
+        self.currentBids.push(ko.observable(CinchApp.bidEnum.none));
     }
     
-    this.currentBidsNames = ko.computed(function() {
+    self.currentBidsNames = ko.computed(function() {
         //Will re-compute every time a bid update is received from server (currentBids is updated)
         
         var j = 0;
@@ -166,7 +158,7 @@ function CinchViewModel() {
         
         return bidNameArray;
     });
-    this.highBid = ko.computed(function() {
+    self.highBid = ko.computed(function() {
         //Will re-compute every time a bid update is received from server (currentBids is updated)
         
         var bidValues = [];
@@ -179,10 +171,10 @@ function CinchViewModel() {
         
         return Math.max.apply(null, bidValues);
     });
-    this.highBidName = ko.computed(function() {
+    self.highBidName = ko.computed(function() {
         return CinchApp.bidNames[self.highBid()] || CinchApp.noneBidDisplay;
     });
-    this.possibleBids = [];
+    self.possibleBids = [];
     
     //Create the possible bids
     for(i = 0; i < CinchApp.numPossibleBids; i++) {
@@ -199,32 +191,32 @@ function CinchViewModel() {
             }
             : null; //Passing null will cause Bid to use the default isValid function, which is OK for everything but pass or Cinch
         
-        this.possibleBids.push(new Bid(this, i, bidValidFunction));
+        self.possibleBids.push(new Bid(self, i, bidValidFunction));
     }
     
     //Board lock/response mode
-    this.lockBoard = function () {
-        this.responseMode(CinchApp.responseModeEnum.holding);
+    self.lockBoard = function () {
+        self.responseMode(CinchApp.responseModeEnum.holding);
         CinchApp.lockCount += 1;
     };
-    this.unlockBoard = function() {
+    self.unlockBoard = function() {
         CinchApp.lockCount -= 1;
         if (CinchApp.lockCount < 1) {  //Only unlock board if there are no remaining locks
-            this.responseMode(CinchApp.responseModeEnum.running);
+            self.responseMode(CinchApp.responseModeEnum.running);
             processResponseQueue();
             CinchApp.lockCount = 0; //In case unlock is called absent a lock
         }
     };
-    this.isBoardLocked = function() {
-        return this.responseMode() == CinchApp.responseModeEnum.holding;
+    self.isBoardLocked = function() {
+        return self.responseMode() == CinchApp.responseModeEnum.holding;
     };
-    this.responseMode = ko.observable();
+    self.responseMode = ko.observable();
     
     //Functions
-    this.endBidding = function() {
+    self.endBidding = function() {
         $.mobile.changePage( '#game-page', { transition: 'slideup'} ); //Navigate back to game page
     };
-    this.playCard = function(cardNum) {
+    self.playCard = function(cardNum) {
         var cardToPlay = new Card(cardNum);
         var playerOfCard = self.activePlayer(); //Still "old" activePlayer
         
@@ -241,14 +233,14 @@ function CinchViewModel() {
             self.cardsInAllHands[playerOfCard].pop();
         }
     };
-    this.resetBids = function() {
+    self.resetBids = function() {
         var j = 0;
         
         for(j = 0; j < self.currentBids.length; j++) {
             self.currentBids[j](CinchApp.bidEnum.none);
         }
     };
-    this.returnHome = function(transition) {
+    self.returnHome = function(transition) {
         //Temporary fix
         window.location = 'home.html';
         viewModel = new CinchViewModel(); //Clear the viewModel for the next game
@@ -257,10 +249,10 @@ function CinchViewModel() {
         //Default transition is 'slideup'
         //$.mobile.changePage( 'home.html', { transition: transition || 'slideup'} );
     };
-    this.startBidding = function() {
+    self.startBidding = function() {
         openJqmDialog('#bidding-page');
     };
-    this.startNew = function() {
+    self.startNew = function() {
         postData({
             game: CinchApp.gameModeNew,
             plrs: self.uploadAi(),
@@ -269,14 +261,14 @@ function CinchViewModel() {
     };
     
     //Subscriptions
-    this.gameMode.subscribe(function(newValue) {
+    self.gameMode.subscribe(function(newValue) {
         //Closes or opens the bid dialog depending on the game mode
         
         if(newValue == CinchApp.gameModeEnum.bid) {
             if(self.matchPoints().length > 0) {
                 //If match points on record, hand ended, open hand end dialog.
                 CinchApp.secondaryActionQueue.push(function() {
-                    //Need to ensure this is ran after all other end of trick actions, but
+                    //Need to ensure this is run after all other end of trick actions, but
                     //we can't guarantee key order in the updates. So re-push this till later.
                     CinchApp.secondaryActionQueue.push(function() {
                         //Clear any old bids
@@ -295,9 +287,9 @@ function CinchViewModel() {
             }
         }
     });
-    this.winner.subscribe(function(newValue) { //TODO: test to determine if hand-end gets processed on time
+    self.winner.subscribe(function(newValue) { //TODO: test to determine if hand-end gets processed on time
         CinchApp.secondaryActionQueue.push(function() {
-            //Need to ensure this is ran after all everything else, including normal
+            //Need to ensure this is run after all everything else, including normal
             //end of hand procedures. So re-push this till later. Twice.
             CinchApp.secondaryActionQueue.push(function() {
                 CinchApp.secondaryActionQueue.push(function() {

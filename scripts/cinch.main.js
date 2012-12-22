@@ -6,6 +6,7 @@ var CinchApp = {
     numPlayers: 4,
     numTeams: 2,
     numPossibleBids: 6,
+    boardClearDelay: 1300,
     playSurfaceWidth: 290,
     playSurfaceHeight: 245,
     cardImageWidth: 72,
@@ -59,6 +60,12 @@ var CinchApp = {
         holding: 0,
         running: 1
     },
+    pointTypes: {
+        high: 'h',
+        low: 'l',
+        jack: 'j',
+        game: 'g'
+    },
     
     //Other
     responseCount: 0, //Development
@@ -71,7 +78,7 @@ var CinchApp = {
     //Any other functions can be added here as needed
     responseQueue: [],    
     processing: false, //Flag for ProcessQueue
-    secondaryActionQueue: [], //Actions with dependencies go here to be ran last
+    secondaryActionQueue: [], //Actions with dependencies go here to be run last
     lockCount: 0, //count for number of active animations
     
     //If "ravenholm" is in the URL, app must be running on production server, so use that URL, otherwise use dev. URL
@@ -162,7 +169,19 @@ var CinchApp = {
         },
         playC: function (update) { viewModel.playCard(update.playC); },
         pNum: function (update) { viewModel.myPlayerNum(update.pNum); },
-        remP: function (update) { handleEndTrick(update.remP); }, //TODO: move code from handleEndTrick here and use update.playC in it
+        remP: function (update) {
+            CinchApp.trickWinner = serverToClientPNum(update.remP);
+
+            //Must wait until 'playC' is handled
+            CinchApp.secondaryActionQueue.push(function () {
+                viewModel.lockBoard(); //Board is unlocked in cinch.animation.js:animateBoardClear()
+
+                //Wait a bit so the ending play can be seen
+                setTimeout(function () {
+                    finishClearingBoard();
+                }, CinchApp.boardClearDelay);
+            });
+        }, //TODO: use update.playC here?
         sco: function (update) { viewModel.gameScores(update.sco); },
         trp: function (update) { viewModel.trump(update.trp); },
         uid: function (update) {

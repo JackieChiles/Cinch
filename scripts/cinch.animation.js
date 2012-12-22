@@ -206,17 +206,3 @@ function drawBoardClear() {
     c = CinchApp.cardImagesInPlay[CinchApp.trickWinner];
     context.drawImage(c.cardImage, c.curPos.x, c.curPos.y);
 }
-
-function handleEndTrick(playerNum) {
-    CinchApp.trickWinner = serverToClientPNum(playerNum);
-
-    //Must wait until 'playC' is handled
-    CinchApp.secondaryActionQueue.push(function () {
-        viewModel.lockBoard(); //Board is unlocked in animation.js:animateBoardClear()
-
-        //Wait a bit so the ending play can be seen
-        setTimeout(function () {
-            finishClearingBoard();
-        }, 1300); //TODO use a constant here
-    });
-}
