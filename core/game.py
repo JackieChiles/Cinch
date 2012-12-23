@@ -18,6 +18,9 @@ import core.cards as cards
 from core.gamestate import GameState
 import db.stats as stats    
 
+# Used for testing
+STACK_DECK = True           # Bool to use deck stacking. Set to False to disable
+DECK_SEED = 0.1             # Float b/t 0 and 1, used to seed deck shuffle
 
 #Constants and global variables
 WINNING_SCORE = 11
@@ -49,7 +52,13 @@ class Game:
         self.id = 0     #TODO: have external counter for this
         self.players = []
         self.gs = None
-        self.deck = cards.Deck()
+        
+        if STACK_DECK:
+            self.deck = cards.Deck(DECK_SEED)
+            print("ALERT: STACK_DECK=True; Deck stacking enabled!\n")
+            print(list(self.deck))
+        else:
+            self.deck = cards.Deck()
 
     def __repr__(self):
         """Return descriptive string when asked to print object."""
@@ -381,7 +390,6 @@ class Game:
         self.players = [Player(x, plr_arg[x]) for x in range(NUM_PLAYERS)]
         game_id, self.dbconnection = self.dbstart()
         self.gs = GameState(game_id)
-        self.deck = cards.Deck()
         self.deal_hand()
         self.gs.active_player = self.gs.next_player(self.gs.dealer)
         self.gs.game_mode = GAME_MODE.BID

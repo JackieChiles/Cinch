@@ -3,6 +3,7 @@
 Define basic properties of cards and decks of cards. 
 """
 import random
+from random import shuffle
 from os import name as os_name
 from math import floor
 
@@ -86,14 +87,25 @@ class Deck(list):
     Define Deck object (extending list built-in) and class methods for
     creating and manipulating Deck.
     """
-    def __init__(self):
+    def __init__(self, seed=None):
         """
         Create deck of cards. Iterate through (rank,suit) pairs, creating
         a new Card object for each and adding to internal list.
+        
+        seed (float) - number between 0 and 1, used for stacking the deck
         """
         for r in RANKS_BY_NUM:
             for s in SUITS_BY_NUM:
                 self.append(Card(r, s))
+        
+        # Shuffle deck, stacking if needed
+        if seed:
+            def f():
+                # random.shuffle needs a zero-arg function to get a seed number
+                return seed
+            shuffle(self, f)
+        else:
+            shuffle(self)
 
     def __repr__(self):
         """Return descriptive string when asked to print object."""
@@ -101,12 +113,9 @@ class Deck(list):
     
     def deal_one(self):
         """
-        Return random card from deck and remove from self.
-        Avoids need for separate 'shuffle' method.
+        Return top from deck and remove from self.
         """
-        c = self.pop(random.randint(0, len(self)-1))
-        return c
-
+        return self.pop(0)
 
 def decode(card_code):
     """Decode card encoding into (rank, suit) pair."""
