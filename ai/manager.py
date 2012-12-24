@@ -121,8 +121,9 @@ class AIManager:
             module_name = os.path.basename(split_ext[0])
             
             mod = import_module(module_name) # Create new module object
-        
             ai_modules.append(mod)
+            
+            self.set_ai_ident(mod)  # Set identity of each AI class
             
             log.info("AI Agent {0} imported.".format(module_name))
         
@@ -130,6 +131,17 @@ class AIManager:
         
         log.info("All available AI models imported.")
         
+    def set_ai_ident(self, mod):
+        """Set a self.identity for the AI class within mod."""
+        cls = getattr(mod, mod.AI_CLASS)
+        cls.identity = {  'author':   mod.__author__,
+                          'version':  mod.__version__,
+                          'date':     mod.__date__,
+                          'skill':    mod.__skill__,
+                          'name':     mod.__agent_name__,
+                          'description':  mod.__description__
+        }
+                 
     def get_ai_summary(self):
         """Assemble data for choosing/viewing available AI Agents.
 

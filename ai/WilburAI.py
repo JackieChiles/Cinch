@@ -16,14 +16,6 @@ __description__ = "Helps test bad AI handling."
 
 
 class Wilbur(AIBase):
-    identity = {  'author':   __author__,
-                  'version':  __version__,
-                  'date':     __date__,
-                  'skill':    __skill__,
-                  'name':     __agent_name__,
-                  'description':  __description__
-                 }
-
     def __init__(self, pipe):
         super().__init__(pipe, self.identity)  # Call to parent init
 

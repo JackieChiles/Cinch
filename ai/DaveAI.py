@@ -15,17 +15,9 @@ __agent_name__  = "Dave"
 __description__ = "Leads from the left."
 
 
-class Dave(AIBase):
-    identity = {  'author':   __author__,
-                  'version':  __version__,
-                  'date':     __date__,
-                  'skill':    __skill__,
-                  'name':     __agent_name__,
-                  'description':  __description__
-                 }
-                 
+class Dave(AIBase):                 
     def __init__(self, pipe):
-        super().__init__(pipe, identity)  # Call to parent init
+        super().__init__(pipe, self.identity)  # Call to parent init
 
     def act(self):
         """Overriding base class act."""

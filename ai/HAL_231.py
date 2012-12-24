@@ -28,14 +28,6 @@ GAME_POINT_VALUES = {cards.TEN:10, cards.ACE:4, cards.KING: 3,
                      cards.QUEEN: 2, cards.JACK:1}
 
 class Hal(AIBase):
-    identity = {  'author':   __author__,
-                  'version':  __version__,
-                  'date':     __date__,
-                  'skill':    __skill__,
-                  'name':     __agent_name__,
-                  'description':  __description__
-                 }
-
     def __init__(self, pipe):
         super().__init__(pipe, self.identity)  # Call to parent init
 

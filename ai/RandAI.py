@@ -16,15 +16,6 @@ __description__ = "Pseudo randomness at its best."
 
 
 class Rand(AIBase):
-    #TODO: make this exist in the base AI somehow
-    identity = {  'author':   __author__,
-                  'version':  __version__,
-                  'date':     __date__,
-                  'skill':    __skill__,
-                  'name':     __agent_name__,
-                  'description':  __description__
-                 }
-
     def __init__(self, pipe):
         super().__init__(pipe, self.identity)  # Call to parent init
 
