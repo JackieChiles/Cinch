@@ -77,17 +77,59 @@ def import_module(module_name):
     finally:
         if fp:  fp.close()
 
+def get_ai_models():
+    """Read available models file for file names, and load corresponding
+    classes into namespace.
+    """
+    # Open and parse models file
+    log.info("Reading {0} for AI models...".format(MODELS_FILE))
+    fin = open(os.path.join(MY_PATH, MODELS_FILE))
+    
+    ai_files = []
+    line = fin.readline()
+    while line:
+        if line != '\n':
+            ai_files.append(line.strip()) # Remove trailing newline
+        line = fin.readline()
+    
+    fin.close()
+    
+    # Import each file into a module
+    ai_modules = []
+    for filename in ai_files:
+        split_ext = os.path.splitext(filename)            
+        module_name = os.path.basename(split_ext[0])
+        
+        mod = import_module(module_name) # Create new module object
+        ai_modules.append(mod)
+        
+        set_ai_ident(mod)  # Set identity of each AI class
+        
+        log.info("AI Agent {0} imported.".format(module_name))
+ 
+    log.info("All available AI models imported.") 
+    
+    return list(map(lambda m: getattr(m, m.AI_CLASS), ai_modules))
+    
+def set_ai_ident(mod):
+    """Set a self.identity for the AI class within mod."""
+    cls = getattr(mod, mod.AI_CLASS)
+    cls.identity = {  'author':   mod.__author__,
+                      'version':  mod.__version__,
+                      'date':     mod.__date__,
+                      'skill':    mod.__skill__,
+                      'name':     mod.__agent_name__,
+                      'description':  mod.__description__
+    }
 
 class AIManager:
-
-    ####################
-    # Manager Management
-    ####################
-
+    # Placed here instead of in __init__ to play nice with multiprocessing
+    ai_classes = get_ai_models()
+    
     def __init__(self):
         self.agents = [] # Activated (Agent, Pipe, Process) tuples
         
-        self.get_ai_models()
+        #self.get_ai_models()
         log.info("AI Manager ready for action.")
 
     def cleanup(self):
@@ -96,52 +138,7 @@ class AIManager:
             log.info("Shutting down AI agent...")
             self.shutdown_agent(pipe)
             proc.join()
-            
-    def get_ai_models(self):
-        """Read available models file for file names, and load corresponding
-        classes into namespace.
-        """
-        # Open and parse models file
-        log.info("Reading {0} for AI models...".format(MODELS_FILE))
-        fin = open(os.path.join(MY_PATH, MODELS_FILE))
-        
-        ai_files = []
-        line = fin.readline()
-        while line:
-            if line != '\n':
-                ai_files.append(line.strip()) # Remove trailing newline
-            line = fin.readline()
-        
-        fin.close()
-        
-        # Import each file into a module
-        ai_modules = []
-        for filename in ai_files:
-            split_ext = os.path.splitext(filename)            
-            module_name = os.path.basename(split_ext[0])
-            
-            mod = import_module(module_name) # Create new module object
-            ai_modules.append(mod)
-            
-            self.set_ai_ident(mod)  # Set identity of each AI class
-            
-            log.info("AI Agent {0} imported.".format(module_name))
-        
-        self.ai_classes = map(lambda m: getattr(m, m.AI_CLASS), ai_modules)
-        
-        log.info("All available AI models imported.")
-        
-    def set_ai_ident(self, mod):
-        """Set a self.identity for the AI class within mod."""
-        cls = getattr(mod, mod.AI_CLASS)
-        cls.identity = {  'author':   mod.__author__,
-                          'version':  mod.__version__,
-                          'date':     mod.__date__,
-                          'skill':    mod.__skill__,
-                          'name':     mod.__agent_name__,
-                          'description':  mod.__description__
-        }
-                 
+
     def get_ai_summary(self):
         """Assemble data for choosing/viewing available AI Agents.
 
@@ -193,19 +190,19 @@ class AIManager:
 
         # Select AI package
         try:
-            pkg = self.ai_packages[model_num]
+            cls = self.ai_classes[model_num]
         except IndexError: # model_num out of range
             log.warning("model_num={0} out of range;"
                         " defaulting to model_num=0".format(model_num))
             model_num = 0
-            pkg = self.ai_packages[0]
+            cls = self.ai_classes[0]
 
         agent, parent_conn = None, None
         try:
             parent_conn, agent_conn = multiprocessing.Pipe()
-            agent = pkg.Agent(agent_conn)
+            agent = cls(agent_conn)
             p = multiprocessing.Process(target=agent.start,
-                                        name=pkg.__name__)
+                                        name=agent.identity['name'])
             log.debug("Thread created for model_num={0}".format(model_num))
             
             self.agents.append((agent, parent_conn, p))
