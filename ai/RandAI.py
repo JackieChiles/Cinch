@@ -6,8 +6,25 @@ import random
 # Import base class for AI agent
 from ai.base import AIBase, log
 
+AI_CLASS = "Rand" # Set this to match the class name for the agent
+__author__  = "JACK!"
+__version__ = "1.0"
+__date__    = "8 July 2012"
+__skill__   = "0"
+__agent_name__  = "Rand"
+__description__ = "Pseudo randomness at its best."
+
 
 class Rand(AIBase):
+    #TODO: make this exist in the base AI somehow
+    identity = {  'author':   __author__,
+                  'version':  __version__,
+                  'date':     __date__,
+                  'skill':    __skill__,
+                  'name':     __agent_name__,
+                  'description':  __description__
+                 }
+
     def __init__(self, pipe):
         super().__init__(pipe, self.identity)  # Call to parent init
 

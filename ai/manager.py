@@ -8,6 +8,8 @@ Does not perform game traffic routing. Agents will be (mostly) autonomous
 clients, conducting game traffic through Comet server used by human players.
 Manager can send instructions to agents to make them join games and shutdown.
 
+Inspired in part by https://github.com/okayzed/dmangame
+
 ...
 
 - will create drop-down info for agent selector on client side
@@ -40,6 +42,7 @@ class AIManager
 import multiprocessing
 import sys
 import os
+import imp
 from time import sleep
 
 import logging
@@ -48,6 +51,31 @@ log = logging.getLogger(__name__)
 
 # Constants
 MAX_AGENTS = 20 #TODO: change this with respect to server resources
+
+MY_PATH = os.path.abspath(os.path.dirname(__file__))
+MODELS_FILE = "available_models.txt"
+
+
+def import_module(module_name):
+    """Import module from file and return module object.
+    Copied (mostly) from docs.python.org.
+    
+    FUTURE: Rework this using the importlib library (requires Python 3.3+)
+    
+    module_name (string) - the name of the module (filename minus extention)
+    """
+    # In case something with module name is in global NS, remove it
+    if module_name in sys.modules:
+        del sys.modules[module_name]
+    
+    # Locate module within MY_PATH
+    fp, pathname, desc = imp.find_module(module_name, [MY_PATH,])
+    
+    try:
+        # Load it as though we had called 'import foo'
+        return imp.load_module(module_name, fp, pathname, desc)
+    finally:
+        if fp:  fp.close()
 
 
 class AIManager:
@@ -58,7 +86,6 @@ class AIManager:
 
     def __init__(self):
         self.agents = [] # Activated (Agent, Pipe, Process) tuples
-        self.ai_packages = [] # Available AI models
         
         self.get_ai_models()
         log.info("AI Manager ready for action.")
@@ -71,41 +98,38 @@ class AIManager:
             proc.join()
             
     def get_ai_models(self):
-        """Scan AI folder for agent models and add to self.models."""
-        log.info("Searching for AI packages...")
-        # Get directory listing of ai folder        
-        cur = sys.modules[__name__]
-
-        ai_path = os.path.join(os.getcwd(), "ai") #currently in root
-
-        self.ai_path = ai_path #store value for later use
+        """Read available models file for file names, and load corresponding
+        classes into namespace.
+        """
+        # Open and parse models file
+        log.info("Reading {0} for AI models...".format(MODELS_FILE))
+        fin = open(os.path.join(MY_PATH, MODELS_FILE))
         
-        dirlist = os.listdir(ai_path)
-
-        # Remove __pycache__ from candidate packages, if present
-        try:    dirlist.remove('__pycache__')
-        except: pass
-
-        curDir = os.getcwd()
-        os.chdir(ai_path) # Filtering needs to be performed from AI directory
+        ai_files = []
+        line = fin.readline()
+        while line:
+            if line != '\n':
+                ai_files.append(line.strip()) # Remove trailing newline
+            line = fin.readline()
         
-        # Filter non-directories from dirlist
-        packages = filter(os.path.isdir, dirlist)
-
-        # Gather ID info and import each package
-        for pkg in packages:
-            d = {'pkg': pkg}
-            t = "{0}_module".format(pkg)
-
-            exec("import ai.{0} as {1}".format(pkg,t))
-            self.ai_packages.append(locals()[t])
-            log.info("Found AI Model {0}".format(
-                        locals()[t].Agent.identity['name']))
-
-        os.chdir(curDir) # Change to old working directory
-        log.info("AI Model data loaded ({0} models).".format(
-                    len(self.ai_packages)))
-
+        fin.close()
+        
+        # Import each file into a module
+        ai_modules = []
+        for filename in ai_files:
+            split_ext = os.path.splitext(filename)            
+            module_name = os.path.basename(split_ext[0])
+            
+            mod = import_module(module_name) # Create new module object
+        
+            ai_modules.append(mod)
+            
+            log.info("AI Agent {0} imported.".format(module_name))
+        
+        self.ai_classes = map(lambda m: getattr(m, m.AI_CLASS), ai_modules)
+        
+        log.info("All available AI models imported.")
+        
     def get_ai_summary(self):
         """Assemble data for choosing/viewing available AI Agents.
 
@@ -120,9 +144,8 @@ class AIManager:
         temp = {}
         i = 1 # Used for AI ID #
 
-        #TODO: may want to sort ai_packages first, somehow
-        for pkg in self.ai_packages:
-            identity = pkg.Agent.identity
+        for ai_class in self.ai_classes:
+            identity = ai_class.identity
             temp = {'id': i,
                     'auth': identity['author'],
                     'ver':  identity['version'],

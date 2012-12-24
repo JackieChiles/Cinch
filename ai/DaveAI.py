@@ -1,15 +1,31 @@
 #!/usr/bin/python3
 """AI Agent demonstration of module implementation."""
-
 import random
 
-# Import base class for AI agent -- may need to edit import path
 from ai.base import AIBase, log
 
 
+# AI Agent description -- used by Manager for identification
+AI_CLASS = "Dave" # Set this to match the class name for the agent
+__author__  = "M.G."
+__version__ = "1.2"
+__date__    = "19 September 2012"
+__skill__   = "0"
+__agent_name__  = "Dave"
+__description__ = "Leads from the left."
+
+
 class Dave(AIBase):
+    identity = {  'author':   __author__,
+                  'version':  __version__,
+                  'date':     __date__,
+                  'skill':    __skill__,
+                  'name':     __agent_name__,
+                  'description':  __description__
+                 }
+                 
     def __init__(self, pipe):
-        super().__init__(pipe, self.identity)  # Call to parent init
+        super().__init__(pipe, identity)  # Call to parent init
 
     def act(self):
         """Overriding base class act."""

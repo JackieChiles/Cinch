@@ -9,6 +9,15 @@ import core.cards as cards
 from ai.base import AIBase, MyCard, log
 from core.gamestate import NUM_PLAYERS
 
+# AI Agent description -- used by Manager for identification
+AI_CLASS = "Hal" # Set this to match the class name for the agent
+__author__  = "M.G."
+__version__ = "0.5"
+__date__    = "19 September 2012"
+__skill__   = "1"
+__agent_name__  = "HAL 231"
+__description__ = "Leads from the left."
+
 
 NUM_MC_TRIALS = 30 # Number of Monte Carlo trials to run for play analysis
 TAKE_TRICK_PROB_THRESHOLD = 0.5 # How confident AI must be to play for the trick
@@ -19,6 +28,14 @@ GAME_POINT_VALUES = {cards.TEN:10, cards.ACE:4, cards.KING: 3,
                      cards.QUEEN: 2, cards.JACK:1}
 
 class Hal(AIBase):
+    identity = {  'author':   __author__,
+                  'version':  __version__,
+                  'date':     __date__,
+                  'skill':    __skill__,
+                  'name':     __agent_name__,
+                  'description':  __description__
+                 }
+
     def __init__(self, pipe):
         super().__init__(pipe, self.identity)  # Call to parent init
 

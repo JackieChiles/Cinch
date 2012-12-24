@@ -1,4 +1,3 @@
-"""
 Temp documentation for AI Agent/Manager system
 
 AI agent will be spawned as a subprocess by an AI Agent Manager on-demand
@@ -33,5 +32,3 @@ TODO:
 *implement request timeout in case server dies
 *implement error responses in handle_error
 *logging functions
-
-"""
