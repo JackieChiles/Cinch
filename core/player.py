@@ -11,13 +11,13 @@ class Player:
     name (string): display name of player
     hand (list): array of card objects, set by Game object
     """
-    def __init__(self, pNum, name="test"): #Defaults for debug
+    def __init__(self, pNum, name="test"):
         """
         Create new Player object.
         """
         self.pNum = pNum
-        self.name = name  #Player name needs to be available to the Player
-                          #object in order to write it to the log database.
+        self.name = name  # Player name needs to be available to the Player
+                          # object in order to write it to the log database.
         
         self.hand = []
 

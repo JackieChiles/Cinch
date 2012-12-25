@@ -55,8 +55,7 @@ class Game:
         
         if STACK_DECK:
             self.deck = cards.Deck(DECK_SEED)
-            print("ALERT: STACK_DECK=True; Deck stacking enabled!\n")
-            print(list(self.deck))
+            log.info("ALERT: STACK_DECK=True; Deck stacking enabled!\n")
         else:
             self.deck = cards.Deck()
 
@@ -86,6 +85,7 @@ class Game:
             return 'high'   # New high bid; legal.
         if (bid == BID.CINCH) & (player.pNum == self.gs.dealer):
             return 'cntr'   # Dealer has option to counter-cinch.
+
         return False        # If we get here, no legal options left.
 
     def check_play_legality(self, player, card_num):
@@ -139,7 +139,7 @@ class Game:
         # Check that player_num is active player.
         #----------------------------------------
         if player_num is not self.gs.active_player:
-            print("Non-active player attempted to bid.") # Debugging
+            log.warn("Non-active player attempted to bid.") # Debugging
             return None # Ignore
         bid_status = self.check_bid_legality(self.players[player_num], bid)
         if bid_status is False:
@@ -178,7 +178,7 @@ class Game:
         # Check that player_num is active player.
         #----------------------------------------
         if player_num is not self.gs.active_player:
-            log.info("Non-active player attempted to play a card.")
+            log.warn("Non-active player attempted to play a card.")
             return None # Ignore
 
         if not (self.check_play_legality(self.players[player_num], card_num)):
@@ -211,7 +211,6 @@ class Game:
             self.gs.team_stacks[trick_winner 
                                 % TEAM_SIZE] += self.gs.cards_in_play
             self.gs.cards_in_play = []
-
 
         # Check for end of hand and handle, otherwise return.
         #----------------------------------------------------
@@ -253,16 +252,20 @@ class Game:
             return self.publish('eog', player_num, card)
                 
         # If no victor, set up for next hand.
-        self.gs.team_stacks = [[] for _ in range(NUM_TEAMS)]
-        self.gs.dealer = self.gs.next_player(self.gs.dealer)
-        self.gs.declarer = self.gs.dealer
+        gs = self.gs # Operate on local variable for speed++
+
+        gs.team_stacks = [[] for _ in range(NUM_TEAMS)]
+        gs.dealer = gs.next_player(gs.dealer)
+        gs.declarer = gs.dealer
         self.deck = cards.Deck()
         self.deal_hand()
-        self.gs.active_player = self.gs.next_player(self.gs.dealer)
-        self.gs.high_bid = 0
-        self.gs.game_mode = GAME_MODE.BID
-        self.gs.trump = None
+        gs.active_player = gs.next_player(gs.dealer)
+        gs.high_bid = 0
+        gs.game_mode = GAME_MODE.BID
+        gs.trump = None
 
+        self.gs = gs
+        
         return self.publish('eoh', player_num, card)
 
     def publish(self, status, pNum, data):
@@ -283,50 +286,51 @@ class Game:
             trp, crd, eot, eoh, eog; integer encoding of bid for bid and eob.
 
         """
+        gs = self.gs # Make local copy for speed++; it's not edited in here.
         
         # Initialize the output. Message always contains actvP, so do it here.
-        message = {'actvP': self.gs.active_player}
+        message = {'actvP': gs.active_player}
         message['actor'] = pNum
         
         if status in ['sog', 'eob', 'eoh']:
             # Handle switching game modes first.
-            message['mode'] = self.gs.game_mode
+            message['mode'] = gs.game_mode
             
         if status in ['trp', 'crd', 'eot', 'eoh', 'eog']:
         
             if status is 'trp':
-                message['trp'] = self.gs.trump
+                message['trp'] = gs.trump
                 # Player declared Suit as trump.
                       
             message['playC'] = data.code
             # Player played Card.
             
             if status in ['eot', 'eoh', 'eog']:
-                message['remP'] = self.gs._t_w_card.owner
+                message['remP'] = gs._t_w_card.owner
                 # Player won the trick with Card.
                 
                 if status in ['eoh', 'eog']:
                     message['mp'] = ['',]*NUM_TEAMS # Initialize
                     # We will end up with a list of NUM_TEAMS strings,
                     # where the string is the match points out of 'hljg' won.
-                    message['mp'][self.gs._results['high_holder']] += 'h'
-                    message['mp'][self.gs._results['low_holder']] += 'l'
+                    message['mp'][gs._results['high_holder']] += 'h'
+                    message['mp'][gs._results['low_holder']] += 'l'
                     try:
-                        message['mp'][self.gs._results['jack_holder']] += 'j'
+                        message['mp'][gs._results['jack_holder']] += 'j'
                     except TypeError: # No jack out, NoneType.
                         pass
                     try:
-                        message['mp'][self.gs._results['game_holder']] += 'g'
+                        message['mp'][gs._results['game_holder']] += 'g'
                     except TypeError: # Game tied and not awarded, NoneType.
                         pass
-                    message['gp'] = self.gs._results['game_points']
-                    message['sco'] = self.gs.scores
+                    message['gp'] = gs._results['game_points']
+                    message['sco'] = gs.scores
                     
                     if status is 'eog':
-                        message['win'] = self.gs.winner
+                        message['win'] = gs.winner
 
                     else: # Status must be 'eoh': Set up for next hand.
-                        message['dlr'] = self.gs.dealer
+                        message['dlr'] = gs.dealer
                         # Player deals.
                         output = [message.copy() for _ in range(NUM_PLAYERS)]
                         for player in self.players:
@@ -343,7 +347,7 @@ class Game:
         # could be cleaned up or merged later, but it isn't hurting anything
         # for now.
         elif status is 'sog':
-            message['dlr'] = self.gs.dealer
+            message['dlr'] = gs.dealer
             # Player deals.
             output = [message.copy() for _ in range(NUM_PLAYERS)]
             for player in self.players:
@@ -364,15 +368,15 @@ class Game:
         self.dbevent(self.dbconnection, output)
         
         if status in ['eoh', 'eog']:
-            self.gs.hand_number += 1
+            gs.hand_number += 1
         
         if status in ['eog']:
             self.dbstop(self.dbconnection)
             # This ugly hack because the only function for stats processing
             # (currently) does it on a per-hand basis. This will loop through
             # all hands in the current (just-ended) game and process them.
-            for hNum in range(1, self.gs.hand_number):
-                stats.process(self.gs.game_id, hNum)
+            for hNum in range(1, gs.hand_number):
+                stats.process(gs.game_id, hNum)
         
         return output
 
@@ -455,14 +459,3 @@ class Game:
         conn.commit()
         c.close()
         return None
-        
-#test
-if __name__ == '__main__': 
-    print("Best you test this in the python environment. Seriously.")
-    print("But here goes. Creating a game.")
-    g = Game()
-    g.start_game()
-    for _ in range(4):
-        g.handle_bid(g.gs.active_player, 0)
-    print("Game ID:")
-    print(g.gs.game_id)
