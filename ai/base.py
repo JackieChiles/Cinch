@@ -77,6 +77,15 @@ GAMESTATE_KEYS = ['mode','trump','dealer','high_bid','declarer',
                   'actor', 'active_player','cip','scores',
                   'team_stacks']
 
+class BareGameState:
+    """Basic game state object."""
+    def __init__(self):
+        for key in GAMESTATE_KEYS: # Initialize empty values
+            setattr(self, key, -1)
+        
+        self.cip = []
+        self.scores = (0, 0)
+        self.team_stacks = ([], []) # Defined for 2-team game
 
 class AIBase:
     """Common features of all Cinch AI Agents."""
@@ -105,12 +114,7 @@ class AIBase:
         self.hand = []
 
         # Game state
-        gs = {}
-        for key in GAMESTATE_KEYS:  gs[key] = -1 # Initialize gs
-        gs['cip'] = []
-        gs['scores'] = [0,0]    # Defined for 2-team game
-        gs['team_stacks'] = [[],[]]
-        self.gs = gs
+        self.gs = BareGameState()
 
         log.info("{0}AI loaded".format(self.name))
         
@@ -312,7 +316,7 @@ class AIBase:
                     val = msg[key]
 
                     if key == 'playC':
-                        gs['cip'].append(val)
+                        gs.cip.append(val)
 
                         # If I am prev. player, then I just played
                         if msg['actor'] == self.pNum:
@@ -320,30 +324,30 @@ class AIBase:
                             
                     elif key == 'remP':
                         team_num = val % NUM_TEAMS
-                        gs['team_stacks'][team_num].extend(gs['cip'])
-                        gs['cip'] = []
+                        gs.team_stacks[team_num].extend(gs.cip)
+                        gs.cip = []
 
                     elif key == 'bid':
                         # Update high bid if needed
-                        gs['high_bid'] = max(val, gs['high_bid'])
-                        gs['declarer'] = msg['actor']
+                        gs.high_bid = max(val, gs.high_bid)
+                        gs.declarer = msg['actor']
 
                     elif key == 'addC': # Setup for new hand
                         self.hand = val
-                        gs['team_stacks'] = [[], []]
-                        gs['high_bid'] = 0
+                        gs.team_stacks = ([], [])
+                        gs.high_bid = 0
 
-                    elif key == 'mode':  gs['mode'] = val
+                    elif key == 'mode':  gs.mode = val
 
-                    elif key == 'trp':  gs['trump'] = val
+                    elif key == 'trp':  gs.trump = val
 
-                    elif key == 'sco':  gs['scores'] = val
+                    elif key == 'sco':  gs.scores = val
 
-                    elif key == 'dlr':  gs['dealer'] = val
+                    elif key == 'dlr':  gs.dealer = val
 
                     elif key == 'win':
                         # finalize log & shutdown
-                        gs['mode'] = -1 #TODO handle End of Game
+                        gs.mode = -1 #TODO handle End of Game
                         log.info("Game ending, {0} shutting down".format(
                                 self.label))
                         self.handle_daemon_command((-1,)) # Force tuple
@@ -476,7 +480,7 @@ class AIBase:
 
     def activate_player(self, actvP):
         """Advance active player value to actvP."""
-        self.gs['active_player'] = actvP
+        self.gs.active_player = actvP
 
     def decode_card(self, card_code):
         """Decode card encoding into (rank, suit) pair."""
@@ -511,9 +515,9 @@ class AIBase:
             return True # Always legal to pass
         elif bid < 0 or bid > 5:
             return False # Bid out of bounds
-        elif bid > self.gs['high_bid']:
+        elif bid > self.gs.high_bid:
             return True
-        elif bid == 5 & self.pNum == self.gs['dealer']:
+        elif bid == 5 & self.pNum == self.gs.dealer:
             return True
         else:
             return False
@@ -527,14 +531,14 @@ class AIBase:
         gs = self.gs
         decode = self.decode_card
 
-        if len(gs['cip']) == 0:
+        if len(gs.cip) == 0:
             return True # No restriction on what can be led
         else:
             _, suit = decode(card)
-            if suit == gs['trump']:
+            if suit == gs.trump:
                 return True # Trump is always OK
             else:
-                _, led = decode(gs['cip'][0])
+                _, led = decode(gs.cip[0])
                 if suit == led:
                     return True # Followed suit
                 else:
@@ -567,7 +571,7 @@ class AIBase:
         card_led (MyCard object): card led that trick (also in in cards_in_play)
         
         """
-        trump = self.gs['trump']
+        trump = self.gs.trump
         
         # Determine winning suit (either trump or suit led)
         winning_suit = card_led.suit

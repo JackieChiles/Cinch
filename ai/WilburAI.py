@@ -21,8 +21,8 @@ class Wilbur(AIBase):
 
     def act(self):
         """Overriding base class act."""
-        if self.pNum==self.gs['active_player']:
-            if self.gs['mode'] == 1: # Play
+        if self.pNum==self.gs.active_player:
+            if self.gs.mode == 1: # Play
                 log.info("{0} is playing...".format(self.label))
                 # Play last legal card (opposite of Dave)
                 for c in reversed(self.hand):
@@ -30,11 +30,11 @@ class Wilbur(AIBase):
                         self.play(c)
                         break
 
-            elif self.gs['mode'] == 2: # Bid
+            elif self.gs.mode == 2: # Bid
                 log.info("{0} is bidding...".format(self.label))
                 
                 try:
-                    bid = random.randint(self.gs['high_bid']+1,5)
+                    bid = random.randint(self.gs.high_bid+1,5)
                 except ValueError: # Because randint(6,5) fails.
                     bid = 5
                 log.info("{0} considers bidding {1}...".format(self.label, bid))

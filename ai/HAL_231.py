@@ -44,13 +44,13 @@ class Hal(AIBase):
         
         # Update card zones for card counting purposes
 
-        if self.pNum==self.gs['active_player']:
+        if self.pNum==self.gs.active_player:
             label = "{0}/{1}".format(self.name, self.pNum) # Cleans up logging
 
             #====================
             # Play logic
             #====================
-            if self.gs['mode'] == 1: # Play
+            if self.gs.mode == 1: # Play
                 log.info("{0} is playing...".format(label))
                 
                 legal_plays = self.get_legal_plays(True)
@@ -73,7 +73,7 @@ class Hal(AIBase):
             #====================
             # Bid logic
             #====================
-            elif self.gs['mode'] == 2: # Bid
+            elif self.gs.mode == 2: # Bid
                 log.info("{0} is bidding...".format(label))
                 
                 # Evaluate hand for bidding strength
@@ -94,13 +94,13 @@ class Hal(AIBase):
 
                 # Check if stuck as dealer
                 #  (agent wants to pass as dealer & all other folks pass)
-                if ((self.gs['dealer'] == self.pNum) and  
-                        (self.gs['high_bid'] == 0) and
+                if ((self.gs.dealer == self.pNum) and  
+                        (self.gs.high_bid == 0) and
                         (bid == 0)):
                     log.info("{0} is stuck as dealer".format(label))
                     bid = 1 # Make minimum legal bid
                 else:
-                    if bid <= self.gs['high_bid']:
+                    if bid <= self.gs.high_bid:
                         bid = 0 # Pass
 
                 # Transmit bid
