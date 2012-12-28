@@ -36,6 +36,7 @@ TODO:
     - have 'thinking' timeout value (halt thinking after certain interval)
     --- mandate a timeout; can be a Timer call to change a loop value & publish
     --- can specify timeout in this file? want all agent models equal in this
+    --- To devs: don't publish an AI that takes forever to do anything!
     - if AI are allowed to use DB, impl methods here
     
 """
@@ -287,7 +288,8 @@ class AIBase:
             {'new': int, 'msgs': list of dicts}
 
         """
-        gs = self.gs
+        gs = self.gs    # Local variable for speed++
+        
         for msg in response['msgs']:
             if all(k in msg for k in ['uNum','msg']): # Chat msg signature
                 pass
@@ -623,9 +625,4 @@ class MyCard:
     def __repr__(self):
         return "{1}{2} ({0})".format(self.val, RANKS_SHORT[self.rank],
                                      SUITS_SHORT[self.suit])
-##############
-# Important
-##############
-#
-# The "__main__" function must be empty for base.py for final implementation.
-#
+

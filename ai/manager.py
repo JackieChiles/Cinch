@@ -12,26 +12,14 @@ Inspired in part by https://github.com/okayzed/dmangame
 
 ...
 
-- will create drop-down info for agent selector on client side
---- requires new message interface for client to create new games
-
---maybe register manager callback with game router to read all new-game
-requests
-
-TODO:
-    - incorporate into game router
-    --- create AI Manager at root level, attach to game router
-    --- will need new 'new game/join game' handlers there to support game lobby
-    - limit memory/cpu usage: do here so AI agents can't override
-    --- unix can use `resource` module
-
-
 Method reference:
 
-class AIManager
--get_ai_models()
--get_ai_summary()
+import_module(module_name)
+get_ai_models()
+set_ai_ident(module)
 
+class AIManager
+-get_ai_summary()
 -create_agent(model_num)
 -create_agent_for_new_game(model_num)
 -create_agent_for_existing_game(model_num, game_id, pNum)
@@ -88,7 +76,7 @@ def get_ai_models():
     ai_files = []
     line = fin.readline()
     while line:
-        if line != '\n':
+        if line != '\n': # Ignore blank lines
             ai_files.append(line.strip()) # Remove trailing newline
         line = fin.readline()
     
@@ -162,7 +150,7 @@ class AIManager:
                     'skl':  identity['skill'],
                     'name': identity['name'],
                     'desc': identity['description']
-                    }
+            }
 
             aList.append(temp)
             i += 1
