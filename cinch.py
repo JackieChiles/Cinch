@@ -110,7 +110,7 @@ class Cinch:
                     response = self.gr.games
                 
                 else:
-                    response = "Unrecognized command. Try 'help' much?"
+                    response = "Unrecognized command. Try 'help'."
                 
                 # Send response back to commander
                 conn_out.send(response)

@@ -1,6 +1,8 @@
 #!/usr/bin/python3
 """Client management class for web server.
 
+## right now this is basically an awkward little database package. why not use an actual DB?
+
 Client manager supports the following methods:
 
 add_client_to_group(self, client, group)
@@ -43,6 +45,7 @@ class Client:
         self.name = name
         self.pNum = None
         self.group = None
+        self.kind = 'human'
         
 
 class ClientManager:
@@ -79,7 +82,7 @@ class ClientManager:
         # Add client to group's info
         self.groups[group][pNum] = client
 
-    def create_client(self, name=None):
+    def create_client(self, name=None, kind='human'):
         """Create new client in internal map. Return client guid.
 
         name (str): player/user name for client [optional]
@@ -99,6 +102,7 @@ class ClientManager:
                 return None # Server unable to create new player
                
         self.clients[guid] = Client(name)
+        self.clients[guid].kind = kind
         
         return guid
 

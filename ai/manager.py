@@ -5,7 +5,7 @@ Will handle creation, maintanance, etc. for AI Agents. Will provide information
 to engine/client for selecting from multiple AI models.
 
 Does not perform game traffic routing. Agents will be (mostly) autonomous
-clients, conducting game traffic through Comet server used by human players.
+clients, conducting game traffic directly to the game engine.
 Manager can send instructions to agents to make them join games and shutdown.
 
 Inspired in part by https://github.com/okayzed/dmangame
@@ -32,9 +32,12 @@ import sys
 import os
 import imp
 from time import sleep
+from _thread import start_new_thread # for monitoring queue
 
 import logging
 log = logging.getLogger(__name__)
+
+from web.message import Message
 
 
 # Constants
@@ -115,9 +118,15 @@ class AIManager:
     ai_classes = get_ai_models()
     
     def __init__(self):
+        self.gr = None # Game router reference, set during game router init
         self.agents = [] # Activated (Agent, Pipe, Process) tuples
         
-        #self.get_ai_models()
+        self.active_agents = {} # Reference for active agents, keyed by guid
+        
+        self.queue = multiprocessing.Queue()
+        
+        start_new_thread(self.listen_to_agents, ())
+        
         log.info("AI Manager ready for action.")
 
     def cleanup(self):
@@ -156,6 +165,24 @@ class AIManager:
             i += 1
 
         return aList
+    
+    def listen_to_agents(self):
+        """Monitors self.queue for messages from Agents"""
+        while True:
+            msg = self.queue.get()
+            uid = msg.pop('uid')
+
+            # Do something with message (for now just send it to the game router)
+            msg_sig = sorted(msg.keys())
+            
+            # Find appropriate handler
+            for handler in self.gr.handlers:
+                hand_sig = sorted(handler.signature)
+                if msg_sig == sorted(handler.signature):
+                    # Package msg as a Message object
+                        message = Message(msg, source=uid)
+                        handler.respond(message)
+            
 
     ####################
     # Agent Management
@@ -187,63 +214,47 @@ class AIManager:
 
         agent, parent_conn = None, None
         try:
+            # writing on parent_conn can be read from agent_conn
             parent_conn, agent_conn = multiprocessing.Pipe()
             agent = cls(agent_conn)
             p = multiprocessing.Process(target=agent.start,
-                                        name=agent.identity['name'])
+                                        args=((self.queue),),
+                                        name=agent.identity['name']) # name = name of thread
             log.debug("Thread created for model_num={0}".format(model_num))
             
             self.agents.append((agent, parent_conn, p))
+            
             p.start() # Start multiprocessing.Process
-            log.debug("Thread.start() ran for model_num={0}".format(model_num))
+            log.debug("Thread.start() ran for model_num={0}".format(model_num))    
+            return parent_conn
             
         except Exception:
             log.exception("Error creating agent")
             return None
-            
-        return parent_conn
-
-    def create_agent_for_existing_game(self, model_num, game_id, pNum):
-        """Create new agent and issue 'join game' command to it.
-
+           
+    def create_agent_for_game(self, model_num, client_id, pNum):
+        """Create agent for game. If game_id=None, then a new game is needed.
+        
         model_num (int): index of desired agent in available agent models
-        game_id (int): id of target game for new agent
+        game_id (int/None): game to join
+        pNum (int/None): desired player number
         
         """
         pipe = self.create_agent(model_num)
 
-        data = (2,game_id,pNum) # 2 = join game
-        self.send_message(pipe, data)
-        log.info("Agent with model_num={0} and pNum={1} created"
-                 " for game {2}".format(model_num, pNum, game_id))
-
-    def create_agent_for_new_game(self, model_num, plrs=None):
-        """Create new agent and issue 'new game' command to it. Can only be
-        invoked via command console.
-
-        model_num (int): index of desired agent model in models[]
-
-        """
-        pipe = self.create_agent(model_num)
-        data = (1,)
-        self.send_message(pipe, data)
-        log.info("Agent with model_num={0} creating new game".format(model_num))
-
-        sleep(0.4) # Allow time for game to be created (suspected race cond.)
+        # Add new agent to reference dict ###kind of redundant
+        self.active_agents[client_id] = pipe
         
-        if plrs is None: # AI Agent will be playing a mirror match
-            plrs = "{0},{1},{2}".format(model_num,model_num,model_num)
-
-        n = 1
-        for p in plrs.split(","): # Spawn AI agents from plrs for games
-            self.create_agent_for_existing_game(int(p), -1, n)
-            n = n+1
+        # Pass player number to AI
+        self.send_message(pipe, {'cmd': (1, client_id, pNum)})
+        
+        return "test"  ## this should be the name of the AI, formatted by pNum
 
     def send_message(self, pipe, msg):
         """Send specified message to agent via subprocess pipe.
 
         pipe (Pipe): agent info
-        msg (tuple): message
+        msg (dict): message
 
         """
         try:
@@ -258,5 +269,7 @@ class AIManager:
         pipe (Pipe): Pipe connection to Agent
 
         """
-        data = (-1,) # -1 = shutdown
+        data = {'cmd': (-1,)} # -1 = shutdown
         self.send_message(pipe, data)
+
+

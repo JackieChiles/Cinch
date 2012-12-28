@@ -22,7 +22,7 @@ class Rand(AIBase):
     def act(self):
         """Overriding base class act."""
         if self.pNum==self.gs.active_player:
-            if self.gs.mode == 1: # Play
+            if self.gs.game_mode == 1: # Play
                 log.info("{0} is playing...".format(self.label))
                 legal_cards = []
                 for c in self.hand:
@@ -32,7 +32,7 @@ class Rand(AIBase):
                 chosen_card = legal_cards[chosen_card_pos]
                 self.play(chosen_card)
 
-            elif self.gs.mode == 2: # Bid
+            elif self.gs.game_mode == 2: # Bid
                 log.info("{0} is bidding...".format(self.label))
                 r = random.random()
                 if self.is_legal_bid(self.gs.high_bid+1) and (r < 0.5):

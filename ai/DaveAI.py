@@ -22,7 +22,7 @@ class Dave(AIBase):
     def act(self):
         """Overriding base class act."""
         if self.pNum==self.gs.active_player:
-            if self.gs.mode == 1: # Play
+            if self.gs.game_mode == 1: # Play
                 log.info("{0} is playing...".format(self.label))
                 #Play first legal card
                 for c in self.hand:
@@ -30,7 +30,7 @@ class Dave(AIBase):
                         self.play(c)
                         break
 
-            elif self.gs.mode == 2: # Bid
+            elif self.gs.game_mode == 2: # Bid
                 log.info("{0} is bidding...".format(self.label))
                 
                 if self.gs.high_bid < 4:

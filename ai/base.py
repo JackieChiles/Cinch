@@ -44,7 +44,7 @@ from multiprocessing import Pipe
 from _thread import start_new_thread
 from time import sleep
 from urllib.parse import urlencode
-from http.client import HTTPConnection
+
 from json import loads as json_loads
 from math import floor
 
@@ -73,20 +73,6 @@ EVENT_PLAY = 3          #
 NUM_TEAMS = 2
 NUM_PLAYERS = 4
 
-GAME_UPDATE_KEYS = ['trp', 'playC', 'remP', 'sco', 'win', 'dlr', 'addC','mode']
-GAMESTATE_KEYS = ['mode','trump','dealer','high_bid','declarer',
-                  'actor', 'active_player','cip','scores',
-                  'team_stacks']
-
-class BareGameState:
-    """Basic game state object."""
-    def __init__(self):
-        for key in GAMESTATE_KEYS: # Initialize empty values
-            setattr(self, key, -1)
-        
-        self.cip = []
-        self.scores = (0, 0)
-        self.team_stacks = ([], []) # Defined for 2-team game
 
 class AIBase:
     """Common features of all Cinch AI Agents."""
@@ -100,166 +86,88 @@ class AIBase:
         self.uid = 0
         self.manager = None
         self.running = False
+        
         self.pipe = pipe # type = multiprocessing.Pipe
-        self.name = identity['name']
-        self.label = self.name
-
-        # Network comm
-        self.conn = {}
-        self.connect()
-        self.comet_enabled = False
+        
+        self.label = self.name = identity['name']
 
         # Game
         self.in_game = False
         self.pNum = -1
-        self.hand = []
+        self.hand = [] # list of Card objects will get cloned from the Game 
 
         # Game state
-        self.gs = BareGameState()
+        self.gs = None
 
         log.info("{0}AI loaded".format(self.name))
         
     def __del__(self):
         """Safely shutdown AI Agent subprocess."""
-        # Kill Comet server connection
-        self.stop_polling_loop()
-        try:
-            for conn in self.conn.values():  conn.close()
-        except:
-            log.debug("Failed to close active conn; "
-                      "may have been closed elsewhere or finished naturally.")
-        finally:
-            # Halt daemon loop
-            self.running = False
-
+        # Let manager know agent is shutting down
+        pass###
+        
+        self.running = False
+        
         #TODO - log final state?
 
     ####################
-    # Network communications -- message exchange with game server
+    # Message interface
     ####################
     
-    def connect(self):
-        """Create HTTP connections to Comet server.
-
-        Using different connection for polling and posting prevents issues
-        (e.g. trying to send data via post while the comet connection open).
-
-        """
-        self.conn['comet'] = HTTPConnection(SERVER_URL, timeout=10)
-        self.conn['post'] = HTTPConnection(SERVER_URL, timeout=10)
-
-    def poll_server(self):
-        """Do single Comet-style GET request for new messages on Comet server.
-
-        """
-        # Comet request format
-        req = "/?uid={0}".format(self.uid)
-
-        self.conn['comet'].request("GET", req)
-
-        res = self.conn['comet'].getresponse()
-        data = res.read()
-
-        try:
-            return json_loads(data.decode())
-        except ValueError:  # No JSON object to decode
-            return None
-
-    def run_polling_loop(self):
-        """Polling loop execution."""
-        poll = self.poll_server
-        handle = self.handle_response
-        
-        while self.comet_enabled:
-            try:
-                response = poll()
-                if response is not None:
-                    handle(response)
-
-            except Exception: # Wait longer for connection to finalize 
-                sleep(3)
-        
     def send_data(self, data):
-        """Send data via POST request to Comet server.
-
-        Any response to the request will be handled by the caller.
-
-        data (dict): information to send to server
-
+        """Send information to game via AI Manager pipe
+        
+        data (dict): data to send
+        
         """
-        params = urlencode(data)
-        headers = {"Content-type": "application/x-www-form-urlencoded",
-                    "Accept": "text/plain"}
-        self.conn['post'].request("POST", "", params, headers)       
-        res = self.conn['post'].getresponse()
-        data = res.read()
-        
-        try:
-            return json_loads(data.decode())
-        except ValueError:  # No JSON object to decode
-            return None
+        self.queue.put(data)
+                
 
-    def start_polling_loop(self):
-        """Begin Comet polling loop."""
-        if self.comet_enabled:  # Prevent multiple simultaneous polling loops
-            return
-        if not self.in_game:    # Don't waste resources if not in game
-            log.debug("Agent not in-game; don't start polling loop.")
-            return
-        
-        self.comet_enabled = True
-        start_new_thread(self.run_polling_loop, ())
-        
-    def stop_polling_loop(self):
-        """Terminate Comet polling loop."""
-        self.comet_enabled = False
+    def handle_command(self, command):
+        """Process command from input pipe.
 
-    ####################
-    # Daemon interface -- Comms. with AI Agent Manager & daemon features
-    ####################
-
-    def handle_daemon_command(self, command):
-        """Process command from AI Manager sent via pipe.
-
-        Supported commands:
-        - Request new game [request_new_game(self)]
-        - Join existing game [join_game(self, game_id, pNum)]
-        - Shutdown [stop(self)]
-
-        raw_msg (tuple of ints): data sent by Manager with following values:
-        - (1,)        New Game
-        - (2,x,y)    Join Game #x in Seat y
-        - (-1,)      Shutdown
-
+        command (dict): data sent with following values:
+        - {'cmd': some command} - a command from the AI manager
+        - {'gs': (message, game)} - a message and a new game state 
+         
         """
-        op = command[0]
+        if 'cmd' in command:
+            op = command['cmd'][0]
 
-        if op == -1: # Shutdown
-            log.info("AI Agent {0} received shutdown command".format(
-                        self.label))
-            self.stop()
-            self.stop_polling_loop()
+            if op == -1: # Shutdown
+                log.info("AI Agent {0} received shutdown command".format(
+                            self.label))
+                self.stop()
+                
+            elif op == 1: # New game
+                self.uid = command['cmd'][1]
+                self.pNum = command['cmd'][2]
+            
+            elif op == 4: # Queue for sending messages to AI Mgr
+                self.queue = command['cmd'][1]
 
-        elif op == 2: # Join Game
-            if self.join_game(command[1], command[2]):
-                self.start_polling_loop() # Join game was successful
+        elif 'gs' in command:
+#            msg = command['gs'][0] ##may use for chats. everthing else should live in game
+            self.game = command['gs'][1] #Will need mechanism to protect hands of other players###
+            self.gs = self.game.gs
 
-        elif op == 1: # New Game
-            if self.request_new_game():
-                self.start_polling_loop() # New game was successful
-
+            if self.hand == []: # Need to get a new hand
+                self.hand = self.game.players[self.pNum].hand
+                
+            self.act()
+        
         else:
-            log.warn("Unknown daemon command: {0}".format(op))
+            log.warn("Unknown daemon command: {0}".format(str(command)))
 
     def run(self):
         # Read from pipe -- does block ai thread, but start() is final action
-        readline = self.pipe.recv # Function reference for speed++
-        handle_daemon_command = self.handle_daemon_command
+        readline = self.pipe.recv              # Function references for speed++
+        handle_command = self.handle_command
         
         while self.running:
             try:
                 data = readline()
-                handle_daemon_command(data)
+                handle_command(data)
             except KeyboardInterrupt:
                 self.stop()
             except Exception as e:
@@ -267,115 +175,16 @@ class AIBase:
                 log.exception("Killing daemon loop...")
                 return
 
-    def start(self):
-        log.debug("AI Agent {0} listening on Manager pipe".format(self.label))
+    def start(self, queue):
+        log.debug("AI Agent {0} listening on input pipe".format(self.label))
+        self.queue = queue
         self.running = True
         self.run()
 
     def stop(self):
-        log.debug("AI Agent {0} stopped listening on Manager pipe"
+        log.debug("AI Agent {0} stopped listening on input pipe"
                   "".format(self.label))
         self.running = False
-
-    ####################
-    # Message Receivers -- Handlers for received messages
-    ####################
-
-    def handle_response(self, response):
-        """Handle response from Comet request, e.g. update internal game state.
-        
-        response (dict): message from Comet server of form
-            {'new': int, 'msgs': list of dicts}
-
-        """
-        gs = self.gs    # Local variable for speed++
-        
-        for msg in response['msgs']:
-            if all(k in msg for k in ['uNum','msg']): # Chat msg signature
-                pass
-            else: # Process updates to game state
-                # Handle active player update first; other keys may make use
-                # of new active player / prev. player values
-
-                # Will raise KeyError if no actvP key
-                try:  self.activate_player(msg.pop('actvP'))
-                except KeyError: pass
-                
-                # Message needs to be divided based on 'order of operations'
-                # so that certain keys are processed first
-                keys = list(msg.keys())
-                
-                # Must remove card from hand before adding new cards to hand
-                # so if present, do `playC` before `addC`
-                if 'addC' in keys:  keys.append(keys.pop(keys.index('addC')))
-
-                # Must put into play card that ends trick before clearing board
-                # so if present, do `playC` before `remP`
-                if 'remP' in keys:  keys.append(keys.pop(keys.index('remP')))
-
-                # Process each key in revised order
-                for key in keys:
-                    val = msg[key]
-
-                    if key == 'playC':
-                        gs.cip.append(val)
-
-                        # If I am prev. player, then I just played
-                        if msg['actor'] == self.pNum:
-                            self.hand.remove(val)
-                            
-                    elif key == 'remP':
-                        team_num = val % NUM_TEAMS
-                        gs.team_stacks[team_num].extend(gs.cip)
-                        gs.cip = []
-
-                    elif key == 'bid':
-                        # Update high bid if needed
-                        gs.high_bid = max(val, gs.high_bid)
-                        gs.declarer = msg['actor']
-
-                    elif key == 'addC': # Setup for new hand
-                        self.hand = val
-                        gs.team_stacks = ([], [])
-                        gs.high_bid = 0
-
-                    elif key == 'mode':  gs.mode = val
-
-                    elif key == 'trp':  gs.trump = val
-
-                    elif key == 'sco':  gs.scores = val
-
-                    elif key == 'dlr':  gs.dealer = val
-
-                    elif key == 'win':
-                        # finalize log & shutdown
-                        gs.mode = -1 #TODO handle End of Game
-                        log.info("Game ending, {0} shutting down".format(
-                                self.label))
-                        self.handle_daemon_command((-1,)) # Force tuple
-
-                    else:
-                        # See docstring for handle_other_key
-                        self.handle_other_key(val)
-
-        self.gs = gs
-
-        try:            
-            self.act()
-        except Exception as e:
-            log.exception(e)
-
-    def handle_other_key(self, val):
-        '''Override this method within each agent's core.py as desired. This 
-        is to be used to handle message keys that are ignored by base.py (e.g.
-        scores, player names). If ignored keys are being handled in identical 
-        ways by all agents in their handle_other_key overrides, refactor to 
-        include that functionality in handle_response().
-        
-        val (str): message key
-
-        '''
-        pass
         
     ####################
     # Message Transmitters -- Convenience methods for sending messages
@@ -408,73 +217,23 @@ class AIBase:
         """
         self.send_data({'uid':self.uid, 'msg':chat_msg})
 
-
-    def join_game(self, game_id, pNum):
-        """Instruct Agent to attempt to join game.
-
-        game_id (int): id of target game
-        pNum (int): desired seat in game
-        
-        """
-        if self.in_game:    # Prevent in-game client from starting new game
-            return
-        
-        data = {'join': game_id, 'pNum': pNum, 'name': "{0}/{1}".format(
-                self.identity['name'], pNum)}
-        res = self.send_data(data) # Expects {'uid', 'pNum'} or {'err'}
-
-        if 'err' in res:
-            log.error("Error joining game: {0}".format(res['err']))
-            return False
-        else:
-            self.uid, self.pNum = res['uid'], res['pNum']
-            self.label = "{0}/{1}".format(self.name, self.pNum)
-            self.in_game = True
-            self.chat("AI Agent in seat #{0}.".format(self.pNum))
-            return True
-
-    def play(self, card_val):
+    def play(self, card):
         """Send proposed play to server. Handle error response.
 
-        card_val (int): int encoding of card, assumed to have been legality
-            checked already
+        card (Card): card object, assumed to have been legality checked
 
         """
+        card_val = card.code
         res = self.send_data({'uid':self.uid, 'card':card_val}) # Expects null
 
         # Play may be deemed illegal by server anyway
         if res:
             # No fallback option defined for an illegal play
             log.error("{1} made illegal play with card_val {0}"
-                        "".format(self.print_card(card_val), self.label))
+                        "".format(self.print_card(card), self.label))
         else:
             log.info("{0} plays {1}".format(self.label, 
-                                            self.print_card(card_val)))
-    
-    def request_new_game(self):
-        """Instruct Agent to request new game from server. Used only for 
-        AI-only games.
-        
-        plrs (string): CSV agent model num list 
-        
-        """
-        if self.in_game:    # Prevent in-game client from creating new game
-            return
-
-        # It thinks it's people (Manager will take care of the players)
-        data = {'game':0, 'plrs':"-3,-3,-3,-3", 'name': "{0}/0".format(
-                self.identity['name'])}
-        res = self.send_data(data) # Expected return is {'uid', 'pNum'}
-
-        if 'err' in res:
-            log.error("Error requesting new game.")
-            return False
-        else:
-            self.uid, self.pNum = res['uid'], res['pNum']
-            self.label = "{0}/{1}".format(self.name, self.pNum)
-            self.in_game = True
-            self.chat("AI Agent in seat #{0}.".format(self.pNum))
-            return True
+                                            self.print_card(card)))
 
     ####################
     # Game Rules -- Adapted versions of core game functionality
@@ -484,30 +243,11 @@ class AIBase:
         """Advance active player value to actvP."""
         self.gs.active_player = actvP
 
-    def decode_card(self, card_code):
-        """Decode card encoding into (rank, suit) pair."""
-        suit = floor((card_code - 1) / NUM_RANKS)
-        rank = card_code - (suit * NUM_RANKS) + 1
-        
-        return rank, suit # rank and suit are integers
-        
-    def encode_card(self, rank, suit):
-        """Encode rank,suit pair into integer in range 1-52.
-        
-        rank (int), suit (int): rank and suit of card to encode.
-        
-        """
-        return (rank-1) + (suit*NUM_RANKS)
-
-    def print_card(self, card_code):
+    def print_card(self, card):
         """Return descriptive string of card; copies Card.__repr__() method."""
-
-        suit = (card_code-1) // NUM_RANKS
-        rank = card_code - suit*NUM_RANKS + 1
-
-        return "{r}{s}".format(r=RANKS_SHORT[rank], s=SUITS_SHORT[suit])
+        return "{r}{s}".format(r=RANKS_SHORT[card.rank], s=SUITS_SHORT[card.suit])
         
-    def is_legal_bid(self, bid):
+    def is_legal_bid(self, bid): # try to refactor core.game to act as library for these methods
         """Check if proposed bid is legal.
 
         bid (int): bid value (0=PASS, 5=CINCH)
@@ -527,30 +267,28 @@ class AIBase:
     def is_legal_play(self, card):
         """Check if proposed play is legal.
 
-        card (int): card code of proposed play
+        card (Card): proposed play
 
         """
         gs = self.gs
-        decode = self.decode_card
 
-        if len(gs.cip) == 0:
+        if len(gs.cards_in_play) == 0:
             return True # No restriction on what can be led
         else:
-            _, suit = decode(card)
-            if suit == gs.trump:
+            if card.suit == gs.trump:
                 return True # Trump is always OK
             else:
-                _, led = decode(gs.cip[0])
-                if suit == led:
+                led = gs.cards_in_play[0].suit
+                if card.suit == led:
                     return True # Followed suit
                 else:
                     for c in self.hand:
-                        if led == decode(c)[1]:
+                        if led == c.suit:
                             return False # Could've followed suit but didn't
 
                     return True # Throwing off
     
-    def get_legal_plays(self, as_card_objects=False):
+    def get_legal_plays(self, as_card_objects=True):
         """Create subset of hand of legal plays."""
         card_vals = list(filter(self.is_legal_play, self.hand))
         
