@@ -21,7 +21,9 @@ class Rand(AIBase):
 
     def act(self):
         """Overriding base class act."""
+        print("PNUM:", self.pNum, self.gs)###
         if self.pNum==self.gs.active_player:
+
             if self.gs.game_mode == 1: # Play
                 log.info("{0} is playing...".format(self.label))
                 legal_cards = []

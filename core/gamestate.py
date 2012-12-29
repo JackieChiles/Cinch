@@ -52,6 +52,14 @@ class GameState:
         self._t_w_card = None
         self._results = None
         self.countercinch = False
+        
+    def __repr__(self):
+        """Print function for gamestate."""
+        out = "Game # {0}\t\tMode: {1}\t\tTrump: {2}\n".format(self.game_id, self.game_mode, self.trump)
+        out += "Dealer: {0}\t\tHigh bid: {1}\t\tDeclarer: {2}\n".format(self.dealer, self.high_bid, self.declarer)
+        out += "Active Plr: {0}\t\tScores: {1}\n".format(self.active_player, str(self.scores))
+        out += "Cards in play: {0}\n".format(self.cards_in_play)
+        return out
     
     def next_player(self, player_num):
         """Return the player number of the player on the left of player_num."""

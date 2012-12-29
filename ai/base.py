@@ -89,7 +89,8 @@ class AIBase:
         
         self.pipe = pipe # type = multiprocessing.Pipe
         
-        self.label = self.name = identity['name']
+        self.name = identity['name']
+        self.label = self.name
 
         # Game
         self.in_game = False
@@ -142,6 +143,7 @@ class AIBase:
             elif op == 1: # New game
                 self.uid = command['cmd'][1]
                 self.pNum = command['cmd'][2]
+                self.label = "{0}/{1}".format(self.name, self.pNum)
             
             elif op == 4: # Queue for sending messages to AI Mgr
                 self.queue = command['cmd'][1]
@@ -234,6 +236,7 @@ class AIBase:
         else:
             log.info("{0} plays {1}".format(self.label, 
                                             self.print_card(card)))
+            self.hand.remove(card)
 
     ####################
     # Game Rules -- Adapted versions of core game functionality
