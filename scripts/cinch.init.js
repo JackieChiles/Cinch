@@ -1,11 +1,13 @@
 // Initialization
 
+CinchApp.viewModel = new CinchViewModel();
+
 $('#home-page').live('pageinit', function () {
     //Kill the pageinit handler so it doesn't trigger more than once
     $('#home-page').die('pageinit');
     
     //Apply Knockout bindings
-    ko.applyBindings(viewModel);
+    ko.applyBindings(CinchApp.viewModel);
     
     $('#lobby-page').live('pageshow', function () {
         //Kill the pageshow handler so it doesn't trigger more than once
@@ -31,7 +33,7 @@ $('#home-page').live('pageinit', function () {
             if ( event.which == 13 ) {
                event.preventDefault();
                $('#submit-button').click();
-             }
+            }
         });
         
         $('#play-surface').attr('width', CinchApp.playSurfaceWidth).attr('height', CinchApp.playSurfaceHeight);

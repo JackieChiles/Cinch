@@ -50,7 +50,7 @@ function processResponseQueue() {
         
         //Normal behavior: handleUpdate(), one message block at a time
         while (CinchApp.responseQueue.length > 0) {
-            if  (viewModel.isBoardLocked()) {   //Stop processing, but preserve queue
+            if  (CinchApp.viewModel.isBoardLocked()) {   //Stop processing, but preserve queue
                 break;
             } else {
                 CinchApp.responseQueue.shift()(); //Invoke the next function in the queue
@@ -133,7 +133,7 @@ function submitLobby() {
 
 function logDebugMessage(message) {
     if(CinchApp.isDebugMode) {
-        viewModel.debugMessages.push(message);
+        CinchApp.viewModel.debugMessages.push(message);
         
         //Log to the console if one is available
         if(console) {
@@ -162,7 +162,7 @@ function outputErrorMessage(message) {
 function outputMessage(text, name, messageType) {
     var listElement = document.getElementById('output-list');
     
-    viewModel.chats.push(new VisibleMessage(text, name, messageType));
+    CinchApp.viewModel.chats.push(new VisibleMessage(text, name, messageType));
 
     //Try-catch needed in case chat pane isn't loaded yet
     //TODO: find a better solution, this isn't optimal
@@ -179,5 +179,5 @@ function outputMessage(text, name, messageType) {
 
 function serverToClientPNum(serverNum) {
     //Adjusts serverNum to match "client is South" perspective
-    return (serverNum - viewModel.myPlayerNum() + CinchApp.numPlayers) % CinchApp.numPlayers;
+    return (serverNum - CinchApp.viewModel.myPlayerNum() + CinchApp.numPlayers) % CinchApp.numPlayers;
 }

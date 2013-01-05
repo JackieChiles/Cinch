@@ -242,7 +242,7 @@ function CinchViewModel() {
     self.returnHome = function(transition) {
         //Temporary fix
         window.location = 'home.html';
-        viewModel = new CinchViewModel(); //Clear the viewModel for the next game
+        CinchApp.viewModel = new CinchViewModel(); //Clear the viewModel for the next game
         
         //TODO: figure out why this doesn't work. Doing changePage to #home-page doesn't seem to work either.
         //Default transition is 'slideup'
@@ -298,6 +298,3 @@ function CinchViewModel() {
         });
     });
 }
-
-//TODO: migrate this to CinchApp, probably
-var viewModel = new CinchViewModel();

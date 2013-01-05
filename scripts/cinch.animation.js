@@ -29,7 +29,7 @@ function animate(cardObject) {
     if (cardObject.animateOn) {
         requestAnimFrame( function() {animate(cardObject);});
     } else { //Animation completed on last draw(); unlock board
-        viewModel.unlockBoard();
+        CinchApp.viewModel.unlockBoard();
     }
 }
 
@@ -165,7 +165,7 @@ function animateBoardClear() {
         setTimeout( function() {
             CinchApp.cardImagesInPlay = [];    
             context.clearRect(0, 0, CinchApp.playSurfaceWidth, CinchApp.playSurfaceHeight);
-            viewModel.unlockBoard();
+            CinchApp.viewModel.unlockBoard();
         }, 500);
     } else {
         requestAnimFrame(animateBoardClear);

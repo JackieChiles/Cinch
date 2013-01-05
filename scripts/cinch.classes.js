@@ -38,7 +38,7 @@ function Card(encodedCard) {
         : this.imagePath;
     
     this.play = function(player) {
-        viewModel.lockBoard();
+        CinchApp.viewModel.lockBoard();
         
         var cardStartPosition = getStartPosition(player);
         var cardEndPosition = getEndPosition(player);
@@ -97,7 +97,7 @@ function Game(gameObject) {
         postData({
             join: self.number,
             pNum: seat,
-            name: viewModel.username() || CinchApp.defaultPlayerName
+            name: CinchApp.viewModel.username() || CinchApp.defaultPlayerName
         });
     };
 }
