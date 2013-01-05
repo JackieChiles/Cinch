@@ -5,27 +5,16 @@ Method reference:
 
 class AIBase
 
---connect()
---poll_server()
---run_polling_loop()
 --send_data(data)
---start_polling_loop()
---stop_polling_loop()
-
 --handle_daemon_command(raw_msg)
 --run()
 --start()
 --stop()
 
---handle_response(response)
-
 --bid(bid)
 --chat(chat_msg)
---join_game(game_id, pNum)
 --play(card_val)
---request_new_game()
 
---decode_card(card_code)
 --is_legal_bid(bid)
 --is_legal_play(card)
 
@@ -109,13 +98,12 @@ class AIBase:
     ####################
     
     def send_data(self, data):
-        """Send information to game via AI Manager pipe
+        """Send information to game via AI Manager queue
         
         data (dict): data to send
         
         """
         self.queue.put(data)
-                
 
     def handle_command(self, command):
         """Process command from input pipe.
@@ -170,13 +158,13 @@ class AIBase:
                 return
 
     def start(self, queue):
-        log.debug("AI Agent {0} listening on input pipe".format(self.label))
+        log.debug("AI Agent {0} listening to Manager".format(self.label))
         self.queue = queue
         self.running = True
         self.run()
 
     def stop(self):
-        log.debug("AI Agent {0} stopped listening on input pipe"
+        log.debug("AI Agent {0} stopped listening to Manager"
                   "".format(self.label))
         self.running = False
         
@@ -190,7 +178,7 @@ class AIBase:
         bid (int): bid value (0-5), assumed to have been legality checked
 
         """
-        res = self.send_data({'uid':self.uid, 'bid':bid}) # Expects nothing
+        res = self.send_data({'uid':self.uid, 'bid':bid}) # res=None is OK
 
         # Bid may be illegal anyway
         if res:
@@ -218,31 +206,23 @@ class AIBase:
 
         """
         card_val = card.code
-        res = self.send_data({'uid':self.uid, 'card':card_val}) # Expects null
+        res = self.send_data({'uid':self.uid, 'card':card_val}) # res=None is OK
 
         # Play may be deemed illegal by server anyway
         if res:
             # No fallback option defined for an illegal play
             log.error("{1} made illegal play with card_val {0}"
-                        "".format(self.print_card(card), self.label))
+                        "".format(str(card), self.label))
         else:
             log.info("{0} plays {1}".format(self.label, 
-                                            self.print_card(card)))
-            self.hand.remove(card)
+                                            str(card)))
+            self.hand.remove(card) # Complete play
 
     ####################
     # Game Rules -- Adapted versions of core game functionality
     ####################
-
-    def activate_player(self, actvP):
-        """Advance active player value to actvP."""
-        self.gs.active_player = actvP
-
-    def print_card(self, card):
-        """Return descriptive string of card; copies Card.__repr__() method."""
-        return "{r}{s}".format(r=RANKS_SHORT[card.rank], s=SUITS_SHORT[card.suit])
         
-    def is_legal_bid(self, bid): # TODO try to refactor core.game to act as library for these methods
+    def is_legal_bid(self, bid):
         """Check if proposed bid is legal.
 
         bid (int): bid value (0=PASS, 5=CINCH)
@@ -265,15 +245,13 @@ class AIBase:
         card (Card): proposed play
 
         """
-        gs = self.gs
-
-        if len(gs.cards_in_play) == 0:
+        if len(self.gs.cards_in_play) == 0:
             return True # No restriction on what can be led
         else:
-            if card.suit == gs.trump:
+            if card.suit == self.gs.trump:
                 return True # Trump is always OK
             else:
-                led = gs.cards_in_play[0].suit
+                led = self.gs.cards_in_play[0].suit
                 if card.suit == led:
                     return True # Followed suit
                 else:

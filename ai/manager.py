@@ -4,9 +4,7 @@
 Will handle creation, maintanance, etc. for AI Agents. Will provide information
 to engine/client for selecting from multiple AI models.
 
-Does not perform game traffic routing. Agents will be (mostly) autonomous
-clients, conducting game traffic directly to the game engine.
-Manager can send instructions to agents to make them join games and shutdown.
+Game router will talk to Agents. Agents will talk to Game router via Manager.
 
 Inspired in part by https://github.com/okayzed/dmangame
 
@@ -19,19 +17,19 @@ get_ai_models()
 set_ai_ident(module)
 
 class AIManager
+-cleanup()
 -get_ai_summary()
+-listen_to_agents()
 -create_agent(model_num)
--create_agent_for_new_game(model_num)
--create_agent_for_existing_game(model_num, game_id, pNum)
--send_message(agent, msg)
--shutdown_agent(agent_num)
+-create_agent_for_game(model_num, client_id, pNum)
+-send_message(pipe, msg)
+-shutdown_agent(pipe)
 
 """
 import multiprocessing
 import sys
 import os
-import imp
-from time import sleep
+import imp  # functionality for import_module
 from _thread import start_new_thread # for monitoring queue
 
 import logging
@@ -41,7 +39,7 @@ from web.message import Message
 
 
 # Constants
-MAX_AGENTS = 20 #TODO: change this with respect to server resources
+MAX_AGENTS = 24 #TODO: change this with respect to server resources
 
 MY_PATH = os.path.abspath(os.path.dirname(__file__))
 MODELS_FILE = "available_models.txt"
@@ -113,6 +111,7 @@ def set_ai_ident(mod):
                       'description':  mod.__description__
     }
 
+
 class AIManager:
     # Placed here instead of in __init__ to play nice with multiprocessing
     ai_classes = get_ai_models()
@@ -172,7 +171,7 @@ class AIManager:
             msg = self.queue.get()
             uid = msg.pop('uid')
 
-            # Do something with message (for now just send it to the game router)
+            # Do something with message (for now, send it to the game router)
             msg_sig = sorted(msg.keys())
             
             # Find appropriate handler
@@ -198,7 +197,7 @@ class AIManager:
         """
         if len(self.agents) > MAX_AGENTS:
             # Too many agents on the dance floor
-            log.warning("MAX_AGENTS limit exceeded.")
+            log.error("MAX_AGENTS limit exceeded.")
             return None
 
         model_num = model_num - 1 # IDs sent to client start at 1, not 0
@@ -218,8 +217,8 @@ class AIManager:
             parent_conn, agent_conn = multiprocessing.Pipe()
             agent = cls(agent_conn) # Pass pipe to Agent.init
             p = multiprocessing.Process(target=agent.start,
-                                        args=((self.queue),),        # Pass queue to Agent.start()
-                                        name=agent.identity['name']) # name = name of thread
+                    args=((self.queue),),        # Pass queue to Agent.start()
+                    name=agent.identity['name']) # name = name of thread
             log.debug("Thread created for model_num={0}".format(model_num))
             
             self.agents.append((agent, parent_conn, p))
@@ -271,5 +270,4 @@ class AIManager:
         """
         data = {'cmd': (-1,)} # -1 = shutdown
         self.send_message(pipe, data)
-
 
