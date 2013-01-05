@@ -28,7 +28,7 @@ class Cinch:
         self.running = True
         
         # Start command interface listener
-        start_new_thread(self.command_interface, ())
+        #start_new_thread(self.command_interface, ()) # currently broken with new AI system
             
         # Create web server
         self.server = web.web_server.boot_server()
