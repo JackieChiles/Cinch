@@ -216,9 +216,9 @@ class AIManager:
         try:
             # writing on parent_conn can be read from agent_conn
             parent_conn, agent_conn = multiprocessing.Pipe()
-            agent = cls(agent_conn)
+            agent = cls(agent_conn) # Pass pipe to Agent.init
             p = multiprocessing.Process(target=agent.start,
-                                        args=((self.queue),),
+                                        args=((self.queue),),        # Pass queue to Agent.start()
                                         name=agent.identity['name']) # name = name of thread
             log.debug("Thread created for model_num={0}".format(model_num))
             
