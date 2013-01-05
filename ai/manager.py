@@ -213,7 +213,7 @@ class AIManager:
 
         agent, parent_conn = None, None
         try:
-            # writing on parent_conn can be read from agent_conn
+            # writing to parent_conn can be read from agent_conn
             parent_conn, agent_conn = multiprocessing.Pipe()
             agent = cls(agent_conn) # Pass pipe to Agent.init
             p = multiprocessing.Process(target=agent.start,
@@ -225,29 +225,29 @@ class AIManager:
             
             p.start() # Start multiprocessing.Process
             log.debug("Thread.start() ran for model_num={0}".format(model_num))    
-            return parent_conn
+            return parent_conn, agent.label
             
         except Exception:
             log.exception("Error creating agent")
             return None
            
     def create_agent_for_game(self, model_num, client_id, pNum):
-        """Create agent for game. If game_id=None, then a new game is needed.
+        """Create agent for game.
         
         model_num (int): index of desired agent in available agent models
-        game_id (int/None): game to join
+        client_id (str): uid of client
         pNum (int/None): desired player number
         
         """
-        pipe = self.create_agent(model_num)
+        pipe, label = self.create_agent(model_num)
 
-        # Add new agent to reference dict ###kind of redundant
+        # Add new agent to reference dict, rather redundant with self.agents
         self.active_agents[client_id] = pipe
         
         # Pass player number to AI
         self.send_message(pipe, {'cmd': (1, client_id, pNum)})
         
-        return "test"  ## this should be the name of the AI, formatted by pNum
+        return label
 
     def send_message(self, pipe, msg):
         """Send specified message to agent via subprocess pipe.
