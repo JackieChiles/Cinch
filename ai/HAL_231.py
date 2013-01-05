@@ -50,7 +50,7 @@ class Hal(AIBase):
             #====================
             # Play logic
             #====================
-            if self.gs.mode == 1: # Play
+            if self.gs.game_mode == 1: # Play
                 log.info("{0} is playing...".format(label))
                 
                 legal_plays = self.get_legal_plays(True)
@@ -62,7 +62,7 @@ class Hal(AIBase):
             #====================
             # Bid logic
             #====================
-            elif self.gs.mode == 2: # Bid
+            elif self.gs.game_mode == 2: # Bid
                 log.info("{0} is bidding...".format(label))
                 
                 # Evaluate hand for bidding strength

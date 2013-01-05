@@ -94,6 +94,7 @@ class GameRouter:
         """
         global ai_mgr
         ai_mgr = ai
+        ai_mgr.gr = self # Give Ai mgr a reference to the game router
 
     def attach_client_manager(self, client_mgr):
         """Attach client manager from the engine to Game Router.
@@ -135,7 +136,7 @@ class GameRouter:
     def get_client_guids(self, guid):
         return cm.get_clients_in_group(cm.get_group_by_client(guid))
         
-    def handle_timeout(self):
+    def handle_timeout(self): # TODO may be a better way w/ cherryPy sessions
         """Periodically check for "stale" games. Terminate any that have not
         received a GET request in the last GAME_TIMEOUT_INTERVAL. Games with
         AI players will (should) never go stale.
@@ -180,6 +181,24 @@ class GameRouterHandler(CommChannel):
         """
         server.add_responder(self, self.signature)
         server.add_announcer(self)
+        
+    def announce(self, msg):
+        """Modification to CommChannel.announce to make use of AI manager.
+        This is kind of hacky.
+        
+        msg (Message)
+        
+        """
+        # Determine if recipient is an AI
+        if 'ai' == cm.clients[msg.target].kind:
+            #gs = self.router.games[msg.source].gs
+            game = self.router.games[msg.source]
+            # Currently the only thing the AI receives is a new game state
+            ai_mgr.send_message(ai_mgr.active_agents[msg.target], {'gs': (msg.data, game)})
+        else:
+            super().announce(msg) # Use CommChannel.announce
+        
+        
 
     def announce_msgs_from_game(self, msg_list, game_id):
         """Build Messages from Game and announce to web server.
@@ -200,6 +219,15 @@ class GameRouterHandler(CommChannel):
         # Announce each message
         for m in outgoing_msgs:
             self.announce(m)
+
+    def start_game_if_full(self, game_id): # used for new game / join game
+        # Check if game is now full. If so, trigger and announce game start
+        if len(cm.groups[game_id]) == MAX_GAME_SIZE:
+            players = cm.get_player_names_in_group(game_id)
+            
+            init_data = self.router.games[game_id].start_game(players)
+            self.announce_msgs_from_game(init_data, game_id)
+            log.info("Game started") 
 
 
 #--------------------
@@ -244,17 +272,26 @@ class NewGameHandler(GameRouterHandler):
         client_id = cm.create_client(name=msg.data['name'])
         cm.add_client_to_group(client_id, game_id, DEFAULT_PNUM)
 
-        # Handle 'plrs' list, creating AI agents as needed
+        # If any AI players are requested, call on AI Mgr
+        # (Currently, AI players may only be created with a new game)
         player_options = list(map(int, msg.data['plrs'].split(',')))
+        if len(player_options) != 4:
+            log.error("Incorrect number of players in player_options ({0})".format(player_options))
+
         for index, val in enumerate(player_options):
             if val > 0: # humans < 0, AIs > 0, 0 unused
                 # Create AI in pNum index with agent val
-                ai_mgr.create_agent_for_existing_game(val, game_id, index)
+                new_client_id = cm.create_client(name='', kind='ai')
+                res = ai_mgr.create_agent_for_game(val, new_client_id, index)
+                cm.clients[new_client_id].name = res # I feel terrible about this
+                cm.add_client_to_group(new_client_id, game_id, index)
 
+        self.start_game_if_full(game_id)           
+        
         # Return client GUID and player number via POST
-        return {'uid': client_id, 'pNum': DEFAULT_PNUM} 
-
-
+        return {'uid': client_id, 'pNum': DEFAULT_PNUM}
+    
+     
 class JoinGameHandler(GameRouterHandler):
     """React to client requests to join a game."""
     # Overriden member
@@ -304,13 +341,7 @@ class JoinGameHandler(GameRouterHandler):
         # Notify client manager
         cm.add_client_to_group(client_id, game_id, pNum)
         
-        # Check if game is now full. If so, trigger and announce game start
-        if len(cm.groups[game_id]) == MAX_GAME_SIZE:
-            players = cm.get_player_names_in_group(game_id)
-            
-            init_data = self.router.games[game_id].start_game(players)
-            self.announce_msgs_from_game(init_data, game_id)
-            log.info("Game Router: game started")           
+        self.start_game_if_full(game_id)         
 
         # Return client GUID and assigned player number
         return {'uid': client_id, 'pNum': pNum}
@@ -326,10 +357,10 @@ class LobbyHandler(GameRouterHandler):
     # Overridden member
     def respond(self, msg):
         
-        if msg.data['lob'] != '0':
-            # May support other types of game lobby requests in the future.
-            # For now, '0' is just a request for all current games
-            return None
+        #if msg.data['lob'] != '0':
+        #    # May support other types of game lobby requests in the future.
+        #    # For now, '0' is just a request for all current games
+        #    return None
             
         games = []
         
@@ -352,9 +383,9 @@ class AIListRequestHandler(GameRouterHandler):
     # Overridden member
     def respond(self, msg):
 
-        if msg.data['ai'] != '0':
-            # For now, '0' is just a request for all AIs & only supported value
-            return None
+        #if msg.data['ai'] != '0':
+        #    # For now, '0' is just a request for all AIs & only supported value
+        #    return None
 
         agents = ai_mgr.get_ai_summary()
         

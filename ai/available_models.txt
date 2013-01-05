@@ -1,4 +1,3 @@
-HAL_231.py
 DaveAI.py
 RandAI.py
 WilburAI.py
