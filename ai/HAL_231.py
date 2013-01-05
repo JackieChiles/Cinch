@@ -56,19 +56,8 @@ class Hal(AIBase):
                 legal_plays = self.get_legal_plays(True)
                 
                 # Perform play analysis -- filter out illegal plays now
-                play = self.think_on_play(legal_plays) # Returns MyCard
-                play = play.val
-                
-                # Make final play determination
-                if self.is_legal_play(play):
-                    self.play(play)
-                else:
-                    #Make a legal play
-                    log.error("Agent decided on illegal play ({0}); "
-                              "forcing legal play".format(play.val))
-                    
-                    #Play first legal card
-                    self.play(legal_plays[0].val)
+                play = self.think_on_play(legal_plays) # Returns MyCard                
+                self.play(play.val)
 
             #====================
             # Bid logic
