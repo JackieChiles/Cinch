@@ -104,7 +104,12 @@ function Game(gameObject) {
 
 //Represents a single message from an entity
 function VisibleMessage(text, name, messageType) {
-    this.text = text;
-    this.name = name;
-    this.type = messageType || ''; //CSS class, if any, to apply special formatting
+    var self = this;
+
+    self.text = text;
+    self.name = name;
+    self.type = ko.observable(messageType || CinchApp.messageTypes.normal);
+    self.cssClass = ko.computed(function() {
+        return self.type() === CinchApp.messageTypes.error ? 'error-msg' : '';
+    });
 };

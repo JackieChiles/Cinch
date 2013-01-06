@@ -155,7 +155,7 @@ function openJqmDialog(dialogId, transition) {
 }
 
 function outputErrorMessage(message) {
-    outputMessage(message, 'Error', 'error-msg');
+    outputMessage(message, 'Error', CinchApp.messageTypes.error);
     logDebugMessage(message);
 }
 

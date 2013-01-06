@@ -66,6 +66,10 @@ var CinchApp = {
         jack: 'j',
         game: 'g'
     },
+    messageTypes: { //Types of chat messages
+        normal: 0,
+        error: 1
+    },
     
     //Other
     viewModel: null, //Knockout viewmodel

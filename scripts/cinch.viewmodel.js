@@ -270,13 +270,25 @@ function CinchViewModel() {
                     //Need to ensure this is run after all other end of trick actions, but
                     //we can't guarantee key order in the updates. So re-push this till later.
                     CinchApp.secondaryActionQueue.push(function() {
+                        var i = 0;
+                    
                         //Clear any old bids
                         self.resetBids();
                     
                         openJqmDialog('#hand-end-page');
                         
-                        //Clear trump so it isn't displayed at the beginning of the next hand
+                        //Clear trump and error messages before beginning of the next hand
                         self.trump(null);
+                        
+                        while(i < self.chats().length) {
+                            if(self.chats()[i].type() === CinchApp.messageTypes.error) {
+                                self.chats.splice(i, 1);
+                            }
+                            else {
+                                //Only advance the counter if a message wasn't removed at the current location
+                                i++;
+                            }
+                        }
                     });
                 });
             }

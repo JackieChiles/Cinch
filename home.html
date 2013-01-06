@@ -402,7 +402,7 @@
                             <li data-role="list-divider">Messages</li>
                     
                             <!-- ko foreach: chats -->
-                                <li data-bind="addClass: type">
+                                <li data-bind="addClass: cssClass">
                                     <strong data-bind="visible: name, text: name + ': '"></strong>
                                     <span data-bind="text: text" class="chat-message"></span>
                                 </li>
