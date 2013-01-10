@@ -286,7 +286,16 @@ class NewGameHandler(GameRouterHandler):
                 cm.clients[new_client_id].name = res # I feel terrible about this
                 cm.add_client_to_group(new_client_id, game_id, index)
 
-        self.start_game_if_full(game_id)           
+        self.start_game_if_full(game_id)
+        
+        # Prepare list of folks already in game for new client (should be only AI agents because it's a new game)
+        names = []
+        players = cm.get_player_names_in_group(game_id)
+        for key in players:
+            if key != DEFAULT_PNUM: #Don't need to announce player's own name
+                names.append({'pNum': key, 'name': players[key]})
+        name_msg = Message({'names':names}, target=client_id, source=game_id)
+        self.announce(name_msg)
         
         # Return client GUID and player number via POST
         return {'uid': client_id, 'pNum': DEFAULT_PNUM}

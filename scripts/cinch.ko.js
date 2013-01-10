@@ -1,56 +1,5 @@
 // Knockout custom bindings
 
-ko.bindingHandlers.jqmButtonEnabled = {
-    update: function(element, valueAccessor, allBindingsAccessor) {
-        //Need a try-catch to handle when this is called before JQM initialization of the control
-        try {
-            var enable = ko.utils.unwrapObservable(valueAccessor());
-            
-            if(enable) {
-                if($(element).attr('data-role') === 'button') {
-                    //"Link" buttons
-                    $(element).removeClass('ui-disabled');
-                    $(element).addClass('ui-enabled');
-                }
-                else {
-                    //Inputs or button elements
-                    $(element).button('enable');
-                }
-            }
-            else {
-                if($(element).attr('data-role') === 'button') {
-                    $(element).removeClass('ui-enabled');
-                    $(element).addClass('ui-disabled');
-                }
-                else {
-                    $(element).button('disable');
-                }
-            }
-        }
-        catch (e) {
-        }
-    }
-};
-
-//Cbr stands for checkboxradio
-ko.bindingHandlers.jqmCbrEnabled = {
-    update: function(element, valueAccessor, allBindingsAccessor) {
-        //Need a try-catch to handle when this is called before JQM initialization of the control
-        try {
-            var enable = ko.utils.unwrapObservable(valueAccessor());
-            
-            if(enable) {
-                $(element).checkboxradio('enable');
-            }
-            else {
-                $(element).checkboxradio('disable');
-            }
-        }
-        catch (e) {
-        }
-    }
-};
-
 //Applies a border for emphasis if condition is met
 ko.bindingHandlers.activeBorder = {
     update: function(element, valueAccessor, allBindingsAccessor) {
@@ -61,6 +10,45 @@ ko.bindingHandlers.activeBorder = {
         }
         else {
             $(element).removeClass('active-border');
+        }
+    }
+};
+
+//Fades views in or out based on current active view
+ko.bindingHandlers.isActiveView = {
+    update: function(element, valueAccessor, allBindingsAccessor) {
+        var visible = ko.utils.unwrapObservable(valueAccessor());
+        var allBindings = allBindingsAccessor();
+        var viewClass = allBindings.viewClass;
+        var jqElement = $(element);
+        var otherViews;
+        var numOtherViews = 0;
+        var duration = 500;
+        var fadeInStarted = false
+        var fadeIn = function() {
+            jqElement.fadeIn(duration);
+        };
+        
+        //Does nothing if viewClass binding is not present on element
+        if(visible && typeof viewClass !== 'undefined') {
+            otherViews = $('.' + viewClass + ':not(#' + jqElement.attr('id') + ')');
+            numOtherViews = otherViews.size();
+            
+            if(numOtherViews < 1) {
+                fadeIn();
+            }
+            else {
+                otherViews.each(function(i) {
+                    //Fade in as a callback to the first non-hidden view, or just called if all are hidden
+                    if($(this).is(':not(:hidden)')) {
+                        $(this).fadeOut(duration, fadeIn);
+                        fadeInStarted = true;
+                    }
+                    else if(i === numOtherViews - 1 && !fadeInStarted) {
+                        fadeIn();
+                    }
+                });
+            }
         }
     }
 };

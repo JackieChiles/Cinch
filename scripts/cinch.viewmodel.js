@@ -6,8 +6,14 @@ function CinchViewModel() {
     var bidValidFunction;
     
     //Data
-    self.playerNames = ['You', 'Left opponent', 'Your partner', 'Right opponent'];  
+    self.playerNames = [
+        ko.observable('You'),
+        ko.observable('-'),
+        ko.observable('-'),
+        ko.observable('-')
+    ];  
     self.username = ko.observable("");
+    self.activeView = ko.observable(CinchApp.views.home);
     
     //Game lobby
     self.games = ko.observableArray([]);
@@ -74,6 +80,9 @@ function CinchViewModel() {
         //Return name of the winning team
         return self.teamNames()[self.winner() % CinchApp.numTeams];
     });
+    self.isGameOver = ko.computed(function() {
+        return typeof self.winner() !== 'undefined';
+    });
     self.gameMode = ko.observable();
     self.isGameStarted = ko.computed(function() {
         return self.gameMode() === CinchApp.gameModeEnum.play || self.gameMode() === CinchApp.gameModeEnum.bid;
@@ -128,9 +137,9 @@ function CinchViewModel() {
     //An array of items for each player's hand, indexed by CinchApp.playerEnum
     self.cardsInAllHands = [
         null, //Unused placeholder to keep indexing straight. Hand for client (face-up cards) is self.cardsInHand.
-        ko.observableArray([]),
-        ko.observableArray([]),
-        ko.observableArray([])
+        ko.observable(0),
+        ko.observable(0),
+        ko.observable(0)
     ];
     self.chats = ko.observableArray([]);
     self.debugMessages = ko.observableArray([]);
@@ -213,11 +222,12 @@ function CinchViewModel() {
     self.responseMode = ko.observable();
     
     //Functions
-    self.endBidding = function() {
-        $.mobile.changePage( '#game-page', { transition: 'slideup'} ); //Navigate back to game page
+    self.changeView = function(view) {
+        self.activeView(view);
     };
     self.playCard = function(cardNum, playerNum) {
         var cardToPlay = new Card(cardNum);
+        var cardsInPlayerHand;
         
         //Put animation at front of secondary queue, so it always is handled
         //before end of trick procedures
@@ -229,7 +239,8 @@ function CinchViewModel() {
             self.encodedCards.remove(cardNum);
         }
         else {
-            self.cardsInAllHands[playerNum].pop();
+            cardsInPlayerHand = self.cardsInAllHands[playerNum];
+            cardsInPlayerHand(cardsInPlayerHand() - 1);
         }
     };
     self.resetBids = function() {
@@ -239,17 +250,11 @@ function CinchViewModel() {
             self.currentBids[j](CinchApp.bidEnum.none);
         }
     };
-    self.returnHome = function(transition) {
-        //Temporary fix
+    self.returnHome = function() {
         window.location = 'home.html';
-        CinchApp.viewModel = new CinchViewModel(); //Clear the viewModel for the next game
-        
-        //TODO: figure out why this doesn't work. Doing changePage to #home-page doesn't seem to work either.
-        //Default transition is 'slideup'
-        //$.mobile.changePage( 'home.html', { transition: transition || 'slideup'} );
     };
-    self.startBidding = function() {
-        openJqmDialog('#bidding-page');
+    self.enterGameView = function() {
+        CinchApp.viewModel.changeView(CinchApp.views.game);
     };
     self.startNew = function() {
         postData({
@@ -257,6 +262,18 @@ function CinchViewModel() {
             plrs: self.uploadAi(),
             name: self.username() || CinchApp.defaultPlayerName
         });
+    };
+    
+    //TODO: don't enter the views until response is received from server
+    //That way, if there are errors they'll just be displayed and user will still be on the
+    //home page. Also, games lobby shouldn't be navigated to if there are no games to join.
+    self.enterAi = function() {
+        postData({ 'ai': 0 });
+        CinchApp.viewModel.changeView(CinchApp.views.ai);
+    };
+    self.enterLobby = function() {
+        postData({ 'lob': 0 });
+        CinchApp.viewModel.changeView(CinchApp.views.lobby);
     };
     
     //Subscriptions
@@ -275,7 +292,7 @@ function CinchViewModel() {
                         //Clear any old bids
                         self.resetBids();
                     
-                        openJqmDialog('#hand-end-page');
+                        CinchApp.viewModel.changeView(CinchApp.views.handEnd);
                         
                         //Clear trump and error messages before beginning of the next hand
                         self.trump(null);
@@ -291,11 +308,7 @@ function CinchViewModel() {
                         }
                     });
                 });
-            }
-            else {
-                //Otherwise, game just started, start bidding.
-                self.startBidding();
-            }
+            }//Otherwise, game just started, start bidding.
         }
     });
     self.winner.subscribe(function(newValue) { //TODO: test to determine if hand-end gets processed on time
@@ -304,7 +317,7 @@ function CinchViewModel() {
             //end of hand procedures. So re-push this till later. Twice.
             CinchApp.secondaryActionQueue.push(function() {
                 CinchApp.secondaryActionQueue.push(function() {
-                    openJqmDialog('#hand-end-page');
+                    CinchApp.viewModel.changeView(CinchApp.views.handEnd);
                 });
             });
         });

@@ -111,10 +111,6 @@ function postData(data) {
     });
 }
 
-function submitAi() {
-    postData({ 'ai': 0 });
-}
-
 //TODO: make this a KO subscription?
 function submitChat() {
     var messageText = $('#text-to-insert').val();
@@ -123,10 +119,6 @@ function submitChat() {
         $('#text-to-insert').val('');
         postData({'uid': CinchApp.guid, 'msg': messageText});
     }
-}
-
-function submitLobby() {
-    postData({ 'lob': 0 });
 }
 
 // Other functions
@@ -142,18 +134,6 @@ function logDebugMessage(message) {
     }
 }
 
-//TODO: just extend a JQM prototype for this?
-function openJqmDialog(dialogId, transition) {
-    //Default transition is 'slidedown'
-    $('<a />')
-        .attr('href', dialogId)
-        .attr('data-rel', 'dialog')
-        .attr('data-transition', transition || 'slidedown')
-        .appendTo('body')
-        .click()
-        .remove();
-}
-
 function outputErrorMessage(message) {
     outputMessage(message, 'Error', CinchApp.messageTypes.error);
     logDebugMessage(message);
@@ -163,15 +143,6 @@ function outputMessage(text, name, messageType) {
     var listElement = document.getElementById('output-list');
     
     CinchApp.viewModel.chats.push(new VisibleMessage(text, name, messageType));
-
-    //Try-catch needed in case chat pane isn't loaded yet
-    //TODO: find a better solution, this isn't optimal
-    try {
-        //Refresh the view so JQM is aware of the change made by KO
-        $('#output-list').listview('refresh');
-    }
-    catch(e) {
-    }
 
     //Scroll chat pane to bottom
     listElement.scrollTop = listElement.scrollHeight;

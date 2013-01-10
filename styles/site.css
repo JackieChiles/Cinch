@@ -1,9 +1,79 @@
-/*****************************************
-** Home page                            **
-*****************************************/
-#home-buttons-container
-{
-    margin:0 auto;
+html {
+    font-family:helvitica,sans-serif;
+}
+
+body {
+    background-image:url(../images/bg-body.jpg);
+    margin:0px;
+}
+
+button {
+    font-size:1.2em;
+    padding:5px;
+}
+
+.cinch-view {
+    background-color:#222222;
+    background-image:url(../images/bg-view.png);
+    border:1px solid #00aaff;
+    border-top:0;
+    border-bottom-left-radius:10px;
+    border-bottom-right-radius:10px;
+    box-shadow:0px 0px 30px #000000;
+    color:#eeeeee;
+    display:none;
+    margin:0 auto 10px auto;
+    padding:5px;
+    width:310px;
+}
+
+.header {
+    background-color:#000000;
+    background-image: none;
+    background-image: -webkit-linear-gradient(top, #444444, #000000);
+    background-image: -moz-linear-gradient(top, #444444, #000000);
+    background-image: -ms-linear-gradient(top, #444444, #000000);
+    background-image: linear-gradient(top, #444444, #000000);
+    border-bottom:1px solid #00aaff;
+    border-top-left-radius:inherit;
+    border-top-right-radius:inherit;
+    color:#ffffff;
+    margin-left:-5px;
+    margin-right:-5px;
+    margin-bottom:5px;
+    margin-top:-5px;
+    padding:0;
+}
+
+.header h1 {
+    margin:0;
+    text-align:center;
+    text-shadow:2px 2px 5px #000000;
+}
+
+.small-title {
+    font-weight: bold;
+    border-bottom: 1px dotted black;
+    text-shadow: 2px 2px 5px black;
+}
+
+.small-title.white-border {
+    border-color:white;
+}
+
+.value-white-bg {
+    background-color: white;
+    color: black;
+    padding: 3px;
+    border-radius: 5px;
+    display: inline-block;
+    font-weight:bold;
+    margin-top: 2px;
+}
+
+/* Home page */
+#home-page {
+    text-align:center;
     width:290px;
 }
 
@@ -11,284 +81,203 @@ span.username-label {
     font-weight:bold;
 }
 
+input.username, input#text-to-insert {
+    border:0;
+    border-radius:5px;
+    padding:5px;
+}
+
 input.username {
     display:inline;
     width:auto;
 }
 
-/*****************************************
-** Game lobby                           **
-*****************************************/
-.lobby-container
-{
+/* Game lobby */
+.game .seat-list {
     text-align:center;
 }
 
-.lobby-item
-{
+/* AI lobby */
+#ai-upper {
+    text-align:center;
+}
+
+.ai-agent, .game {
+    margin-top:5px;
+}
+
+.ai-agent .header, .game .header {
+    padding:5px;
+    font-size:1.5em;
+    font-weight:bold;
+}
+
+.ai-agent span.label {
+    border-right: 1px solid #333;
+    box-shadow: 1px 0px 0px #999;
     display:inline-block;
-    padding-left:0;
-    padding-right:0;
-    width:310px;
+    font-weight:bold;
+    min-width:95px;
 }
 
-.lobby-item h3
-{
-    text-align:center;
+.ai-agent-item {
+    padding-top:2px;
+    margin-bottom:5px;
 }
 
-.lobby-item .east-west-seat-container
-{
+.ai-agent-item, #ai-upper {
+    border-bottom:1px solid #333333;
+    box-shadow:0px 1px 0px #999999;
+    padding-bottom:4px;
+}
+
+.east-west-seat-container {
+    margin:0 auto;
     width:300px;
 }
 
-/*****************************************
-** AI lobby                             **
-*****************************************/
-#ai-page, #ai-page .seat-list .ui-li {
-    text-align:center;
-}
-
-#ai-page .ui-listview.ai {
-    display:inline-block;
-    max-width:300px;
-    vertical-align:top;
-}
-
-#ai-list {
-    clear:both;
-}
-
-.ui-li.ai-select-container {
-    padding:0;
-}
-
-.ui-li.ai-select-container .ui-select .ui-btn-text {
-    white-space:normal;
-}
-
-.ai li span.label {
-    border-right: 3px solid #555555;
-    display:inline-block;
-    margin-right: 3px;
-    padding-right: 3px;
-    min-width:85px;
-}
-
-.ai li span:last-child {
-    font-weight:normal;
-}
-
-/*****************************************
-** Bidding and hand-end dialogs         **
-*****************************************/
-.no-close-dialog.ui-dialog, .no-close-dialog.ui-dialog .ui-header, .no-close-dialog.ui-dialog .ui-dialog-contain
-{
+.seat-list.north, .seat-list.south {
     margin:0 auto;
+    width:132px;
 }
 
-.no-close-dialog.ui-dialog .ui-header .ui-btn-icon-notext
-{
-    display:none;
-}
-
-#bidding-page.ui-dialog .ui-content
-{
-    overflow-y:hidden;
-}
-
-.no-close-dialog.ui-dialog .ui-content, .no-close-dialog.ui-dialog .ui-header
-{
-    padding-left:0;
-    padding-right:0;
-}
-
-#bidding-page.ui-dialog  .ui-content *
-{
-    text-align:center;
-}
-
-#bid-controls
-{
-    clear:both;
-    text-align:center;
-}
-
-#bid-controls .ui-btn-inner
-{
-    padding-left:8px!important;
-    padding-right:8px!important;
-}
-
-.bid-close {
-    font-weight: bold;
-}
-
-.east-west-seat-container
-{
-    margin:0 auto;
-    width:306px; /* + 6px for activePlayer border */
-}
-
-.bidding-label
-{
-    clear:both;
-    margin:0;
-}
-
-.seat-list.north, .seat-list.south
-{
-    margin:0 auto;
-    width:150px;
-}
-
-.seat-list.east-west
-{
+.seat-list.east-west {
     float:left;
     margin:0 0 12px 0;
-    width:150px;
+    width:132px;
 }
 
 .seat-list.east-west.with-south {
-    margin:0;
+    margin:3px;
 }
 
-.seat-list.south
-{
+.seat-list.south {
     clear: both;
 }
 
-.clear-both
-{
-    clear:both;
-}
-
-.hand-end-info
-{
-    font-weight:normal;
-    text-shadow:none;
-}
-
-#hand-end-page h3, #game-end-page h3 {
-    margin:1em 0 0.5em 0;
+/* Hand-end view */
+#hand-end-page {
     text-align:center;
 }
 
-/*****************************************
-** Game page                            **
-*****************************************/
-#game-page .ui-navbar h3
-{
-    margin:0;
+#hand-end-page .info-container > span, .title-value-container {
+    border:1px solid #ffffff;
+    border-radius:8px;
+    padding:5px;
 }
 
-#game-page .ui-navbar .ui-btn
-{
-    cursor:default;
-    padding-top:5px;
-    min-height:50px;
+#hand-end-page .info-container > span {
+    display:inline-block;
 }
 
-#hand
-{
-    clear:left;
-    float:left;
+#hand-end-page .info-container span.highlight .value-white-bg {
+    background-color:#00aaff;
 }
 
-#right-content
-{
+/* Game page  */
+#game-page .col4 {
+    border-right:1px solid #00aaff;
+    display:inline-block;
+    margin-right:-5px; /*Takes care of inline-block spacing (4px) and border (1px)*/
+    padding:0;
+    vertical-align:top;
+    width:25%;
+}
+
+#game-page .col4 > div {
+    padding:5px;
+}
+
+#game-controls {
+    border:1px solid #eeeeee;
+    border-radius:5px;
+    display:inline-block;
+    font-weight:bold;
+    padding:3px;
+}
+
+.card-disabler {
+    background-color:#000000;
+    height:96px;
+    opacity:0.5;
+    position:absolute;
+    width:71px;
+}
+
+#right-content {
     float:left;
     width:300px;
 }
 
-#right-content > *
-{
+#right-content > * {
     width:100%;
 }
 
-#right-content .ui-btn
-{
-    margin:0;
+#submit-button {
+    margin-left:5px;
 }
 
-#right-content input
-{
-    padding-left:0;
-    padding-right:0;
-}
-
-#output-list
-{
+#output-list {
+    background-color:#444444;
+    border:1px solid #eeeeee;
+    border-radius:5px;
     margin-bottom:0;
     margin-top:3px;
     max-height:285px;
     overflow-y:scroll;
+    padding:5px;
 }
 
-#left-content
-{
-    /*display:none;*/
+#output-list > div {
+    border-bottom: 1px solid #CCC;
+    box-shadow: 0px 2px 0px #222;
+    padding: 3px;
+}
+
+#left-content {
     float:left;
 }
 
-#play-surface
-{
+#play-surface {
     background-color:#339C53;
     border:2px solid #703C0D;
     height:245px;
     width:290px;
 }
 
-#waiting-message
-{
+.chat-title {
+    font-size:1.2em;
+    font-weight:bold;
+}
+
+.waiting-message {
     font-weight:bold;
     text-align:center;
 }
 
-.bottom-row
-{
-    height:auto!important;
-}
-
-.chat-message
-{
+.chat-message {
     font-weight:normal;
 }
 
-.condensed-list
-{
-    margin:0!important;
-}
-
-.condensed-list li
-{
-    padding:5px!important;
-}
-
-.active-border
-{
+.active-border {
     border:3px solid blue!important;
     opacity:1!important;
 }
 
 .active-border.ab-top {
-    margin-top:-3px!important;
+    margin-top:-2px!important;
 }
 
 .active-border.ab-right {
-    margin-right:-3px!important;
+    margin-right:-2px!important;
 }
 
 .active-border.ab-bottom {
-    margin-bottom:-3px!important;
+    margin-bottom:-2px!important;
 }
 
 .active-border.ab-left {
-    margin-left:-3px!important;
-}
-
-.active-border.ab-all {
-    margin:-3px!important;
+    margin-left:-2px!important;
 }
 
 .active-border.ab-z {
@@ -296,98 +285,76 @@ input.username {
     z-index:5;
 }
 
-.hand-opponent
-{
-    padding:8px;
-    position:relative;
-    top:55px;
-}
-
-.hand-opponent > img
-{
-    margin-top:-55px;
-}
-
-.hand-partner, #bid-hand
-{
-    padding:8px;
-    position:relative;
-}
-
-.hand-partner
-{
-    left:50px;
-}
-
-#bid-hand
-{
-    left:25px;
-}
-
-.hand-partner > img, #bid-hand > img
-{
-    margin-left:-50px;
-}
-
-.middle-row
-{
+.middle-row {
     float:left;
 }
 
-.no-mobile
-{
+.no-mobile {
     display:none;
 }
 
-.tile
-{
-    height:96px;
-    width:72px;
-}
-
-.tile-button
-{
+.tile-button {
     display:inline;
     float:left;
     margin:1px;
 }
 
-.tile-button .ui-btn-inner
-{
-    padding:0.6em;
-}
-
-.ui-content#game-content
-{
+#game-content {
     margin:0 auto;
     overflow-y:hidden;
     width:320px;
 }
 
-.other-player.partner
-{
+.other-player {
+    padding:3px;
+}
+
+.other-player.partner {
     height:116px;
     margin:0 auto;
-    padding:3px;
     width:290px;
 }
 
-.other-player.opponent
-{
+.other-player.opponent {
     height:247px;
-    padding:3px;
     width:116px;
 }
 
-.other-player > div
-{
-    background-color:#EFEFEF;
-    border:1px solid #000000;
+.other-player.partner > div > div > div {
+    display:inline-block;
+}
+
+.other-player > div {
+    background-color:#444444;
+    border:1px solid #eeeeee;
     border-radius:8px;
-    box-shadow:0px 1px 4px #555555;
     height:98%;
     margin:0 auto;
     width:98%;
+}
+
+.other-player > div > div {
+    padding:8px;
+}
+
+.other-player .card-counter {
+    color:#000000;
+    font-size:3em;
+    font-weight:bold;
+    text-shadow:2px 2px 2px #aaaaaa;
+    text-align:center;
+}
+
+.other-player .card-counter.horiz {
+    background-image:url(../images/b1fh.png);
+    height:71px;
+    width:96px;
+}
+
+.other-player .card-counter.vert {
+    background-image:url(../images/b1fv.png);
+    height:96px;
+    width:71px;
 }
 
 /* Special message styles */
@@ -402,18 +369,24 @@ input.username {
     background-image: -ms-linear-gradient(top, #B00, #888);
     background-image: linear-gradient(top, #B00, #888);
     color: black;
-    text-shadow: none;
 }
 
 /* Non-mobile styles*/
 @media all and (min-width: 330px)
 {
+    body {
+        margin: 0px 10px;
+    }
+
+    .cinch-view {
+        width:900px;
+    }
+
     #right-content {
         margin-left:10px;
-        width:350px;
     }
     
-    .ui-content#game-content {
+    #game-content {
         min-width:900px;
     }
     

@@ -17,15 +17,6 @@ var CinchApp = {
     noneBidDisplay: '-',
     defaultPlayerName: 'Anonymous',
     systemUser: 'System',
-    faceDownCard: function() {
-        //Represents face-down cards in other players' hands, used in KO arrays for those hands
-        //You may not pay 3 colorless to morph
-        
-        return {
-            vertImagePath: this.cardImageDir + 'b1fv' + this.cardImageExtension,
-            horizImagePath: this.cardImageDir + 'b1fh' + this.cardImageExtension
-        };
-    },
     suits: ['C', 'D', 'H', 'S'],
     suitNames: ['Clubs', 'Diamonds', 'Hearts', 'Spades'],
     ranks: ['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A'],
@@ -70,6 +61,13 @@ var CinchApp = {
         normal: 0,
         error: 1
     },
+    views: {
+        home: 0,
+        lobby: 1,
+        ai: 2,
+        handEnd: 3,
+        game: 4
+    },
     
     //Other
     viewModel: null, //Knockout viewmodel
@@ -96,28 +94,18 @@ var CinchApp = {
             //Must wait until after other handlers are called in case cards need to be removed first (from playC handler)      
             CinchApp.secondaryActionQueue.push(function () {
                 var i = 0;
-                var j = 0;
                 var cardsToAdd = update.addC;
                 
                 CinchApp.viewModel.encodedCards(cardsToAdd);
                 
-                //We have to manually trigger an update of the page so JQM catches all the bindings
-                $('#game-page').trigger('create');
-                
-                //Populate other players' hands with face-down cards
                 //Can use cardsToAdd.length to get number of cards that should be in each player's hand
-                for(i = 0; i < cardsToAdd.length; i++) {
-                    for(j = 1; j < CinchApp.numPlayers; j++) { //Skip index zero (client player, face-up hand)
-                        CinchApp.viewModel.cardsInAllHands[j].push(CinchApp.faceDownCard());
-                    }
+                for(i = 1; i < CinchApp.numPlayers; i++) { //Skip index zero (client player)
+                    CinchApp.viewModel.cardsInAllHands[i](cardsToAdd.length);
                 }
             });
         },
         aList: function(update) {
             CinchApp.viewModel.ai(update.aList);
-            
-            //Initialize the UI for the AI agents
-            $('#ai-list .ai').listview();
         },
         bid: function (update) { CinchApp.viewModel.currentBids[update.actor](update.bid); },
         dlr: function (update) { CinchApp.viewModel.dealer(serverToClientPNum(update.dlr)); },
@@ -125,7 +113,6 @@ var CinchApp = {
         gList: function (update) {
             var i = 0;
             var gList = update.gList;
-            var games;
             
             //Clear out the old games
             CinchApp.viewModel.games([]);
@@ -134,16 +121,6 @@ var CinchApp = {
             for(i = 0; i < gList.length; i++) {
                 CinchApp.viewModel.games.push(new Game(gList[i]));
             }
-            
-            //Render the newly added UI
-            $('#lobby-page').trigger('create');
-            
-            //But wait! The jqmButtonEnabled bindings have already been applied, trigger them again
-            games = CinchApp.viewModel.games();
-            
-            for(i = 0; i < games.length; i++) {
-                games[i].players.valueHasMutated();
-            }
         },
         mode: function (update) {
             //The rest of the hand-end processing is done through Knockout subscriptions, etc.
@@ -151,14 +128,14 @@ var CinchApp = {
             CinchApp.viewModel.gamePoints(update.gp || []);
             CinchApp.viewModel.gameMode(update.mode);
         },
-        msg: function (update) { outputMessage(update.msg, CinchApp.viewModel.playerNames[serverToClientPNum(parseInt(update.uNum, 10))]); },
+        msg: function (update) { outputMessage(update.msg, CinchApp.viewModel.playerNames[serverToClientPNum(parseInt(update.uNum, 10))]()); },
         names: function (update) {
             var i = 0;
             var names = update.names;
             
             for(i = 0; i < names.length; i++) {
                 //Store name
-                CinchApp.viewModel.playerNames[serverToClientPNum(names[i].pNum)] = names[i].name;
+                CinchApp.viewModel.playerNames[serverToClientPNum(names[i].pNum)](names[i].name);
                 
                 //Announce player's arrival
                 outputMessage('Player ' + names[i].name + ' is now in the game.', CinchApp.systemUser);
@@ -183,10 +160,10 @@ var CinchApp = {
         trp: function (update) { CinchApp.viewModel.trump(update.trp); },
         uid: function (update) {
             //Don't start long-polling until server gives valid guid
-            $.mobile.changePage( '#game-page', { transition: 'slide'} );
             CinchApp.guid = update.uid;
             CinchApp.viewModel.unlockBoard();
             startLongPoll();
+            CinchApp.viewModel.enterGameView();
         },
         win: function (update) {
             //Game is over, so update match and game points and winner value
