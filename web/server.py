@@ -1,5 +1,8 @@
 # chat server with lobby and multiple rooms
 
+# Unhandled exceptions caused by client input won't kill the server as a whole,
+# but will kill that connection. A page refresh seems to be required.
+
 # Applies gevent magic to standard sockets
 from gevent import monkey; monkey.patch_all()
 
@@ -10,20 +13,26 @@ from socketio.namespace import BaseNamespace
 from socketio.mixins import RoomsMixin, BroadcastMixin
 
 
+LOBBY = 0
+MAX_ROOM_SIZE = 4
+
 # Container class for a Room, in which a game will appear
 class Room(object):
-    game = None     # game object
-    users = []      # users in room
-    num = 0         # room number
-    
-    # Move this to constants area
-    MAX_ROOM_SIZE = 4
-    
     def __init__(self, roomNum):
         self.num = roomNum
+        self.game = None     # game object
+        self.users = []      # users in room
+    
+    def __str__(self):
+        if self.num == LOBBY:
+            return "Lobby"
+        else:
+            return "Game %i" % self.num
     
     def isFull(self):
-        if len(users) == MAX_ROOM_SIZE:
+        if self.num == LOBBY: # Lobby never fills
+            return False
+        elif len(self.users) == MAX_ROOM_SIZE:
             return True
         else:
             return False
@@ -35,75 +44,110 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
     # Handlers
     def recv_disconnect(self):
         # remove user from room & send disconnect message
-        # finish by calling disconnect method        
+        # finish by calling disconnect method
+        self.on_exit(0)      
         self.disconnect(silent=True)
         
-    # TODO need function to be called when client estabs socket connection
-    # On client, can confirm connection by checking 'socket.socket.connected == true'
-    # then emitting an arbitrary message. send room list then instead of on_nickname?
+    # This gets called when client connects, so long as this isn't the Global namespace
+    # FUTURE investigate how reconnects are handled wrt calling this method.
     def __init__(self, *args, **kwargs):
         super(GameNamespace, self).__init__(*args, **kwargs)
-        self.session['room'] = ''
-        self.emit('rooms', self.request['rooms'])
+        self.session['nickname'] = 'NewUser'
+        
+        self.on_join(LOBBY) # Join lobby
+        self.emit('rooms', [str(x) for x in self.request['rooms']])
         
     def on_nickname(self, name):
-        # TODO should limit this to being invoked from the lobby -- don't want to 
-        # deal with name changes mid-game
-        
-        # set nickname for user
-        self.session['nickname'] = name
-        self.emit('ackNickname', name)  # ack nickname okay (could do collision checking here)
-        self.emit('rooms', self.request['rooms'])
+        if self.session['room'].num != LOBBY:  # if room is not Lobby
+            self.emit('err', 'You cannot change names while in a game')
+        else:
+            # set nickname for user
+            self.session['nickname'] = name
+            self.emit('ackNickname', name)  # ack nickname okay (could do collision checking here)
+            self.emit('rooms', [str(x) for x in self.request['rooms']])
     
     def on_chat(self, message):
         # broadcast chat message to room
+        # If client wants to change the output formatting for own messages, let
+        # the client do it -- just compare the nicknames.
         if 'nickname' in self.session:
             self.emit_to_room('chat', [self.session['nickname'], message])
         else:
             self.emit('err', 'You must set a nickname first')
     
-    def on_exit(self, whatever):
+    def on_exit(self, _):
         # leave room and return to lobby
         self.emit_to_room_not_me('exit', self.session['nickname'])
-         #FUTURE do stuff for game-in-progress -- maybe allow player to replace
+        
+        # When exit fires on disconnect, this may fail, so try-except
+        try:
+            self.session['room'].users.remove(self.socket)
+        
+            if self.session['room'].num != LOBBY:   # Don't rejoin lobby if leaving lobby
+                self.on_join(LOBBY) # Enter lobby
+        
+        except:
+            pass
+            
+        #FUTURE do stuff for game-in-progress -- maybe allow player to replace
         #one who left
                
     def on_createRoom(self, message):
         roomNum = len(self.request['rooms'])    # rooms is global list of Room objects
         newRoom = Room(roomNum)
-        
-        newRoom.users.append(self.socket) # useful, but may lack session info (check this)
 
         self.request['rooms'].append(newRoom)       # Store new room in Server
         
-        # TODO instead broadcast only to lobby; requires players being auto-
-        # entered into lobby upon connection -- currently they are not
+        # TODO broadcast only to lobby
         self.broadcast_event('newRoom', roomNum)   # goes to all-all clients
         
         self.emit('ackCreate', roomNum)    # tell user to join the room
     
     def on_join(self, roomNum):
-        # move to room named roomName if it exists
+        # Client should not allow moving directly from one room to another without
+        # returning to the lobby. That's done by leaving the room (on_exit), which
+        # automatically takes you to the lobby. Only then should new joins be allowed.     
+        roomNum = int(roomNum) # sent as unicode from browser
+        
+        # move to room numbered roomNum if it exists
         if roomNum not in range(0, len(self.request['rooms'])):
-            self.emit('err', "%i does not exist" % roomNum)
+            # Simply using index of room in request['rooms'] for now. When we
+            # decide to have completed games be deleted, we'll need a different
+            # data structure and an update to this block.
+            self.emit('err', "%s does not exist" % roomNum)
         else:  
             # Set local ref to room
-            self.session['room'] = self.request['rooms'][roomNum]
-            self.emit('ackJoin', roomNum)      # tell client okay
-
-            # Get list of usernames in room
-            self.emit('users', [])  # TODO track users in room server-side
+            room = self.request['rooms'][roomNum]
             
-            # tell others in room that someone has joined
-            self.emit_to_room_not_me('enter', self.session['nickname'])
+            if room.isFull():
+                self.emit('err', 'That room is full')
+            else:
+                if 'room' in self.session:
+                    self.on_exit(0) # Leave current room if we're in a room
+                                    # (won't be in a room at start of connection)
+                
+                self.session['room'] = room     # Record room pointer in session
+                
+                # Add user to room server-side
+                room.users.append(self.socket) # socket includes session field            
+                
+                self.emit('ackJoin', roomNum)      # tell client okay
 
+                # Send list of usernames in room
+                self.emit('users', self.getUsernamesInRoom(room))
+                
+                # tell others in room that someone has joined
+                self.emit_to_room_not_me('enter', self.session['nickname'])
+
+
+    # --------
     def on_exec(self, message):
         # Debugging helper - client sends arbitrary Python code for execution
         # From the client browser console, type:
         # socket.emit('exec', <your Python code>)
-        # Please be careful.
+        # Please be careful. This is offensively dangerous.
         #
-        # TODO remove this method before it goes live
+        # remove this method before it goes live
         try:
             exec(message)
         except Exception, e:
@@ -140,18 +184,25 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
             elif socket.session['room'] == room:
                 socket.send_packet(pkt)    
 
+    def getUsernamesInRoom(self, room):
+        names = []
+        for sock in room.users:
+            names.append(sock.session['nickname'])
+        
+        return names
+        
+        
     
 # This might should live in a separate file and be imported here. Can break this
 # file up later.
 class Server(object):
-    request = {'rooms':[None] } # None is placeholder for Room 0:Lobby
+    request = {'rooms':[Room(LOBBY)] } # Room 0:Lobby
     
     def __call__(self, environ, start_response):
         path = environ['PATH_INFO'].strip('/')
 
         if path.startswith("socket.io"):
-            socketio_manage(environ, 
-                {'': GameNamespace}, self.request)
+            socketio_manage(environ, {'/cinch': GameNamespace}, self.request)
         else:
             print "not found ", path
 
