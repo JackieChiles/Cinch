@@ -30,7 +30,7 @@ import multiprocessing
 import sys
 import os
 import imp  # functionality for import_module
-from _thread import start_new_thread # for monitoring queue
+from thread import start_new_thread # for monitoring queue
 
 import logging
 log = logging.getLogger(__name__)

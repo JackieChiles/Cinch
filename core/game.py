@@ -7,7 +7,7 @@ TODO: pickling game for later recovery
 """
 import random
 import sqlite3
-from datetime import datetime, timezone
+from datetime import datetime, tzinfo
 
 import logging
 log = logging.getLogger(__name__)
