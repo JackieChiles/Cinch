@@ -64,8 +64,9 @@ class Room(object):
             return False
     
     def getAvailableSeats(self):
-        """Returns list of unoccupied seat numbers in range(1, MAX_ROOM_SIZE)."""
-        seats = list(range(1, MAX_ROOM_SIZE+1))
+        """Returns list of unoccupied seat numbers in range(0, MAX_ROOM_SIZE)."""
+        # TODO consider changing from base-0 to base-1 for pNums
+        seats = list(range(0, MAX_ROOM_SIZE))
         
         for sock in self.users:
             if 'seat' in sock.session:
@@ -82,9 +83,7 @@ class Room(object):
         If any players are not seated when this is called, they'll be assigned
         seats. It may be preferable to prompt unseated players first, but testing
         is required.
-        """
-        print "calling startGame()"
-        
+        """       
         # Ensure all seats filled
         availableSeats = self.getAvailableSeats()
         if len(availableSeats) > 0:
@@ -99,10 +98,20 @@ class Room(object):
             if len(self.getAvailableSeats()) > 0:
                 # Something has gone wrong
                 print "bad seating error in startGame()"
-                # TODO emit something to room
+                sock['/cinch'].emit_to_room('err', 'Problem starting game')
                 return
                 
         self.game = Game()
+        initData = self.game.start_game(self.users[0]['/cinch'].getUsernamesInRoom(self))
+        
+        # Send initial game data to players
+        for msg in initData:
+            # msg['tgt'] is a list. for this msg, it's one-element
+            tgt = msg.pop('tgt')[0]
+            for sock in self.users:
+                if sock.session['seat'] == tgt:
+                    sock['/cinch'].emit('startData', msg)
+                    continue              
 
 
 class GameNamespace(BaseNamespace, BroadcastMixin):
@@ -118,6 +127,7 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
     # Unhandled exceptions caused by client input won't kill the server as a whole,
     # but will kill that connection. A page refresh seems to be required.
     
+    # TODO change this to recv_connect()
     def __init__(self, *args, **kwargs):
         """Initialize connection for a client to this namespace.
         
@@ -257,8 +267,11 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
                 room.users.append(self.socket) # socket includes session field            
                 
                 # Confirm join to client & provide list of available seats
-                seats = room.getAvailableSeats()
-                self.emit('ackJoin', (roomNum, seats))
+                if roomNum == 0:
+                    self.emit('ackJoin', (0, 'lobby'))
+                else:
+                    seats = room.getAvailableSeats()
+                    self.emit('ackJoin', (roomNum, seats))
 
                 # Send list of usernames in room
                 self.emit('users', self.getUsernamesInRoom(room))
@@ -313,21 +326,42 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
     # TODO add AI management methods (e.g. add AI to game). At the moment, all AI
     # is disabled pending web server overhaul and revamp of multiprocessing.
     
+    # Could emit acks to sending client and emit_to_room_not_me the rest if that
+    # is beneficial.
+    
     def on_aiList(self, _):
         """Provide client with list of available AIs and their information."""
-        pass
-    
-    def on_startGame(self, message):
-        """Send client any beginning-of-game information. (might not need/use)"""
         pass
         
     def on_bid(self, bid):
         """Pass bid to game."""
-        pass
+        g = self.session['room'].game
+        pNum = self.session['seat']
+        
+        res = g.handle_bid(pNum, int(bid))
+        
+        if res is False:
+            self.emit('err', 'Bad bid') #False on bad bid, None for inactive player
+        else:
+            self.emit_to_room('bid', res)
         
     def on_play(self, play):
         """Pass play to game."""
-        pass
+        g = self.session['room'].game
+        pNum = self.session['seat']
+        
+        res = g.handle_card_played(pNum, int(play)) #False on bad play, None for inactive player
+        
+        if res is False:
+            self.emit('err', 'Bad play')
+        else:
+           # if 'addC' in res: # Private information, so handle differently
+           #     pass #TODO
+           # else:
+           #     self.emit_to_room('play', res)
+            
+            self.emit_to_room('play', res)
+                  
             
     # --------------------
     # Helper methods
@@ -412,6 +446,12 @@ class Server(object):
 def runServer():
     """Start socketio server on ports specified below."""
     print 'Listening on port 8088 and on port 10843 (flash policy server)'
-    SocketIOServer(('0.0.0.0', 8088), Server(),
-        resource="socket.io", policy_server=True,
-        policy_listener=('0.0.0.0', 10843)).serve_forever()
+    
+    try:
+        SocketIOServer(('0.0.0.0', 8088), Server(),
+            resource="socket.io", policy_server=True,
+            policy_listener=('0.0.0.0', 10843)).serve_forever()
+    except KeyboardInterrupt:
+        print 'Server halted with keyboard interrupt'
+    except Exception, e:
+        raise e

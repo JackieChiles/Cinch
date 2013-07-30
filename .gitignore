@@ -1,5 +1,6 @@
 *__pycache__*
 db/cinch.db
+*-journal
 db/stats.log
 driver.py
 reset.sh
