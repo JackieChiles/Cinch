@@ -20,12 +20,17 @@ from gevent import monkey; monkey.patch_all()
 from socketio import socketio_manage
 from socketio.server import SocketIOServer
 from socketio.namespace import BaseNamespace
-from socketio.mixins import RoomsMixin, BroadcastMixin
+from socketio.mixins import BroadcastMixin
 
+import logging
+log = logging.getLogger(__name__)
+# TODO make use of logging in code
+
+from core.game import Game, NUM_PLAYERS
 
 # Constants
 LOBBY = 0
-MAX_ROOM_SIZE = 4
+MAX_ROOM_SIZE = NUM_PLAYERS
 
 
 class Room(object):
@@ -38,16 +43,16 @@ class Room(object):
         roomNum -- the specified room number, used for descriptive purposes only.
         
         """
-        self.num = roomNum
+        self.num = roomNum   # room descriptor
         self.game = None     # game object
-        self.users = []      # users in room
+        self.users = []      # user sockets in room
     
     def __str__(self):
         """Return a label for the room, with special handling for the Lobby."""
         if self.num == LOBBY:
             return "Lobby"
         else:
-            return "Game %i" % self.num
+            return "Room %i" % self.num
     
     def isFull(self):
         """Check if the room is full and return a boolean. Lobby cannot fill up."""
@@ -57,11 +62,56 @@ class Room(object):
             return True
         else:
             return False
+    
+    def getAvailableSeats(self):
+        """Returns list of unoccupied seat numbers in range(1, MAX_ROOM_SIZE)."""
+        seats = list(range(1, MAX_ROOM_SIZE+1))
+        
+        for sock in self.users:
+            if 'seat' in sock.session:
+                try:
+                    seats.remove(sock.session['seat'])
+                except:
+                    print "%d not in available seats" % sock.session['seat']
+        
+        return seats
+    
+    def startGame(self):
+        """Perform final player checks and start game.
+        
+        If any players are not seated when this is called, they'll be assigned
+        seats. It may be preferable to prompt unseated players first, but testing
+        is required.
+        """
+        print "calling startGame()"
+        
+        # Ensure all seats filled
+        availableSeats = self.getAvailableSeats()
+        if len(availableSeats) > 0:
+            # Some seats are empty, so auto-assign
+            for sock in self.users:
+                if 'seat' not in sock.session:
+                    curSeat = availableSeats.pop() 
+                    sock.session['seat'] = curSeat
+                    sock['/cinch'].emit('ackSeat', curSeat)
+                    # changing the namespace name will break this
+            
+            if len(self.getAvailableSeats()) > 0:
+                # Something has gone wrong
+                print "bad seating error in startGame()"
+                # TODO emit something to room
+                return
+                
+        self.game = Game()
 
 
 class GameNamespace(BaseNamespace, BroadcastMixin):
 
     """Namespace for all Cinch client-server communications using Socket.io.
+    
+    Extends socketio.namespace.BaseNamespace and socketio.mixins.BroadcastMixin.
+    
+    TODO add public method list to docstring
 
     """
     
@@ -99,7 +149,7 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         try:
             exec(message)
         except Exception, e:
-            print e
+            print 'on_exec error: ', e
             
     # --------------------
     # Room & chat management methods
@@ -120,8 +170,10 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         else:
             self.emit('err', 'You must set a nickname first')
             
-    def on_createRoom(self, _):
+    def on_createRoom(self, args):
         """Create new room and announce new room's existance to clients.
+        
+        args -- ? probably AI parameters
         
         This method sends an 'ack' to the client, instructing the client to join
         the room, separating the creation of the room from the act of joining
@@ -137,6 +189,11 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         self.broadcast_event('newRoom', roomNum)  # goes to all clients in room
         
         self.emit('ackCreate', roomNum)           # tell user to join the room
+        
+        # TODO accept AI specifications
+        
+        # FUTURE add way to system to add AIs after creating room; useful for filling
+        # a room that won't fill
     
     def on_exit(self, _):
         """Leave room and return to lobby, while announcing to rest of room."""
@@ -144,7 +201,14 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         
         # When exit fires on disconnect, this may fail, so try-except
         try:
+            # Remove user from room
             self.session['room'].users.remove(self.socket)
+            
+            # Delete user's seat so it doesn't get carried into the next room
+            try:
+                del self.session['seat']
+            except:
+                pass
         
             if self.session['room'].num != LOBBY:   # Don't rejoin lobby if leaving lobby
                 self.on_join(LOBBY)
@@ -158,6 +222,10 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         """Join room specified by roomNum.
         
         roomNum -- index in request[rooms] for target room
+        
+        This method sends an 'ack' to the client, which includes the room number
+        for confirmation and a list of available seats for selection. The client
+        should prompt the user to select one and emit a 'seat' command.
         
         Client should not allow moving directly from one room to another without
         returning to the lobby. That's done by leaving the room (on_exit), which
@@ -188,16 +256,38 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
                 # Add user to room server-side
                 room.users.append(self.socket) # socket includes session field            
                 
-                self.emit('ackJoin', roomNum)      # tell client okay
+                # Confirm join to client & provide list of available seats
+                seats = room.getAvailableSeats()
+                self.emit('ackJoin', (roomNum, seats))
 
                 # Send list of usernames in room
                 self.emit('users', self.getUsernamesInRoom(room))
                 
                 # tell others in room that someone has joined
                 self.emit_to_room_not_me('enter', self.session['nickname'])
+                
+                # if the room is now full, begin the game
+                # client may want to inhibit/delay ability to leave room at this point
+                if room.isFull():
+                    self.emit_to_room('roomFull', '')
+                    room.startGame()
+
+    def on_seat(self, seat):
+        """Set seat number in room for user.
+        
+        seat -- seat number
+        
+        This method sends an 'ack' to confirm that the selected seat was applied.
+        
+        """
+        if seat in self.session['room'].getAvailableSeats():
+            self.session['seat'] = seat
+            self.emit('ackSeat', seat)
+        else:
+            self.emit('err', 'That seat is already taken. Pick a different one')
 
     def on_nickname(self, name):
-        """Set nickname for user and announce.
+        """Set nickname for user.
         
         name -- desired nickname
         
@@ -215,11 +305,29 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
             # set nickname for user
             self.session['nickname'] = name
             self.emit('ackNickname', name)  # ack nickname okay
-            self.emit('rooms', [str(x) for x in self.request['rooms']])
 
     # --------------------
-    # Game & game routing methods
+    # Game methods
     # --------------------
+    
+    # TODO add AI management methods (e.g. add AI to game). At the moment, all AI
+    # is disabled pending web server overhaul and revamp of multiprocessing.
+    
+    def on_aiList(self, _):
+        """Provide client with list of available AIs and their information."""
+        pass
+    
+    def on_startGame(self, message):
+        """Send client any beginning-of-game information. (might not need/use)"""
+        pass
+        
+    def on_bid(self, bid):
+        """Pass bid to game."""
+        pass
+        
+    def on_play(self, play):
+        """Pass play to game."""
+        pass
             
     # --------------------
     # Helper methods
