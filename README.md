@@ -18,5 +18,5 @@ Technology
 * [Knockout.js](http://knockout.js/)
 
 ####Server
-* [Python 3.2.2](http://python.org/download/releases/3.2.2/)
-*
+* [Python 2.7](http://python.org/download/releases/)
+* [gevent-socketio](https://github.com/abourget/gevent-socketio)
