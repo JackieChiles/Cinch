@@ -451,6 +451,7 @@ class Game:
         c.execute("INSERT INTO Events VALUES (NULL,?,?,?,?)",
                   (self.gs.game_id, self.gs.hand_number,
                    datetime.utcnow().isoformat(), str(event_data)))
+        conn.commit()
         return None
         
     def dbstop(self, conn):
