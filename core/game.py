@@ -5,6 +5,7 @@ Game object for managing game properties, players, and game states.
 TODO: pickling game for later recovery
 
 """
+import string
 import random
 import sqlite3
 from datetime import datetime, tzinfo
@@ -17,10 +18,6 @@ from core.player import Player
 import core.cards as cards
 from core.gamestate import GameState
 import db.stats as stats    
-
-# Used for testing
-STACK_DECK = True           # Bool to use deck stacking. Set to False to disable
-DECK_SEED = 0.1             # Float b/t 0 and 1, used to seed deck shuffle
 
 #Constants and global variables
 WINNING_SCORE = 11
@@ -40,6 +37,8 @@ BID = common.enum(PASS=0, CINCH=5)
 class Game:
     """
     Define object for Game object with instance variables:
+        stack_deck (bool): fixed hands for testing purposes.
+        deck_seed (float)[0..1]: used to seed if stack_deck is True
         id (integer): unique id for game object
         mode (integer): setting for game mode
         players (list): array of Player objects for players in game
@@ -48,14 +47,16 @@ class Game:
         deck (object): Deck object containing Card objects
         
     """
-    def __init__(self):
+    def __init__(self, stack_deck = False, deck_seed = 0.1):
         self.id = 0     #TODO: have external counter for this
         self.players = []
         self.gs = None
-        
-        if STACK_DECK:
-            self.deck = cards.Deck(DECK_SEED)
-            log.info("ALERT: STACK_DECK=True; Deck stacking enabled!\n")
+        self.stack_deck = stack_deck
+        self.deck_seed = deck_seed
+
+        if stack_deck: #TODO: clean this up - WET code (handle_card_played)
+            self.deck = cards.Deck(deck_seed)
+            log.warning("ALERT: Deck stacking enabled!\n")
         else:
             self.deck = cards.Deck()
 
@@ -118,7 +119,60 @@ class Game:
                 return False # Could have followed suit with a different card.
         
         return True          # Couldn't follow suit, throwing off.
+
+    def dbupdate(self):
+        """Write a completed gamestate to the sqlite database."""
         
+        # Open the database and make a new game.
+        conn = sqlite3.connect(DB_PATH, check_same_thread = False)
+        c = conn.cursor()
+        try:
+            log.debug("Trying to add a row for the new game.")
+            c.execute("INSERT INTO Games VALUES (NULL,?,?,?,?,?)",
+                      (datetime.utcnow().isoformat(),
+                       self.players[0].name, self.players[1].name,
+                       self.players[2].name, self.players[3].name))
+        except sqlite3.OperationalError:
+            # Initialize the runtime database tables for new/clean servers.
+            log.debug("Trying to initialize games table.")
+            c.execute("""CREATE TABLE Games (game_id INTEGER PRIMARY KEY,
+                         Timestamp text NOT NULL,
+                         PlayerName0 text NOT NULL,
+                         PlayerName1 text NOT NULL,
+                         PlayerName2 text NOT NULL,
+                         PlayerName3 text NOT NULL)""")
+            c.execute("""CREATE TABLE Events (event_id INTEGER PRIMARY KEY,
+                         game_id INTEGER NOT NULL,
+                         HandNumber INTEGER NOT NULL,
+                         Timestamp text NOT NULL,
+                         EventString text NOT NULL)""")
+            c.execute("INSERT INTO Games VALUES (NULL,?,?,?,?,?)",
+                      (datetime.utcnow().isoformat(),
+                       self.players[0].name, self.players[1].name,
+                       self.players[2].name, self.players[3].name))
+        
+        # Get the automatic game ID to use in the Events table in place of the
+        # random engine-generated game ID.
+        c.execute("SELECT last_insert_rowid()")
+        autogen_game_id = c.fetchone()[0] # Unpack len-1 tuple to get int
+        log.debug("Grabbed a game_id from the database.")
+
+        # Write everything from Events to the database.
+        log.info("Writing game data for local game %s, db game %s.",
+                  self.gs.game_id, autogen_game_id)
+        for action in self.gs.events:
+            c.execute("INSERT INTO Events VALUES (NULL,?,?,?,?)",
+                      (autogen_game_id, action['hand_num'],
+                       action['timestamp'], action['output']))
+        
+        # Commit the change, close db, return.
+        #TODO: In the future, consider adding more try statements and error-
+        # catching code that at least saves the server from hanging if there
+        # is a db problem.
+        conn.commit()
+        c.close()
+        return None        
+
     def deal_hand(self):
         """Deal new hand to each player and set card ownership."""
         for player in self.players:
@@ -127,6 +181,18 @@ class Game:
             
             for card in player.hand:
                 card.owner = player.pNum
+
+    def generate_id(self, size=6):
+        """Generate random character string of specified size.
+    
+        Uses digits, upper- and lower-case letters.
+        
+        """
+        chars=string.ascii_letters + string.digits
+        # There is a 1.38e-07% chance of identical game_ids with 3 games.
+        # This chance rises to 1% when there are 6,599 simultaneous games.
+        # While not a perfect solution, we like to live dangerously.
+        return ''.join(random.choice(chars) for x in range(size))
 
     def handle_bid(self, player_num, bid):
         """Invoke bid processing logic on incoming bid and send update to
@@ -139,7 +205,7 @@ class Game:
         # Check that player_num is active player.
         #----------------------------------------
         if player_num is not self.gs.active_player:
-            log.warn("Non-active player attempted to bid.") # Debugging
+            log.warning("Non-active player attempted to bid.") # Debugging
             return None # Ignore
         bid_status = self.check_bid_legality(self.players[player_num], bid)
         if bid_status is False:
@@ -178,7 +244,7 @@ class Game:
         # Check that player_num is active player.
         #----------------------------------------
         if player_num is not self.gs.active_player:
-            log.warn("Non-active player attempted to play a card.")
+            log.warning("Non-active player attempted to play a card.")
             return None # Ignore
 
         if not (self.check_play_legality(self.players[player_num], card_num)):
@@ -257,7 +323,10 @@ class Game:
         gs.team_stacks = [[] for _ in range(NUM_TEAMS)]
         gs.dealer = gs.next_player(gs.dealer)
         gs.declarer = gs.dealer
-        self.deck = cards.Deck()
+        if self.deck_stack: #TODO: WET code (__init__()) - clean up later
+            self.deck = cards.Deck(deck_seed)
+        else:
+            self.deck = cards.Deck()
         self.deal_hand()
         gs.active_player = gs.next_player(gs.dealer)
         gs.high_bid = 0
@@ -364,19 +433,15 @@ class Game:
         if status not in ['eoh', 'sog']:
             message['tgt'] = [i for i in range(NUM_PLAYERS)]
             output = [message]
-            
-        self.dbevent(self.dbconnection, output)
-        
+            self.gs.events.append({'hand_num':self.gs.hand_number,
+                                   'timestamp':datetime.utcnow().isoformat(),
+                                   'output':str(output)})
+
         if status in ['eoh', 'eog']:
             gs.hand_number += 1
         
         if status in ['eog']:
-            self.dbstop(self.dbconnection)
-            # This ugly hack because the only function for stats processing
-            # (currently) does it on a per-hand basis. This will loop through
-            # all hands in the current (just-ended) game and process them.
-            for hNum in range(1, gs.hand_number):
-                stats.process(gs.game_id, hNum)
+            self.dbupdate()
         
         return output
 
@@ -392,71 +457,10 @@ class Game:
                           "".format(NUM_PLAYERS))
 
         self.players = [Player(x, plr_arg[x]) for x in range(NUM_PLAYERS)]
-        game_id, self.dbconnection = self.dbstart()
-        self.gs = GameState(game_id)
+        self.gs = GameState(self.generate_id())
         self.deal_hand()
         self.gs.active_player = self.gs.next_player(self.gs.dealer)
         self.gs.game_mode = GAME_MODE.BID
         self.gs.trump = None
         
-        return self.publish('sog', None, None)
-        
-    def dbstart(self):
-        """Register a new game with the Games table of the sqlite database.
-        
-        Returns the autoincrementing integer value of the row written as the
-        unique game_id, as well as the connection to the database."""
-
-        conn = sqlite3.connect(DB_PATH, check_same_thread = False)
-        c = conn.cursor()
-        try:
-            log.debug("Trying to add a row for the new game.")
-            c.execute("INSERT INTO Games VALUES (NULL,?,?,?,?,?)",
-                      (datetime.utcnow().isoformat(),
-                       self.players[0].name, self.players[1].name,
-                       self.players[2].name, self.players[3].name))
-        except sqlite3.OperationalError:
-            # Initialize the runtime database tables for new/clean servers.
-            log.debug("Trying to initialize games table.")
-            c.execute("""CREATE TABLE Games (game_id INTEGER PRIMARY KEY,
-                         Timestamp text NOT NULL,
-                         PlayerName0 text NOT NULL,
-                         PlayerName1 text NOT NULL,
-                         PlayerName2 text NOT NULL,
-                         PlayerName3 text NOT NULL)""")
-            # Making an Events table here should remove the need to have
-            # equivalent code in the dbevent() function.
-            c.execute("""CREATE TABLE Events (event_id INTEGER PRIMARY KEY,
-                         game_id INTEGER NOT NULL,
-                         HandNumber INTEGER NOT NULL,
-                         Timestamp text NOT NULL,
-                         EventString text NOT NULL)""")
-            c.execute("INSERT INTO Games VALUES (NULL,?,?,?,?,?)",
-                      (datetime.utcnow().isoformat(),
-                       self.players[0].name, self.players[1].name,
-                       self.players[2].name, self.players[3].name))
-        c.execute("SELECT last_insert_rowid()")
-        autogen_game_id = c.fetchone()[0] # Unpack len-1 tuple to get int
-        log.debug("Grabbed a game_id from the database.")
-        conn.commit()
-        return autogen_game_id, conn
-        
-    def dbevent(self, conn, event_data):
-        """Write a game action data string to the Events table.
-        
-        The output of publish() will be written exactly as it is generated.
-        This raw data can be mined at a later date to produce stats or human-
-        readable log files."""
-        c = conn.cursor()
-        c.execute("INSERT INTO Events VALUES (NULL,?,?,?,?)",
-                  (self.gs.game_id, self.gs.hand_number,
-                   datetime.utcnow().isoformat(), str(event_data)))
-        conn.commit()
-        return None
-        
-    def dbstop(self, conn):
-        """Commit previously written game data and close the connection."""
-        c = conn.cursor()
-        conn.commit()
-        c.close()
-        return None
+        return self.publish('sog', None, None)        
