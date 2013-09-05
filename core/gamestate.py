@@ -21,7 +21,7 @@ class GameState:
     Derived information can be retrieved through the defined methods.
     
     
-    game_id (int): id for corresponding game
+    game_id (str): id for corresponding game
     trump (int): current trump via Suits enum
     dealer (int, 0-3): local player id of player that dealt hand
     high_bid (int, 0-5): high bid on hand (5=Cinch)
@@ -30,6 +30,7 @@ class GameState:
     cards_in_play (list): list of Card objects for cards in play
     scores (list of integers): score for each team
     team_stacks (list of lists of Card objects): Cards taken this hand
+    events (list): every output published, stored for db writes
     """
     def __init__(self, game_id):
         self.game_id = game_id
@@ -47,6 +48,7 @@ class GameState:
         # after some MAX_HANDS (intended to rein in AI deadlocks).
         # This starts at 1, and gets incremented in publish().
         self.hand_number = 1
+        self.events = []
         
         # Journalist's variables to publish().
         self._t_w_card = None
