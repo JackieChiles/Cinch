@@ -93,6 +93,7 @@ class Room(object):
                     curSeat = availableSeats.pop() 
                     sock.session['seat'] = curSeat
                     sock['/cinch'].emit('ackSeat', curSeat)
+                    sock['/cinch'].emit_to_room('userInSeat', { 'actor': curSeat, 'name': sock.session['nickname'] })
                     # changing the namespace name will break this
             
             if len(self.getAvailableSeats()) > 0:
@@ -296,6 +297,9 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         if seat in self.session['room'].getAvailableSeats():
             self.session['seat'] = seat
             self.emit('ackSeat', seat)
+            
+            #Announce the seat occupant to all users          
+            self.emit_to_room('userInSeat', { 'actor': seat, 'name': self.session['nickname'] })
         else:
             self.emit('err', 'That seat is already taken. Pick a different one')
 

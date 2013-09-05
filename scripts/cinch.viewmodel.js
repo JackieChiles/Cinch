@@ -1,99 +1,116 @@
-// Knockout.js viewmodel
-
-function CinchViewModel() {
+//Knockout.js viewmodel
+function CinchViewModel__() {
     var self = this;
-    var i = 0;
-    var bidValidFunction;
-    
+
     //Data
-    self.playerNames = [
-        ko.observable('You'),
-        ko.observable('-'),
-        ko.observable('-'),
-        ko.observable('-')
-    ];  
-    self.username = ko.observable("");
-    self.activeView = ko.observable(CinchApp.views.home);
-    
-    //Game lobby
-    self.games = ko.observableArray([]);
-    
-    //AI module selection
-    self.ai = ko.observableArray([]);
-    self.chosenAi = {}; //Contains AI modules chosen by user
-    self.chosenAi[CinchApp.playerEnum.west] = ko.observable();
-    self.chosenAi[CinchApp.playerEnum.north] = ko.observable();
-    self.chosenAi[CinchApp.playerEnum.east] = ko.observable();
-    self.uploadAi = ko.computed(function() {
-        var chosenAi = self.chosenAi
-        var uploadList = ['-1'];
-        var currentAi;
-
-        //Creates the list of AI modules to request
-        for(ai in chosenAi) {
-            if(chosenAi.hasOwnProperty(ai)) {
-                currentAi = chosenAi[ai]();
-                
-                //Either add the AI to the list or -1 for human
-                uploadList[ai] = (currentAi ? currentAi.id.toString() : '-1')
-            }
-        }
-
-        //And finally return a four-part string as described in the Wiki
-        return uploadList.join(',');
-    });
-    
+    self.socket = CinchApp__.socket;
+    self.username = ko.observable('');
     self.myPlayerNum = ko.observable(0); //Player num assigned by server
     self.myTeamNum = ko.computed(function() {
         //Team number according to server
-        return self.myPlayerNum() % CinchApp.numTeams;
+        return self.myPlayerNum() % CinchApp__.numTeams;
     });
-    self.teamNames = ko.computed(function() {
-        var i = 0;
-        var list = [];
-        
-        for(i = 0; i < CinchApp.numTeams; i++) {
-            //For now, any team other than 'yours' will be called 'Opponents'
-            list.push(self.myTeamNum() === i ? 'You' : 'Opponents');
-        }
-        
-        return list;
+    self.activeView = ko.observable();
+    self.games = ko.observableArray([]);
+    self.users = ko.observableArray([]);
+    self.players = ko.observableArray(ko.utils.arrayMap([
+            CinchApp__.players.south,
+            CinchApp__.players.west,
+            CinchApp__.players.north,
+            CinchApp__.players.east
+        ], function(pNum) {
+            return new Player('-', pNum);
+    }));
+    self.activePlayerNumServer = ko.observable();
+    self.activePlayerNum = ko.computed(function() {
+        var serverNum = self.activePlayerNumServer();
+
+        return CinchApp__.isNullOrUndefined(serverNum) ? null : CinchApp__.serverToClientPNum(self.activePlayerNumServer());
     });
-    self.activePlayer = ko.observable(); //Relative to client (self is always CinchApp.playerEnum.south)
-    self.isActivePlayer = ko.computed(function() {
-        //Client is always CinchApp.playerEnum.south
-        return self.activePlayer() === CinchApp.playerEnum.south;
+    self.isActivePlayer = ko.computed(function() { //Active player is "me"
+        return self.activePlayerNum() === CinchApp__.players.south;
     });
-    self.activePlayerName = ko.computed(function() {
-        return self.playerNames[self.activePlayer()];
+    self.highBid = ko.computed(function() {
+        return Math.max.apply(null, ko.utils.arrayMap(self.players(), function(p) {
+            return p.currentBidValue();
+        }));
     });
-    self.dealer = ko.observable(); //Relative to client (self is always CinchApp.playerEnum.south)
-    self.dealerName = ko.computed(function() {
-        return self.playerNames[self.dealer()];
+    self.possibleBids = ko.utils.arrayMap([
+        CinchApp__.bids.pass,
+        CinchApp__.bids.one,
+        CinchApp__.bids.two,
+        CinchApp__.bids.three,
+        CinchApp__.bids.four,
+        CinchApp__.bids.cinch
+    ], function(b) {
+        return new Bid(self, b);
+    });
+    self.gameScores = ko.observable([0, 0]);
+    self.scoreYou = ko.computed(function() {
+        return self.gameScores()[self.myTeamNum()];
+    });
+    self.scoreOpponent = ko.computed(function() {
+        return self.gameScores()[1 - self.myTeamNum()]
     });
     self.trump = ko.observable();
     self.trumpName = ko.computed(function() {
-        return CinchApp.suitNames[self.trump()];
+        var trump = self.trump();
+
+        return CinchApp__.isNullOrUndefined(trump) ? null : CinchApp__.suitNames[trump] || '-';
     });
-    self.winner = ko.observable(); //Integer, winning team. Will be 0 for players 0 & 2 and 1 for players 1 and 3.
+    self.dealerServer = ko.observable(); //pNum for dealer from server perspective
+    self.dealer = ko.computed(function() {
+        var dealerServer = self.dealerServer();
+
+        return CinchApp__.isNullOrUndefined(dealerServer) ? null : CinchApp__.serverToClientPNum(dealerServer);
+    });
+    self.dealerName = ko.computed(function() {
+        var dealer = self.dealer();
+
+        return CinchApp__.isNullOrUndefined(dealer) ? null : self.players()[dealer].name() || '-';
+    });
+    self.trickWinnerServer = ko.observable();
+    self.trickWinner = ko.computed(function() {
+        var tws = self.trickWinnerServer();
+
+        return CinchApp__.isNullOrUndefined(tws) ? null : CinchApp__.serverToClientPNum(tws);
+    });
+    self.gameMode = ko.observable();
+    self.isGameStarted = ko.computed(function() {
+        return self.gameMode() === CinchApp__.gameModes.play || self.gameMode() === CinchApp__.gameModes.bid;
+    });
+    self.newChat = ko.observable('');
+    self.chats = ko.observableArray([]);
+    self.encodedCards = ko.observableArray([]);
+    self.cardsInHand = ko.computed(function() {
+        return ko.utils.arrayMap(self.encodedCards(), function(cardCode) {
+            return new Card(cardCode);
+        });
+    });
+    self.cardImagesInPlay = [];
+    self.animationQueue = [];
+    self.isBoardLocked = ko.observable(false);
+    self.teamNames = ko.computed(function() {
+        var names = [];
+
+        names[self.myTeamNum()] = 'You';
+        names[1 - self.myTeamNum()] = 'Opponents';
+
+        return names;
+    });
+    self.winner = ko.observable(); //Integer, winning team. Will be 0 for players 0 and 2 and 1 for players 1 and 3.
     self.winnerName = ko.computed(function() {
         //Return name of the winning team
-        return self.teamNames()[self.winner() % CinchApp.numTeams];
+        return self.teamNames()[self.winner()];
     });
     self.isGameOver = ko.computed(function() {
         return typeof self.winner() !== 'undefined';
     });
-    self.gameMode = ko.observable();
-    self.isGameStarted = ko.computed(function() {
-        return self.gameMode() === CinchApp.gameModeEnum.play || self.gameMode() === CinchApp.gameModeEnum.bid;
-    });
-    self.gameScores = ko.observableArray([0, 0]);
-    self.encodedCards = ko.observableArray([]);
     self.gamePoints = ko.observable([]);
     self.matchPoints = ko.observable([]); //Encoded strings representing taking teams of high, low, jack, and game from server
-    
-    //"Private" function used to process gamePoints
-    var getMatchPointTeam = function(type) {
+
+    //Function for determining which team got high, low, jack, or game
+    self.getMatchPointTeam = function(type) {
         var i = 0;
         var matchPointStrings = self.matchPoints();
         
@@ -110,216 +127,331 @@ function CinchViewModel() {
     
     //These are just team strings used for display, not the team integer values
     self.highTeam = ko.computed(function() {
-        return getMatchPointTeam(CinchApp.pointTypes.high);
+        return self.getMatchPointTeam(CinchApp__.pointTypes.high);
     });
     self.lowTeam = ko.computed(function() {
-        return getMatchPointTeam(CinchApp.pointTypes.low);
+        return self.getMatchPointTeam(CinchApp__.pointTypes.low);
     });
     self.jackTeam = ko.computed(function() {
-        return getMatchPointTeam(CinchApp.pointTypes.jack);
+        return self.getMatchPointTeam(CinchApp__.pointTypes.jack);
     });
     self.gameTeam = ko.computed(function() {
-        return getMatchPointTeam(CinchApp.pointTypes.game);
+        return self.getMatchPointTeam(CinchApp__.pointTypes.game);
     });
-    
-    self.cardsInHand = ko.computed(function() {
-        //Will re-compute every time cards are added removed to hand (encodedCards)
-        var j = 0;
-        var handArray = [];
-        
-        for(j = 0; j < self.encodedCards().length; j++) {
-            handArray.push(new Card(self.encodedCards()[j]));
-        }
-        
-        return handArray;
-    });
-    
-    //An array of items for each player's hand, indexed by CinchApp.playerEnum
-    self.cardsInAllHands = [
-        null, //Unused placeholder to keep indexing straight. Hand for client (face-up cards) is self.cardsInHand.
-        ko.observable(0),
-        ko.observable(0),
-        ko.observable(0)
-    ];
-    self.chats = ko.observableArray([]);
-    self.debugMessages = ko.observableArray([]);
-    self.currentBids = [];
-    
-    //Initialize currentBids
-    for(i = 0; i < CinchApp.numPlayers; i++) {
-        self.currentBids.push(ko.observable(CinchApp.bidEnum.none));
-    }
-    
-    self.currentBidsNames = ko.computed(function() {
-        //Will re-compute every time a bid update is received from server (currentBids is updated)
-        
-        var j = 0;
-        var bidNameArray = [];
-        var bidValue;
-        
-        //Current bids have changed: re-evaluate the current bid strings
-        for(j = 0; j < self.currentBids.length; j++) {
-            bidValue = self.currentBids[j]();
-            
-            //Maybe there's a more elegant way to do this...
-            bidNameArray.push(bidValue === CinchApp.bidEnum.none ? CinchApp.noneBidDisplay : CinchApp.bidNames[bidValue]);
-        }
-        
-        return bidNameArray;
-    });
-    self.highBid = ko.computed(function() {
-        //Will re-compute every time a bid update is received from server (currentBids is updated)
-        
-        var bidValues = [];
-        var j = 0;
-        
-        //Must get the bid values, as they're wrapped up in observables
-        for(j = 0; j < self.currentBids.length; j++) {
-            bidValues.push(self.currentBids[j]());
-        }
-        
-        return Math.max.apply(null, bidValues);
-    });
-    self.highBidName = ko.computed(function() {
-        return CinchApp.bidNames[self.highBid()] || CinchApp.noneBidDisplay;
-    });
-    self.possibleBids = [];
-    
-    //Create the possible bids
-    for(i = 0; i < CinchApp.numPossibleBids; i++) {
-        bidValidFunction =
-            i === CinchApp.bidEnum.pass
-            ? function() {
-                //Can always pass unless you're the dealer and everyone else has passed
-                return self.isActivePlayer() && !(self.dealer() === CinchApp.playerEnum.south && self.highBid() <= CinchApp.bidEnum.pass);
-            }
-            : i === CinchApp.bidEnum.cinch
-            ? function() {
-                //Can always bid Cinch if you're the dealer
-                return self.isActivePlayer() && (self.highBid() < CinchApp.bidEnum.cinch || self.dealer() === CinchApp.playerEnum.south);
-            }
-            : null; //Passing null will cause Bid to use the default isValid function, which is OK for everything but pass or Cinch
-        
-        self.possibleBids.push(new Bid(self, i, bidValidFunction));
-    }
-    
-    //Board lock/response mode
-    self.lockBoard = function () {
-        self.responseMode(CinchApp.responseModeEnum.holding);
-        CinchApp.lockCount += 1;
-    };
-    self.unlockBoard = function() {
-        CinchApp.lockCount -= 1;
-        if (CinchApp.lockCount < 1) {  //Only unlock board if there are no remaining locks
-            self.responseMode(CinchApp.responseModeEnum.running);
-            processResponseQueue();
-            CinchApp.lockCount = 0; //In case unlock is called absent a lock
-        }
-    };
-    self.isBoardLocked = function() {
-        return self.responseMode() == CinchApp.responseModeEnum.holding;
-    };
-    self.responseMode = ko.observable();
-    
+
     //Functions
-    self.changeView = function(view) {
-        self.activeView(view);
+
+    //When the user chooses to enter the lobby to select a game,
+    //submit nickname request and switch to lobby view
+    self.enterLobby = function() {
+        self.username() && self.socket.emit('nickname', self.username());
+        self.activeView(CinchApp__.views.lobby);
     };
+
+    //When the user chooses to start a new game, request to create
+    // a room and submit a nickname request
+    self.startNew = function () {
+        //TODO: enter AI view when server AI is back in action
+        self.username() && self.socket.emit('nickname', self.username());
+        self.socket.emit('createRoom', '');
+    };
+
+    self.submitChat = function() {
+        if(self.newChat()) {
+            self.socket.emit('chat', self.newChat());
+            self.newChat('');
+        }
+    };
+
+    self.logError = function(msg) {
+        console.log("Error: ", msg);
+        self.chats.push(new VisibleMessage(msg, 'Error', CinchApp__.messageTypes.error));
+    };
+
     self.playCard = function(cardNum, playerNum) {
         var cardToPlay = new Card(cardNum);
         var cardsInPlayerHand;
         
-        //Put animation at front of secondary queue, so it always is handled
-        //before end of trick procedures
-        CinchApp.secondaryActionQueue.unshift(function() {
-            cardToPlay.play(playerNum);
-        });
+        cardToPlay.play(playerNum);
 
-        if(playerNum === CinchApp.playerEnum.south) { //Client player
+        if(playerNum === CinchApp__.players.south) { //Client player
             self.encodedCards.remove(cardNum);
         }
         else {
-            cardsInPlayerHand = self.cardsInAllHands[playerNum];
+            cardsInPlayerHand = self.players()[playerNum].numCardsInHand;
             cardsInPlayerHand(cardsInPlayerHand() - 1);
         }
     };
+
+    self.handEndContinue = function() {
+        var views = CinchApp__.views;
+
+        self.activeView(self.isGameOver() ? views.home : views.game);
+    };
+
     self.resetBids = function() {
-        var j = 0;
-        
-        for(j = 0; j < self.currentBids.length; j++) {
-            self.currentBids[j](CinchApp.bidEnum.none);
+        var i = 0;
+        var players = self.players();
+
+        for(i = 0; i < players.length; i++) {
+            players[i].currentBidValue(null);
         }
     };
-    self.returnHome = function() {
-        window.location = 'home.html';
-    };
-    self.enterGameView = function() {
-        CinchApp.viewModel.changeView(CinchApp.views.game);
-    };
-    self.startNew = function() {
-        postData({
-            game: CinchApp.gameModeNew,
-            plrs: self.uploadAi(),
-            name: self.username() || CinchApp.defaultPlayerName
+
+    self.setUpSocket = function() {
+        var socket = self.socket;
+
+        //Set up socket listeners
+        socket.on('rooms', function(msg) {
+            var i = 0;
+
+            console.log("'rooms' -- ", msg);
+
+            for(i = 0; i < msg.length; i++) {
+                self.games.push(new Game(msg[i], i));
+            }
+        });
+
+        socket.on('chat', function(msg) {
+            console.log("'chat' -- ", msg);
+
+            var listElement = document.getElementById('output-list');
+
+            //TODO: change this to be an object property instead of array element
+            self.chats.push(new VisibleMessage(msg[1], msg[0]));
+
+            //Scroll chat pane to bottom
+            listElement.scrollTop = listElement.scrollHeight;
+        });
+
+        socket.on('err', function(msg) {
+            self.logError(msg);
+        });
+
+        socket.on('newRoom', function(msg) {
+            console.log("'newRoom' -- ", msg);
+
+            self.games.push(new Game(msg, self.games().length));
+        });
+
+        socket.on('ackCreate', function(msg) {
+            console.log("'ackCreate' -- ", msg);
+
+            //Join the newly created room
+            socket.emit('join', msg);
+        });
+
+        socket.on('ackJoin', function(msg) {
+            console.log("'ackJoin' -- ", msg);
+
+            //Take action only if joined room was not the lobby (always ID of zero)
+            //TODO: change this to be an object property instead of array element
+            if(msg[0] !== 0) {
+                self.activeView(CinchApp__.views.game);
+                self.users([]); //New room, new set of users
+            }
+        });
+
+        socket.on('users', function(msg) {
+            console.log("'users' -- ", msg);
+
+            self.users(msg);
+        });
+
+        socket.on('enter', function(msg) {
+            console.log("'enter' -- ", msg);
+
+            self.users.push(msg);
+        });
+
+        socket.on('roomFull', function(msg) {
+            console.log("'roomFull' -- ", msg);
+        });
+
+        socket.on('ackSeat', function(msg) {
+            console.log("'ackSeat' -- ", msg);
+
+            self.myPlayerNum(msg);
+        });
+
+        socket.on('userInSeat', function(msg) {
+            console.log("'userInSeat' -- ", msg);
+
+            var clientPNum = CinchApp__.serverToClientPNum(msg.actor)
+
+            self.players()[clientPNum].name(msg.name);
+        });
+
+        socket.on('ackNickname', function(msg) {
+            console.log("'ackNickname' -- ", msg);
+            //TODO: wait for confirmation before changing username on client
+        });
+
+        // Game message handlers
+        socket.on('startData', function(msg) {
+            var app = CinchApp__;
+
+            console.log("'startData' -- ", msg);
+
+            app.isNullOrUndefined(msg.dlr)      || self.dealerServer(msg.dlr);
+            app.isNullOrUndefined(msg.mode)     || self.gameMode(msg.mode);
+            self.handleAddCards(msg);
+            app.isNullOrUndefined(msg.actvP)    || self.activePlayerNumServer(msg.actvP);
+        });
+
+        socket.on('bid', function(msg) {
+            var app = CinchApp__;
+            var msg = msg[0]; //TODO: Why??
+
+            console.log("'bid' (from server) -- ", msg);
+
+            app.isNullOrUndefined(msg.dlr)      || self.dealerServer(msg.dlr);
+            app.isNullOrUndefined(msg.actor)    || self.players()[CinchApp__.serverToClientPNum(msg.actor)].currentBidValue(msg.bid);
+            app.isNullOrUndefined(msg.mode)     || self.gameMode(msg.mode);
+            app.isNullOrUndefined(msg.actvP)    || self.activePlayerNumServer(msg.actvP);
+        });
+
+        socket.on('play', function(msg) {
+            var app = CinchApp__;
+            var msg = msg[0]; //TODO: Why??
+
+            console.log("'play' (from server) -- ", msg);
+
+            app.isNullOrUndefined(msg.trp)      || self.trump(msg.trp);
+            app.isNullOrUndefined(msg.dlr)      || self.dealerServer(msg.dlr);
+            app.isNullOrUndefined(msg.actor)    || self.playCard(msg.playC, CinchApp__.serverToClientPNum(msg.actor));
+            app.isNullOrUndefined(msg.remP)     || self.handleTrickWinner(msg.remP);
+            msg.sco                             && self.gameScores(msg.sco);
+            msg.mp                              && self.matchPoints(msg.mp);
+            msg.gp                              && self.gamePoints(msg.gp);
+            app.isNullOrUndefined(msg.win)      || self.winner(msg.win);
+            app.isNullOrUndefined(msg.mode)     ||
+                self.addAnimation(function() {
+                    self.gameMode(msg.mode);
+                });
+            self.handleAddCards(msg);
+            app.isNullOrUndefined(msg.actvP)    || self.activePlayerNumServer(msg.actvP);
         });
     };
-    
-    //TODO: don't enter the views until response is received from server
-    //That way, if there are errors they'll just be displayed and user will still be on the
-    //home page. Also, games lobby shouldn't be navigated to if there are no games to join.
-    self.enterAi = function() {
-        postData({ 'ai': 0 });
-        CinchApp.viewModel.changeView(CinchApp.views.ai);
+
+    self.handleAddCards = function(msg) {
+        if(!CinchApp__.isNullOrUndefined(msg.addC)) {
+            var i = 0;
+
+            self.encodedCards(msg.addC);
+            for(i = 0; i < self.players().length; i++) {
+                self.players()[i].numCardsInHand(msg.addC.length);
+            }
+        }
     };
-    self.enterLobby = function() {
-        postData({ 'lob': 0 });
-        CinchApp.viewModel.changeView(CinchApp.views.lobby);
+
+    self.addAnimation = function(anim) {
+        //If another animation is executing, queue this one. Otherwise, lock and execute now.
+        if(self.isBoardLocked()) {
+            self.animationQueue.push(anim);
+        }
+        else {
+            self.isBoardLocked(true);
+            anim();
+        }
     };
-    
+
+    self.unlockBoard = function () {
+        //Execute the next animation if any
+        if(self.animationQueue.length > 0) {
+            self.animationQueue.shift()();
+        }
+        else { //If none, unlock board to allow execution of new animations
+            self.isBoardLocked(false);
+        }
+    };
+
+    self.handleTrickWinner = function(pNum) {
+        self.trickWinnerServer(pNum);
+
+        self.addAnimation(function() {
+            //Wait a bit so the ending play can be seen
+            setTimeout(function () {
+                finishClearingBoard();
+            }, CinchApp__.boardClearDelay);
+        });
+    };
+
     //Subscriptions
-    self.gameMode.subscribe(function(newValue) {
-        //Closes or opens the bid dialog depending on the game mode
+    self.activeView.subscribe(function(newValue) {
+        //Fades the current view out and the new view in
+
+        //newValue is page id
+        var viewClass = 'cinch-view';
+        var jqElement = $('#' + newValue);
+        var otherViews;
+        var numOtherViews = 0;
+        var duration = 5;
+        var fadeInStarted = false
+        var fadeIn = function() {
+            jqElement.fadeIn(duration);
+        };
         
-        if(newValue == CinchApp.gameModeEnum.bid) {
-            if(self.matchPoints().length > 0) {
-                //If match points on record, hand ended, open hand end dialog.
-                CinchApp.secondaryActionQueue.push(function() {
-                    //Need to ensure this is run after all other end of trick actions, but
-                    //we can't guarantee key order in the updates. So re-push this till later.
-                    CinchApp.secondaryActionQueue.push(function() {
-                        var i = 0;
-                    
-                        //Clear any old bids
-                        self.resetBids();
-                    
-                        CinchApp.viewModel.changeView(CinchApp.views.handEnd);
-                        
-                        //Clear trump and error messages before beginning of the next hand
-                        self.trump(null);
-                        
-                        while(i < self.chats().length) {
-                            if(self.chats()[i].type() === CinchApp.messageTypes.error) {
-                                self.chats.splice(i, 1);
-                            }
-                            else {
-                                //Only advance the counter if a message wasn't removed at the current location
-                                i++;
-                            }
-                        }
-                    });
-                });
-            }//Otherwise, game just started, start bidding.
+        otherViews = $('.' + viewClass + ':not(#' + newValue + ')');
+        numOtherViews = otherViews.size();
+        
+        if(numOtherViews < 1) {
+            fadeIn();
+        }
+        else {
+            otherViews.each(function(i) {
+                //Fade in as a callback to the first non-hidden view, or just called if all are hidden
+                if($(this).is(':not(:hidden)')) {
+                    $(this).fadeOut(duration, fadeIn);
+                    fadeInStarted = true;
+                }
+                else if(i === numOtherViews - 1 && !fadeInStarted) {
+                    fadeIn();
+                }
+            });
         }
     });
-    self.winner.subscribe(function(newValue) { //TODO: test to determine if hand-end gets processed on time
-        CinchApp.secondaryActionQueue.push(function() {
-            //Need to ensure this is run after all everything else, including normal
-            //end of hand procedures. So re-push this till later. Twice.
-            CinchApp.secondaryActionQueue.push(function() {
-                CinchApp.secondaryActionQueue.push(function() {
-                    CinchApp.viewModel.changeView(CinchApp.views.handEnd);
+    self.users.subscribe(function(nameArray) {
+        self.chats.push(new VisibleMessage(['User', nameArray[nameArray.length - 1], 'is now in the game.'].join(' '), 'System'));
+    });
+    self.activePlayerNum.subscribe(function(newValue) {
+        var i = 0;
+        var players = self.players();
+
+        for(i = 0; i < players.length; i++) {
+            players[i].active(false);
+        }
+
+        players[newValue].active(true);
+    });
+    self.gameMode.subscribe(function(newValue) {
+        if(newValue == CinchApp__.gameModes.bid) {
+            //If match points on record, hand ended
+            if(self.matchPoints().length > 0) {
+                var i = 0;
+            
+                //Not really an animation, but wait until animations are complete before showing hand end dialog
+                //A hint of the ugly old actionQueue days, but not too bad
+                self.addAnimation(function() {
+                    self.activeView(CinchApp__.views.handEnd);
                 });
-            });
-        });
+            
+                //Clear any old bids
+                self.resetBids();
+                
+                //Clear trump and error messages before beginning of the next hand
+                self.trump(null);
+                
+                while(i < self.chats().length) {
+                    if(self.chats()[i].type() === CinchApp__.messageTypes.error) {
+                        self.chats.splice(i, 1);
+                    }
+                    else {
+                        //Only advance the counter if a message wasn't removed at the current location
+                        i++;
+                    }
+                }
+            } //Otherwise, game just started, start bidding.
+        }
     });
 }

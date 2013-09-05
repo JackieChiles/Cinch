@@ -24,52 +24,61 @@ var movingCards = 0;    //Tracks number of cards in motion for board clearing
 // Card Playing animations
 ///////////////////////////
 
-function animate(cardObject) {
-    cardObject.draw();
-    if (cardObject.animateOn) {
-        requestAnimFrame( function() {animate(cardObject);});
-    } else { //Animation completed on last draw(); unlock board
-        CinchApp.viewModel.unlockBoard();
-    }
-}
-
 var CardAnimation = function(cardImage, destPlayer) {
-    this.cardImage = cardImage;
+    var self = this;
+
+    self.cardImage = cardImage;
     
-    this.curPos = getStartPosition(destPlayer);
-    this.endPos = getEndPosition(destPlayer);
+    self.curPos = getStartPosition(destPlayer);
+    self.endPos = getEndPosition(destPlayer);
     
-    this.animateOn = true;
+    self.animateOn = true;
     
     //Set moveOffest to be used throughout animation
-    this.moveOffset = getMoveOffset(this.curPos, this.endPos);
+    self.moveOffset = getMoveOffset(self.curPos, self.endPos);
 
     if (context == 0) { //TODO put this somewhere it won't be called all the time
         canvas = document.getElementById('play-surface');
         context = canvas.getContext('2d');
     }
-    
-    animate(this);
-};
 
-CardAnimation.prototype.draw = function() {  
-    // clear -- want only to clear cardImage (w/ padding), leave other things in place
-    context.clearRect(this.curPos.x-2, this.curPos.y-2, 
-                      CinchApp.cardImageWidth+2, CinchApp.cardImageHeight+2);
-                      
-    // update -- change the position of cardImage for the next time it is drawn
-    //If card is close enough to endPos, move to endPos for final frame
-    if ( (Math.abs(this.endPos.x-this.curPos.x) < maxImageDelta) && 
-         (Math.abs(this.endPos.y-this.curPos.y) < maxImageDelta) ) { 
-        this.curPos.x = this.endPos.x;  this.curPos.y = this.endPos.y;
-        this.animateOn = false;
-    } else {
-    this.curPos.x = this.curPos.x + this.moveOffset.x;
-    this.curPos.y = this.curPos.y + this.moveOffset.y;
-    }
-    
-    // draw -- actually render the image
-    context.drawImage(this.cardImage, this.curPos.x, this.curPos.y);
+    //Functions
+    self.draw = function() {
+        // clear -- want only to clear cardImage (w/ padding), leave other things in place
+        context.clearRect(self.curPos.x - 2, self.curPos.y - 2, 
+                          CinchApp__.cardImageWidth + 2, CinchApp__.cardImageHeight + 2);
+                          
+        // update -- change the position of cardImage for the next time it is drawn
+        //If card is close enough to endPos, move to endPos for final frame
+        if ( (Math.abs(self.endPos.x-self.curPos.x) < maxImageDelta) && 
+             (Math.abs(self.endPos.y-self.curPos.y) < maxImageDelta) ) { 
+            self.curPos.x = self.endPos.x;  self.curPos.y = self.endPos.y;
+            self.animateOn = false;
+        }
+        else {
+            self.curPos.x = self.curPos.x + self.moveOffset.x;
+            self.curPos.y = self.curPos.y + self.moveOffset.y;
+        }
+        
+        // draw -- actually render the image
+        context.drawImage(self.cardImage, self.curPos.x, self.curPos.y);
+    };
+
+    self.animate = function() {
+        self.draw();
+
+        if (self.animateOn) {
+            requestAnimFrame(function() {
+                self.animate();
+            });
+        }
+        else { //Animation completed on last draw(); unlock board
+            CinchApp__.viewModel.unlockBoard();
+        }
+    };
+
+    //Initialization    
+    self.animate();
 };
 
 //Get x, y deltas for each frame; allows for smooth movement in 2 axes
@@ -93,21 +102,21 @@ function getStartPosition(player) {
     var x, y;
     
     switch (player) {
-      case CinchApp.playerEnum.south:
-        x = CinchApp.playSurfaceWidth / 2 - CinchApp.cardImageWidth / 2; 
-        y = CinchApp.playSurfaceHeight;
+      case CinchApp__.players.south:
+        x = CinchApp__.playSurfaceWidth / 2 - CinchApp__.cardImageWidth / 2; 
+        y = CinchApp__.playSurfaceHeight;
         break;
-      case CinchApp.playerEnum.west:
-        x = 0 - CinchApp.cardImageWidth;
-        y = CinchApp.playSurfaceHeight / 2 - CinchApp.cardImageHeight / 2;
+      case CinchApp__.players.west:
+        x = 0 - CinchApp__.cardImageWidth;
+        y = CinchApp__.playSurfaceHeight / 2 - CinchApp__.cardImageHeight / 2;
         break;
-      case CinchApp.playerEnum.north:
-        x = CinchApp.playSurfaceWidth / 2 - CinchApp.cardImageWidth / 2; 
-        y = 0 - CinchApp.cardImageHeight;
+      case CinchApp__.players.north:
+        x = CinchApp__.playSurfaceWidth / 2 - CinchApp__.cardImageWidth / 2; 
+        y = 0 - CinchApp__.cardImageHeight;
         break;
-      case CinchApp.playerEnum.east:
-        x = CinchApp.playSurfaceWidth + CinchApp.cardImageWidth;
-        y = CinchApp.playSurfaceHeight / 2 - CinchApp.cardImageHeight / 2;
+      case CinchApp__.players.east:
+        x = CinchApp__.playSurfaceWidth + CinchApp__.cardImageWidth;
+        y = CinchApp__.playSurfaceHeight / 2 - CinchApp__.cardImageHeight / 2;
         break;
     }
     return {x: x, y: y};
@@ -117,21 +126,21 @@ function getStartPosition(player) {
 function getEndPosition(player) {    
     var x, y;
     
-    if (player == CinchApp.playerEnum.south) { //The client
-        x = CinchApp.playSurfaceWidth / 2 - CinchApp.cardImageWidth / 2;
-        y = CinchApp.playSurfaceHeight - CinchApp.cardImageHeight - CinchApp.cardEdgeOffset;
+    if (player == CinchApp__.players.south) { //The client
+        x = CinchApp__.playSurfaceWidth / 2 - CinchApp__.cardImageWidth / 2;
+        y = CinchApp__.playSurfaceHeight - CinchApp__.cardImageHeight - CinchApp__.cardEdgeOffset;
     }
-    else if (player == CinchApp.playerEnum.west) {
-        x = CinchApp.cardEdgeOffset;
-        y = CinchApp.playSurfaceHeight / 2 - CinchApp.cardImageHeight / 2;
+    else if (player == CinchApp__.players.west) {
+        x = CinchApp__.cardEdgeOffset;
+        y = CinchApp__.playSurfaceHeight / 2 - CinchApp__.cardImageHeight / 2;
     }
-    else if (player == CinchApp.playerEnum.north) {
-        x = CinchApp.playSurfaceWidth / 2 - CinchApp.cardImageWidth / 2;
-        y = CinchApp.cardEdgeOffset;
+    else if (player == CinchApp__.players.north) {
+        x = CinchApp__.playSurfaceWidth / 2 - CinchApp__.cardImageWidth / 2;
+        y = CinchApp__.cardEdgeOffset;
     }
-    else { //Should only be CinchApp.playerEnum.east
-        x = CinchApp.playSurfaceWidth - CinchApp.cardImageWidth - CinchApp.cardEdgeOffset;
-        y = CinchApp.playSurfaceHeight / 2 - CinchApp.cardImageHeight / 2;
+    else { //Should only be CinchApp__.players.east
+        x = CinchApp__.playSurfaceWidth - CinchApp__.cardImageWidth - CinchApp__.cardEdgeOffset;
+        y = CinchApp__.playSurfaceHeight / 2 - CinchApp__.cardImageHeight / 2;
     }
     
     return {x: x, y: y};
@@ -142,18 +151,25 @@ function getEndPosition(player) {
 ///////////////////////////
 function finishClearingBoard() {
     var c;
-    var target = getEndPosition(CinchApp.trickWinner); //Move all cards to this final position
-    
+    var target = getEndPosition(CinchApp__.viewModel.trickWinner()); //Move all cards to this final position
+    var cardImages = CinchApp__.viewModel.cardImagesInPlay;
+
     //Reconfigure cards for new movement
-    for (var i = 0; i < CinchApp.cardImagesInPlay.length; i++) {
-        c = CinchApp.cardImagesInPlay[i];
-        c.animateOn = true;
-        movingCards += 1;
-        c.endPos.x = target.x;  c.endPos.y = target.y;
-        c.moveOffset = getMoveOffset(c.curPos, c.endPos);
+    for (var i = 0; i < cardImages.length; i++) {
+        c = cardImages[i];
+
+        if(c) { //Only execute if c is defined
+            c.animateOn = true;
+            movingCards += 1;
+            c.endPos.x = target.x;  c.endPos.y = target.y;
+            c.moveOffset = getMoveOffset(c.curPos, c.endPos);
+        }
     }
-    CinchApp.cardImagesInPlay[CinchApp.trickWinner].animateOn = false; //Winning card gets special handling
-    movingCards -= 1;
+
+    if(cardImages[CinchApp__.viewModel.trickWinner()]) { //Only execute if defined
+        cardImages[CinchApp__.viewModel.trickWinner()].animateOn = false; //Winning card gets special handling
+        movingCards -= 1;
+    }
     
     animateBoardClear();
 }
@@ -163,11 +179,12 @@ function animateBoardClear() {
     if (movingCards == 0) {
         //Prepare card list & table for new trick, after short delay
         setTimeout( function() {
-            CinchApp.cardImagesInPlay = [];    
-            context.clearRect(0, 0, CinchApp.playSurfaceWidth, CinchApp.playSurfaceHeight);
-            CinchApp.viewModel.unlockBoard();
+            CinchApp__.viewModel.cardImagesInPlay = [];    
+            context.clearRect(0, 0, CinchApp__.playSurfaceWidth, CinchApp__.playSurfaceHeight);
+            CinchApp__.viewModel.unlockBoard();
         }, 500);
-    } else {
+    }
+    else {
         requestAnimFrame(animateBoardClear);
     }
 }
@@ -176,33 +193,38 @@ function animateBoardClear() {
 function drawBoardClear() {
     //Update positions of each card (as needed)
     var c;
+    var cardImages = CinchApp__.viewModel.cardImagesInPlay;
     //Only touch the cards that need animated (i.e. the non-winning cards)
-    var cards = CinchApp.cardImagesInPlay.filter( function(val) {
-                    return val.animateOn; });
+    var cards = cardImages.filter( function(val) {
+                    return val.animateOn;
+    });
 
     for (var i = 0; i < cards.length; i++) {
         c = cards[i];
         
-        //If card is close enough, move to endPos for final frame
-        if ( (Math.abs(c.endPos.x-c.curPos.x) < maxImageDelta) && 
-             (Math.abs(c.endPos.y-c.curPos.y) < maxImageDelta) ) { 
-            c.curPos.x = c.endPos.x;  c.curPos.y = c.endPos.y;
-            c.animateOn = false;
-            movingCards -= 1;
-        } else { //Set new position
-            c.curPos.x = c.curPos.x + c.moveOffset.x;
-            c.curPos.y = c.curPos.y + c.moveOffset.y;        
+        if(c) {
+            //If card is close enough, move to endPos for final frame
+            if ( (Math.abs(c.endPos.x-c.curPos.x) < maxImageDelta) && 
+                 (Math.abs(c.endPos.y-c.curPos.y) < maxImageDelta) ) { 
+                c.curPos.x = c.endPos.x;  c.curPos.y = c.endPos.y;
+                c.animateOn = false;
+                movingCards -= 1;
+            } else { //Set new position
+                c.curPos.x = c.curPos.x + c.moveOffset.x;
+                c.curPos.y = c.curPos.y + c.moveOffset.y;        
+            }
         }
     }
  
     //Clear entire canvas
-    context.clearRect(0, 0, CinchApp.playSurfaceWidth, CinchApp.playSurfaceHeight);
+    context.clearRect(0, 0, CinchApp__.playSurfaceWidth, CinchApp__.playSurfaceHeight);
      
     //Draw each card -- keep winning card on top of pile by drawing last
-    for (var i = 0; i < CinchApp.cardImagesInPlay.length; i++) {
-        c = CinchApp.cardImagesInPlay[i]; 
-        context.drawImage(c.cardImage, c.curPos.x, c.curPos.y);
+    for (var i = 0; i < cardImages.length; i++) {
+        c = cardImages[i]; 
+        c && context.drawImage(c.cardImage, c.curPos.x, c.curPos.y);
     }
-    c = CinchApp.cardImagesInPlay[CinchApp.trickWinner];
-    context.drawImage(c.cardImage, c.curPos.x, c.curPos.y);
+
+    c = cardImages[CinchApp__.viewModel.trickWinner()];
+    c && context.drawImage(c.cardImage, c.curPos.x, c.curPos.y);
 }

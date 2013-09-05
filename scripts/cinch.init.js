@@ -1,10 +1,23 @@
 // Initialization
 
-CinchApp.viewModel = new CinchViewModel();
+CinchApp__.viewModel = new CinchViewModel__();
 
 $(function () {
+    var socket = CinchApp__.socket;
+
+    // Exit page cleanly
+    $(window).bind("beforeunload", function() {
+        socket.disconnect();
+    });
+
     //Apply Knockout bindings
-    ko.applyBindings(CinchApp.viewModel);
+    ko.applyBindings(CinchApp__.viewModel);
+
+    //Switch to the home view
+    CinchApp__.viewModel.activeView(CinchApp__.views.home);
+
+    //Set up socket listeners
+    CinchApp__.viewModel.setUpSocket();
         
     //Add a binding to the chat input to submit chats when enter is pressed
     $('#text-to-insert').keypress(function(event) {
@@ -13,15 +26,7 @@ $(function () {
            $('#submit-button').click();
         }
     });
-    
-    $('#play-surface').attr('width', CinchApp.playSurfaceWidth).attr('height', CinchApp.playSurfaceHeight);
-    outputMessage("Welcome to Cinch- it's pretty rad here.", CinchApp.systemUser);
-    
-    //TODO: Actually handle incompatible browsers
-    if (Modernizr.canvas && Modernizr.canvastext) {
-        logDebugMessage('Canvas and canvas text support detected.');
-    }
-    else {
-        logDebugMessage('Your browser does not support canvas and canvas text.');
-    }
+
+    //Set the width and height of the play surface canvas
+    $('#play-surface').attr('width', CinchApp__.playSurfaceWidth).attr('height', CinchApp__.playSurfaceHeight);
 });
