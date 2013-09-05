@@ -323,7 +323,7 @@ class Game:
         gs.team_stacks = [[] for _ in range(NUM_TEAMS)]
         gs.dealer = gs.next_player(gs.dealer)
         gs.declarer = gs.dealer
-        if self.deck_stack: #TODO: WET code (__init__()) - clean up later
+        if self.stack_deck: #TODO: WET code (__init__()) - clean up later
             self.deck = cards.Deck(deck_seed)
         else:
             self.deck = cards.Deck()
