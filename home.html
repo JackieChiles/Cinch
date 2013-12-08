@@ -9,83 +9,41 @@
         
         <script type="text/javascript" src="scripts/jquery-1.7.1.min.js"></script>
         <script type="text/javascript" src="scripts/knockout-2.1.0beta.js"></script>
-        <script type="text/javascript" src="scripts/modernizr-2.0.6.js"></script>
-        
+        <script type="text/javascript" src="scripts/socket.io.min.js"></script>
+
+
         <script type="text/javascript" src="scripts/cinch.main.js"></script>
-        <script type="text/javascript" src="scripts/cinch.ko.js"></script>
         <script type="text/javascript" src="scripts/cinch.classes.js"></script>
         <script type="text/javascript" src="scripts/cinch.viewmodel.js"></script>
-        <script type="text/javascript" src="scripts/cinch.functions.js"></script>
         <script type="text/javascript" src="scripts/cinch.animation.js"></script>
         <script type="text/javascript" src="scripts/cinch.init.js"></script>
     </head>
     
     <body>
-        <div id="home-page" class="cinch-view" data-bind="isActiveView: activeView() === CinchApp.views.home, viewClass: 'cinch-view'">
+        <div id="home-page" class="cinch-view">
             <span title="This is the name that will be displayed to other players." class="username-label">Username:</span>
             <input data-bind="value: username" type="text" placeholder="Enter your username" class="username" />
             
-            <button data-bind="click: enterAi">New game</button>
+            <button data-bind="click: startNew">New game</button>
             <button data-bind="click: enterLobby">Join game</button>
         </div><!-- /home page -->
-        
-        <div id="lobby-page" class="cinch-view" data-bind="isActiveView: activeView() === CinchApp.views.lobby, viewClass: 'cinch-view'">
+
+       
+        <div id="lobby-page" class="cinch-view">
             <div class="header">
                 <h1>Choose a Game to Join</h1>
             </div>
             <div data-bind="foreach: games">
                 <div class="title-value-container game">
-                    <div class="header">Game <span data-bind="text: number"></span></div>
-                    <div class="seat-list north title-value-container">
-                        <div>
-                            <button data-bind="
-                                    enable: !isOccupied()[CinchApp.playerEnum.north],
-                                    click: function() { submitJoin(CinchApp.playerEnum.north) }">
-                                North
-                            </button>
-                        </div>
-                        <div data-bind="text: playerNames()[CinchApp.playerEnum.north]" class="value-white-bg"></div>
-                    </div>
-                        
-                    <div class="east-west-seat-container">
-                        <div class="seat-list east-west with-south title-value-container">
-                            <div>
-                                <button data-bind="
-                                        enable: !isOccupied()[CinchApp.playerEnum.west],
-                                        click: function() { submitJoin(CinchApp.playerEnum.west) }">
-                                    West
-                                </button>
-                            </div>
-                            <div data-bind="text: playerNames()[CinchApp.playerEnum.west]" class="value-white-bg"></div>
-                        </div>
-                        
-                        <div class="seat-list east-west with-south title-value-container">
-                            <div>
-                                <button data-bind="
-                                        enable: !isOccupied()[CinchApp.playerEnum.east],
-                                        click: function() { submitJoin(CinchApp.playerEnum.east) }">
-                                    East
-                                </button>
-                            </div>
-                            <div data-bind="text: playerNames()[CinchApp.playerEnum.east]" class="value-white-bg"></div>
-                        </div>
-                    </div>
-                    
-                    <div class="seat-list south title-value-container">
-                        <div>
-                            <button data-bind="
-                                        enable: !isOccupied()[CinchApp.playerEnum.south],
-                                        click: function() { submitJoin(CinchApp.playerEnum.south) }">
-                                    South
-                            </button>
-                        </div>
-                        <div data-bind="text: playerNames()[CinchApp.playerEnum.south]" class="value-white-bg"></div>
-                    </div>
+                    <button data-bind="click: join">
+                        Join Game <span data-bind="text: name"></span>
+                    </button>
                 </div>
-            </div>
-        </div><!-- /game lobby page -->
+            </div><!-- /game lobby page -->
+        </div>
         
-        <div id="ai-page" class="cinch-view" data-bind="isActiveView: activeView() === CinchApp.views.ai, viewClass: 'cinch-view'">
+<!-- ai page: ignoring until server AI is back online
+        <div id="ai-page" class="cinch-view">
             <div class="header">
                 <h1>Select AI Agents (Optional)</h1>
             </div>
@@ -142,9 +100,10 @@
                     </div>
                 </div>
             </div>
-        </div><!-- /ai page -->
-        
-        <div id="hand-end-page" class="cinch-view" data-bind="isActiveView: activeView() === CinchApp.views.handEnd, viewClass: 'cinch-view'">
+        </div><!-- /ai page
+        -->
+
+        <div id="hand-end-page" class="cinch-view">
             <div class="header">
                 <h1>
                     End of <span data-bind="text: isGameOver() ? 'Game' : 'Hand'"></span>
@@ -177,86 +136,81 @@
                 </span>
                 <span>
                     <div class="small-title white-border">Opponents' game points</div>
-                    <!-- The 1 - myTeamNum() method will of course only work with two teams -->
                     <div data-bind="text: gamePoints()[1 - myTeamNum()]" class="value-white-bg"></div>
                 </span>
                 <div class="info-container">
                     <span class="highlight active-border">
                         <div class="small-title white-border">Your <span data-bind="visible: isGameOver">final</span> score</div>
-                        <div data-bind="text: gameScores()[myTeamNum()]" class="value-white-bg"></div>
+                        <div data-bind="text: scoreYou" class="value-white-bg"></div>
                     </span>
                     <span class="highlight active-border">
                         <div class="small-title white-border">Opponents' <span data-bind="visible: isGameOver">final</span> score</div>
-                        <div data-bind="text: gameScores()[1 - myTeamNum()]" class="value-white-bg"></div>
+                        <div data-bind="text: scoreOpponent" class="value-white-bg"></div>
                     </span>
                 </div>
             </div>
             
-            <div data-bind="ifnot: isGameOver">
-                <button data-bind="click: enterGameView">Continue</button>
-            </div>
-            
-            <div data-bind="if: isGameOver">
-                <button data-bind="click: returnHome">Continue</button>
+            <div>
+                <button data-bind="click: handEndContinue">Continue</button>
             </div>
         </div><!-- /hand-end page -->
         
-        <div id="game-page" class="cinch-view" data-bind="isActiveView: activeView() === CinchApp.views.game, viewClass: 'cinch-view'">
+        <div id="game-page" class="cinch-view">
             <div class="header">
                 <div class="col4">
                     <div>
                         <div class="small-title">You</div>
-                        <div data-bind="text: gameScores()[myTeamNum()]" class="value-white-bg"></div>
+                        <div data-bind="text: scoreYou" class="value-white-bg"></div>
                     </div>
                 </div>
                 <div class="col4">
                     <div>
                         <div class="small-title">Them</div>
-                        <div data-bind="text: gameScores()[1 - myTeamNum()]" class="value-white-bg"></div>
+                        <div data-bind="text: scoreOpponent" class="value-white-bg"></div>
                     </div>
                 </div>
                 <div class="col4">
                     <div>
                         <div class="small-title">Trump</div>
-                        <div data-bind="text: trumpName() || '-'" class="value-white-bg"></div>
+                        <div data-bind="text: trumpName" class="value-white-bg"></div>
                     </div>
                 </div>
                 <div class="col4">
                     <div>
                         <div class="small-title">Dealer</div>
-                        <div data-bind="text: dealerName() || '-'" class="value-white-bg"></div>
+                        <div data-bind="text: dealerName" class="value-white-bg"></div>
                     </div>
                 </div>
             </div><!-- /header -->
             <div id="game-content">
                 <div id="left-content">
-                    <div class="other-player partner no-mobile">
-                        <div data-bind="activeBorder: activePlayer() == CinchApp.playerEnum.north" class="ab-left ab-top ab-z">
+                    <div data-bind="with: players()[CinchApp__.players.north]" class="other-player partner no-mobile">
+                        <div data-bind="css: { 'active-border' : active }" class="ab-left ab-top ab-z">
                             <div>
-                                <div data-bind="text: cardsInAllHands[CinchApp.playerEnum.north]" class="card-counter vert"></div>
+                                <div data-bind="text: numCardsInHand" class="card-counter vert"></div>
                                 <div>
                                     <div class="small-title">Bid</div>
-                                    <div data-bind="text: currentBidsNames()[CinchApp.playerEnum.north]" class="value-white-bg"></div>
+                                    <div data-bind="text: currentBidName" class="value-white-bg"></div>
                                 </div>
                                 <div>
                                     <div class="small-title">Name</div>
-                                    <div data-bind="text: playerNames[CinchApp.playerEnum.north]()" class="value-white-bg"></div>
+                                    <div data-bind="text: name" class="value-white-bg"></div>
                                 </div>
                             </div>
                         </div>
                     </div>
                     
-                    <div class="other-player middle-row opponent no-mobile">
-                        <div data-bind="activeBorder: activePlayer() == CinchApp.playerEnum.west" class="ab-left ab-top ab-z">
+                    <div data-bind="with: players()[CinchApp__.players.west]" class="other-player middle-row opponent no-mobile">
+                        <div data-bind="css: { 'active-border' : active }" class="ab-left ab-top ab-z">
                             <div>
-                                <div data-bind="text: cardsInAllHands[CinchApp.playerEnum.west]" class="card-counter horiz"></div>
+                                <div data-bind="text: numCardsInHand" class="card-counter horiz"></div>
                                 <div>
                                     <div class="small-title">Bid</div>
-                                    <div data-bind="text: currentBidsNames()[CinchApp.playerEnum.west]" class="value-white-bg"></div>
+                                    <div data-bind="text: currentBidName" class="value-white-bg"></div>
                                 </div>
                                 <div>
                                     <div class="small-title">Name</div>
-                                    <div data-bind="text: playerNames[CinchApp.playerEnum.west]()" class="value-white-bg"></div>
+                                    <div data-bind="text: name" class="value-white-bg"></div>
                                 </div>
                             </div>
                         </div>
@@ -266,19 +220,19 @@
                         <canvas id="play-surface"></canvas>
                     </div>
                         
-                    <div class="other-player middle-row opponent no-mobile">
-                        <div data-bind="activeBorder: activePlayer() == CinchApp.playerEnum.east" class="ab-left ab-top ab-z">
+                    <div data-bind="with: players()[CinchApp__.players.east]" class="other-player middle-row opponent no-mobile">
+                        <div data-bind="css: { 'active-border' : active }" class="ab-left ab-top ab-z">
                             <div>
                                 <div>
-                                    <div data-bind="text: cardsInAllHands[CinchApp.playerEnum.east]" class="card-counter horiz"></div>
+                                    <div data-bind="text: numCardsInHand" class="card-counter horiz"></div>
                                 </div>
                                 <div>
                                     <div class="small-title">Bid</div>
-                                    <div data-bind="text: currentBidsNames()[CinchApp.playerEnum.east]" class="value-white-bg"></div>
+                                    <div data-bind="text: currentBidName" class="value-white-bg"></div>
                                 </div>
                                 <div>
                                     <div class="small-title">Name</div>
-                                    <div data-bind="text: playerNames[CinchApp.playerEnum.east]()" class="value-white-bg"></div>
+                                    <div data-bind="text: name" class="value-white-bg"></div>
                                 </div>
                             </div>
                         </div>
@@ -289,13 +243,13 @@
                         Waiting for other players <img src="images/loading.gif" class="value-white-bg" />
                     </div>
                             
-                    <input id="text-to-insert" type="text" placeholder="Enter chat message" />
-                    <button id="submit-button" onclick="submitChat()">Submit Message</button>
+                    <input data-bind="value: newChat, valueUpdate: 'afterkeydown'" id="text-to-insert" type="text" placeholder="Enter chat message" />
+                    <button data-bind="click: submitChat" id="submit-button">Submit Message</button>
                     <div id="output-list">
                         <div class="chat-title">Messages</div>
 
                         <!-- ko foreach: chats -->
-                            <div data-bind="addClass: cssClass">
+                            <div data-bind="attr: { class: cssClass }">
                                 <strong data-bind="visible: name, text: name + ': '"></strong>
                                 <span data-bind="text: text" class="chat-message"></span>
                             </div>
@@ -303,26 +257,26 @@
                     </div>
                 </div>
             </div>
-            <div data-bind="activeBorder: activePlayer() == CinchApp.playerEnum.south" id="game-controls" class="ab-left ab-top ">
+            <div data-bind="css: { 'active-border' : isActivePlayer() }" id="game-controls" class="ab-left ab-top ">
                 <div>
                     Your bid:
-                    <span data-bind="foreach: possibleBids" >
+                    <span data-bind="foreach: possibleBids">
                         <button data-bind="
                             value: value,
                             text: name,
                             click: submit,
-                            enable: isValid() && $root.gameMode() == CinchApp.gameModeEnum.bid,
-                            activeBorder: $root.currentBids[CinchApp.playerEnum.south]() == value">
+                            enable: isValid() && $root.gameMode() == CinchApp__.gameModes.bid,
+                            css: { 'active-border' : $root.players()[CinchApp__.players.south].currentBidValue() == value }">
                         </button>
                     </span>
                 </div>
                 <div data-bind="foreach: cardsInHand">
                     <div class="tile-button">
-                        <div data-bind="visible: !($root.isActivePlayer() && $root.gameMode() == CinchApp.gameModeEnum.play)" class="card-disabler"></div>
+                        <div data-bind="visible: !($root.isActivePlayer() && $root.gameMode() == CinchApp__.gameModes.play)" class="card-disabler"></div>
                         <img data-bind="attr: { src: imagePath}, click: submit" />
                     </div>
                 </div>
-            </div>
-        </div><!-- /game page -->
+            </div><!-- /game page -->
+        </div>
     </body>
 </html>
