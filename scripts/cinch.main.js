@@ -1,8 +1,8 @@
 //Main namespace
 var CinchApp__ = {
     viewModel: null,
-    socket: io.connect('http://localhost:8088/cinch'),
-
+    socket: io.connect(host_path),
+    
     //Constants
     playSurfaceWidth: 290,
     playSurfaceHeight: 245,

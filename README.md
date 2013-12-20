@@ -12,3 +12,7 @@ Technology
 ####Server
 * [Python](http://python.org/)
 * [Socket.io](http://socket.io/)
+
+Configuration
+-------------
+When setting up a server, edit scripts/server.config.js locally with the relevant host data.
