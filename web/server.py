@@ -112,7 +112,7 @@ class Room(object):
             for sock in self.users:
                 if sock.session['seat'] == tgt:
                     sock['/cinch'].emit('startData', msg)
-                    continue              
+                    break
 
 
 class GameNamespace(BaseNamespace, BroadcastMixin):
@@ -359,14 +359,16 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         if res is False:
             self.emit('err', 'Bad play')
         else:
-           # if 'addC' in res: # Private information, so handle differently
-           #     pass #TODO
-           # else:
-           #     self.emit_to_room('play', res)
-            
-            self.emit_to_room('play', res)
-                  
-            
+            # TODO implement better way of sending private messages
+            if len(res) > 1: # Multiple messages == distinct messages
+                for msg in res:
+                    tgt = msg['tgt'][0] # Assuming one target per message here
+                    for sock in self.session['room'].users:
+                        if sock.session['seat'] == tgt:
+                            sock['/cinch'].emit('play', [msg])
+            else:
+                self.emit_to_room('play', res)
+                                  
     # --------------------
     # Helper methods
     # --------------------
@@ -413,6 +415,18 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
                     continue
                 else:
                     socket.send_packet(pkt)
+
+    def emit_to_user(self, event, userNum, *args):
+        """Send message to a user in same room, identified by their user index.
+
+        event -- command name for message (e.g. 'chat', 'users', 'ack)
+        userNum -- index of user within self.session['room'].users
+        args -- args for command specified by event
+        
+        """
+        pass
+        for user in self.session['room'].users:
+            pass
 
     def getUsernamesInRoom(self, room):
         """Return list of all users' nicknames in a given room
