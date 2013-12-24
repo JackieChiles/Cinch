@@ -212,6 +212,10 @@ function CinchViewModel__() {
             }
         });
 
+	socket.on('aiInfo', function(msg) {
+	    console.log("'aiInfo' -- ", msg);
+	});
+
         socket.on('chat', function(msg) {
             console.log("'chat' -- ", msg);
 

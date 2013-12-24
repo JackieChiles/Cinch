@@ -22,6 +22,8 @@ from socketio.server import SocketIOServer
 from socketio.namespace import BaseNamespace
 from socketio.mixins import BroadcastMixin
 
+from time import sleep
+
 import logging
 log = logging.getLogger(__name__)
 # TODO make use of logging in code
@@ -101,7 +103,8 @@ class Room(object):
                 print "bad seating error in startGame()"
                 sock['/cinch'].emit_to_room('err', 'Problem starting game')
                 return
-                
+
+        #FIXME if players leave then rejoin, a new game is started.
         self.game = Game()
         initData = self.game.start_game(self.users[0]['/cinch'].getUsernamesInRoom(self))
         
@@ -333,10 +336,26 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
     # Could emit acks to sending client and emit_to_room_not_me the rest if that
     # is beneficial.
     
-    def on_aiList(self, _):
-        """Provide client with list of available AIs and their information."""
-        pass
+    def on_aiList(self):
+        """Provide client with list of available AIs and their information.
+
+        All available AI agents are in the Lobby and respond to the 'queryAI'
+        event with their identity by sending an 'aiData' event.
+
+        """
+        if self.session['room'].num == LOBBY:
+            self.emit_to_room('queryAI', None)
+
+        sleep(0.5)    # Brief pause for AI agents to respond
+        self.emit('aiInfo', self.request['aiInfo'])
+        print self.request['aiInfo']###
+
+    def on_aiIdent(self, msg):
+        """Receive identity information on an AI agent responding to 'queryAI'."""
+        self.request['aiInfo'][msg['name']] = msg        
         
+    # TODO need way to let player request AI join their game
+
     def on_bid(self, bid):
         """Pass bid to game."""
         g = self.session['room'].game
@@ -416,18 +435,6 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
                 else:
                     socket.send_packet(pkt)
 
-    def emit_to_user(self, event, userNum, *args):
-        """Send message to a user in same room, identified by their user index.
-
-        event -- command name for message (e.g. 'chat', 'users', 'ack)
-        userNum -- index of user within self.session['room'].users
-        args -- args for command specified by event
-        
-        """
-        pass
-        for user in self.session['room'].users:
-            pass
-
     def getUsernamesInRoom(self, room):
         """Return list of all users' nicknames in a given room
         
@@ -440,15 +447,13 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         
         return names
         
-    
-# This might should live in a separate file and be imported here. Can break this
-# file up later.
+
 class Server(object):
 
     """Manages namespaces and connections while holding server-global info."""
 
     # Server-global dict object available to every connection
-    request = {'rooms':[Room(LOBBY)] } # Room 0:Lobby
+    request = {'rooms':[Room(LOBBY)], 'aiInfo':dict() } # Room 0:Lobby
     
     def __call__(self, environ, start_response):
         """Delegate incoming message to appropriate namespace."""

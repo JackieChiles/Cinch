@@ -4,7 +4,9 @@
 import random
 
 # Import base class for AI agent
-from ai.base import AIBase, log
+#from ai.base import AIBase, log
+###
+from base import AIBase, log
 
 AI_CLASS = "Rand" # Set this to match the class name for the agent
 __author__  = "JACK!"
