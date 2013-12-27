@@ -15,6 +15,9 @@ from time import sleep
 from socketIO_client import SocketIO, BaseNamespace
 
 
+#TODO: Re-implement console as a small part of a virtual screen, detect window
+# re-sizing and handle gracefully.
+
 class Namespace(BaseNamespace):
 
     def __init__(self, *args):
@@ -38,6 +41,13 @@ class Namespace(BaseNamespace):
     # Event Handlers #
     #----------------#
 
+    def on_ackCreate(self, room_num):
+        self.log_to_console('Room '+str(room_num)+' created.')
+        self.emit('join', room_num)
+
+    def on_ackJoin(self, *args):
+        self.log_to_console('You have joined '+str(args)) # TODO sort this out
+
     def on_ackNickname(self, *args):
         resp_line = 'New nickname: '
         for x in args:
@@ -47,17 +57,26 @@ class Namespace(BaseNamespace):
     def on_connect(self):
         self.log_to_console('[Connected]')
 
+    def on_enter(self, nickname):
+        self.log_to_console(nickname+' has entered the room.')
+
     def on_err(self, *args):
         resp_line = ''
         for err_text in args:
             resp_line += err_text
         self.log_to_console(resp_line)
 
+    def on_roomFull(self, *args):
+        self.log_to_console('Room is full.')
+
     def on_rooms(self, room_list):
         resp_line = "Rooms: "
         for r in room_list:
             resp_line += r
         self.log_to_console(resp_line)
+
+    def on_users(self, *args):
+        self.log_to_console('on_users not implemented') #TODO
 
     #-------------------#
     # Callback Handlers #
@@ -124,12 +143,15 @@ def console(scr): # Put optional custom connection info here later?
         # Process the command.
         if cmd.startswith('test'):
             ns.emit('test', 'console', callback=ns.null_response)
-        elif cmd.startswith('nick '):
+        elif cmd.startswith('nick'):
             ns.emit('nickname', cmd[5:])
-        elif cmd.startswith(''):
-            pass
-        elif cmd.startswith(''):
-            pass
+        elif cmd.startswith('chat'):
+            if len(cmd) > 5:
+                ns.emit('chat', cmd[5:])
+            else:
+                ns.log_to_console('Chat message blank - no command sent.')
+        elif cmd.startswith('room'):
+            ns.emit('createRoom', '') # Add parameters later (see server.py)
         elif cmd.startswith(''):
             pass
         elif cmd.startswith(''):
