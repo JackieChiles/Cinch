@@ -43,5 +43,5 @@ class Rand(AIBase):
         self.send_play(chosen_card)
 
     def think(self):
-        """Overriding base class think."""
+        """Overriding base class think. This is optional and here to demo."""
         pass

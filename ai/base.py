@@ -14,13 +14,11 @@ class AIBase
 from collections import defaultdict
 from socketIO_client import SocketIO, BaseNamespace
 
-#from core.cards import RANKS_SHORT, SUITS_SHORT, NUM_RANKS
-###
-import sys
-sys.path.append('/home/mgaree/Programming/cinch')
-import core.cards as cards
-###
+# Add parent directory (/cinch/) to Python path for imports
+import sys, os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),"..")))
 
+import core.cards as cards
 
 import logging
 log = logging.getLogger(__name__)
@@ -42,7 +40,13 @@ PLAY = 1
 
 class GS(object):
     """Container for game state properties."""
-    pass
+    def __repr__(self):
+        val = ""
+        public_props = (name for name in dir(self) if not name.startswith('_'))
+        for name in public_props:
+            val += name + ": " + str(getattr(self, name)) + "\n"
+
+        return val
 
 
 class AIBase(object):
@@ -67,12 +71,11 @@ class AIBase(object):
 
         self.name = ident['name']
         self.label = self.name + "_" + str(targetSeat)###
-        self.ns.emit('nickname', self.name)
+        self.ns.emit('nickname', self.label)
 
         # Enter room and take a seat
         self.join(targetRoom)
         self.ns.emit('seat', targetSeat)
-        self.socket.wait(0.1) # To receive ackJoin & ackSeat
 
         # Prepare game logic variables
         self.hand = []
@@ -107,6 +110,8 @@ class AIBase(object):
 
     def on_err(self, msg):
         log.debug("err: {0}".format(msg))
+        log.debug("dump: {0} {1}".format(self.label,str(self.hand)))
+        log.debug("gs: {0}".format(self.gs))
 
     def on_game_action(self, *args):
         """Combination handler for bid and play."""
@@ -218,7 +223,7 @@ class AIBase(object):
         """Gracefully shutdown AI agent."""
         self.socket._stop_waiting(False)
         self.socket.disconnect()
-        #TODO do any final cleanup (logging, etc)
+        # TODO do any final cleanup (logging, etc)
 
     # ===============
     # Game Actions & Rules
@@ -264,15 +269,9 @@ class AIBase(object):
         card_val = card.code
         res = self.ns.emit('play', card_val)
 
-        # Play may be deemed illegal by server anyway
-        if res:
-            # No fallback option defined for an illegal play
-            log.error("{1} made illegal play with card_val {0}"
-                        "".format(str(card), self.label))
-        else:
-            log.info("{0} plays {1}".format(self.label, 
-                                            str(card)))
-            self.hand.remove(card) # Complete play
+        log.info("{0} plays {1}".format(self.label, 
+                                        str(card)))
+        self.hand.remove(card) # Complete play
 
     def is_legal_bid(self, bid):
         """Check if proposed bid is legal.
@@ -281,13 +280,13 @@ class AIBase(object):
 
         """
         if bid == 0:
-            if self.pNum == self.gs.dealer and max(self.gs.bidLog.value()) == 0:
+            if self.pNum == self.gs.dealer and self.gs.highBid < 1:
                 return False # Stuck dealer, must not pass
             else:
                 return True # Always legal to pass otherwise
         elif bid < 0 or bid > 5:
             return False # Bid out of bounds
-        elif bid > max(self.gs.bidLog.values()):
+        elif bid > self.gs.highBid:
             return True
         elif bid == 5 & self.pNum == self.gs.dlr:
             return True
@@ -302,19 +301,19 @@ class AIBase(object):
         """
         if len(self.gs.cardsInPlay) == 0:
             return True # No restriction on what can be led
-        else:
-            if card.suit == self.gs.trump:
-                return True # Trump is always OK
-            else:
-                led = self.gs.cardsInPlay[0].suit
-                if card.suit == led:
-                    return True # Followed suit
-                else:
-                    for c in self.hand:
-                        if led == c.suit:
-                            return False # Could've followed suit but didn't
 
-                    return True # Throwing off
+        if card.suit is self.gs.trump:
+            return True # Trump is always OK
+        else:
+            led = self.gs.cardsInPlay[0].suit
+            if card.suit is led:
+                return True # Followed suit
+            else:
+                for c in self.hand:
+                    if led is c.suit:
+                        return False # Could've followed suit but didn't
+                        
+                return True # Throwing off
 
     # ===============
     # Intelligence
@@ -327,7 +326,6 @@ class AIBase(object):
 
         """
         raise NotImplementedError("bid() needs to be implemented in subclass.")
-#        self.send_bid(1)
 
     def play(self):
         """Play logic. This is to be implemented within each agent.
@@ -336,7 +334,6 @@ class AIBase(object):
 
         """
         raise NotImplementedError("play() needs to be implemented in subclass.")
-#        self.send_play(self.hand[0])
 
     def think(self):
         """Thinking logic. This is to be optionally implemented within each agent.
@@ -348,7 +345,7 @@ class AIBase(object):
         pass
 
 # TODO test is_legal_bid due to change in first case
-
+# TODO fix bug that allows AI to make play that is called illegal by server
 
 
 
