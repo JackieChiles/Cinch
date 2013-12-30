@@ -330,29 +330,17 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
     # Game methods
     # --------------------
     
-    # TODO add AI management methods (e.g. add AI to game). At the moment, all AI
-    # is disabled pending web server overhaul and revamp of multiprocessing.
-    
-    # Could emit acks to sending client and emit_to_room_not_me the rest if that
-    # is beneficial.
-    
     def on_aiList(self):
-        """Provide client with list of available AIs and their information.
-
-        All available AI agents are in the Lobby and respond to the 'queryAI'
-        event with their identity by sending an 'aiData' event.
-
-        """
+        """Provide client with list of available AIs and their information."""
         if self.session['room'].num == LOBBY:
-            self.emit_to_room('queryAI', None)
+            self.emit_to_room('getAIList', None)
 
-        sleep(0.5)    # Brief pause for AI agents to respond
-        self.emit('aiInfo', self.request['aiInfo'])
-        print self.request['aiInfo']###
+            sleep(0.25)  # Brief pause for AI manager to respond
+            self.emit('aiInfo', self.request['aiListData'])
 
-    def on_aiIdent(self, msg):
-        """Receive identity information on an AI agent responding to 'queryAI'."""
-        self.request['aiInfo'][msg['name']] = msg        
+    def on_aiListData(self, msg):
+        """Receive AI identity information from AI manager."""
+        self.request['aiListData'] = msg
         
     # TODO need way to let player request AI join their game
 

@@ -4,10 +4,10 @@
 Class/method reference:
 
 class GS
-    - No methods (empty class)
+- No methods (empty class)
 
 class AIBase
-    - ...
+- ...
 
 
 """
@@ -39,11 +39,6 @@ NUM_PLAYERS = 4
 BID = 2
 PLAY = 1
 
-#####
-def foo(*args):
-    print 'callback foo: ', args
-####
-
 
 class GS(object):
     """Container for game state properties."""
@@ -58,7 +53,7 @@ class AIBase:
     # Agent Management & Communications
     # ===============
     
-    def __init__(self, *args):
+    def __init__(self, targetRoom):
         # Establish socketIO connection
         self.setupSocket()
         self.room = None
@@ -75,9 +70,9 @@ class AIBase:
         self.gs.cardsInPlay = list()
         self.gs.takenCards = defaultdict(list) # Storage for taken tricks
 
-        self.ns.emit('join', 0) # Request entry to lobby
+        
 
-        log.info("{0}AI loaded".format(self.name))
+        log.info("{0}AI loaded into Game Room {1}".format(self.name, targetRoom))
 
     def __del__(self):
         """Safely shutdown AI agent."""
@@ -114,25 +109,11 @@ class AIBase:
             else: # AI should be playing
                 self.play()
 
-    def on_queryAI(self, *args):
-        """Respond to server with identity information."""
-        if self.room == 0: # Only do if in the Lobby
-            self.ns.emit('aiIdent', self.identity)
-
     def on_startData(self, *args):
         # Initialize internal game state
         self.applyUpdate(args[0])
         if self.gs.activePlayer == self.pNum: # I'm first to act
             self.bid()
-
-    def on_summonAI(self, *args):
-        """Make AI enter a game room.
-
-        args -- (game room number, seat number)
-
-        """
-        if self.room == 0:
-            self.join(1)### TODO
 
     def setupSocket(self):
         self.socket = SocketIO('localhost', PORT)
@@ -341,11 +322,11 @@ class AIBase:
 
 #####
 
-testAI = AIBase()
+#testAI = AIBase()
 
-testAI.ns.emit('nickname', 'Mr AI')
+#testAI.ns.emit('nickname', 'Mr AI')
 
-testAI.socket.wait()
+#testAI.socket.wait()
 
 
 

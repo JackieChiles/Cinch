@@ -10,16 +10,25 @@ Method reference:
 ...
 
 """
+from socketIO_client import SocketIO, BaseNamespace
+
 import os
 import imp # Import module functionality
 import sys
 
+from time import sleep
+
 import logging
 log = logging.getLogger(__name__)
 
+# Server's socketIO port number (not HTTP)
+PORT = 8088
+
+NS = '/cinch'
 
 MY_PATH = os.path.abspath(os.path.dirname(__file__))
 MODELS_FILE = "available_models.txt"
+
 
 def import_module(module_name):
     """Import module from file and return module object.
@@ -42,9 +51,7 @@ def import_module(module_name):
         if fp:  fp.close()
 
 def get_ai_models():
-    """Read available models file for file names, and load corresponding
-    classes into namespace.
-    """
+    """Load AI classes into namespace based on contents of available AI file."""
     # Open and parse models file
     log.info("Reading {0} for AI models...".format(MODELS_FILE))
     fin = open(os.path.join(MY_PATH, MODELS_FILE))
@@ -76,7 +83,11 @@ def get_ai_models():
     return list(map(lambda m: getattr(m, m.AI_CLASS), ai_modules))
 
 def set_ai_ident(mod):
-    """Set a self.identity for the AI class within mod."""
+    """Set a self.identity for the AI class within the specified module.
+
+    mod -- module for an AI agent
+
+    """
     cls = getattr(mod, mod.AI_CLASS)
     cls.identity = {  'author':   mod.__author__,
                       'version':  mod.__version__,
@@ -91,10 +102,43 @@ class AIManager:
 
     """Management entity for AI agents."""
 
-    ai_classes = get_ai_models()
-
     def __init__(self):
-        log.info("AI Manager ready for action.")
+        self.ai_classes = get_ai_models()
+        self.aiSummary = self.get_ai_summary()
+
+        self.setupSocket()
+
+        log.info("AI Management Agency open.")
+
+        self.socket.wait() # Blocks
+
+    def setupSocket(self):
+        # The AIMgr thread is started before the main server due to reasons. Pause
+        # a moment to let the main server come up before the Manager connects.
+        sleep(1)
+
+        self.socket = SocketIO('localhost', PORT)
+        self.ns = self.socket.define(BaseNamespace, NS)
+
+        # Attach socketIO event handlers
+        self.ns.on('getAIList', self.on_getAIList)
+        self.ns.on('requestAI', self.on_requestAI)
+
+        self.ns.emit('nickname', 'AIManager')
+        self.ns.emit('join', 0) # Join lobby
+
+    def on_getAIList(self, *args):
+        """Provide AI identity information to game server."""
+        self.ns.emit('aiListData', self.aiSummary)
+
+    def on_requestAI(self, *args):
+        """Spawn AI agent for a game.
+
+        args -- (AI agent ID, game room number)
+
+        """
+        pass ####
+        print 'requestAI', args
 
     def get_ai_summary(self):
         """Assemble data for choosing/viewing available AI Agents.
@@ -103,7 +147,7 @@ class AIManager:
         use data to build AI Agent selection elements to be used when making
         new games. All data should be triple-underscored.
 
-        Information will be requested by client using the 'ai' message flag.
+        Information will be requested by client using the 'aiList' event.
 
         """
         aList = []
@@ -125,17 +169,3 @@ class AIManager:
             i += 1
 
         return aList
-
-    ####################
-    # Agent Management
-    ####################
-
-    def handle_request_for_agent(self):
-        pass
-
-    def create_agent(self, model_num):
-        pass
-
-
-
-print AIManager().get_ai_summary()
