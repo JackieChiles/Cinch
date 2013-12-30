@@ -187,7 +187,7 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
     def on_createRoom(self, args):
         """Create new room and announce new room's existance to clients.
         
-        args -- ? probably AI parameters
+        args -- {seat: ai_model_id, seat2: ...}
         
         This method sends an 'ack' to the client, instructing the client to join
         the room, separating the creation of the room from the act of joining
@@ -204,10 +204,12 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         
         self.emit('ackCreate', roomNum)           # tell user to join the room
         
-        # TODO accept AI specifications
+        # Summon AI players
+        for seat in args.keys():
+            self.emit_to_room('summonAI', {roomNum: (int(seat), int(args[seat]))})
         
         # FUTURE add way to system to add AIs after creating room; useful for filling
-        # a room that won't fill
+        # a room that won't fill. Would be separate command from createRoom.
     
     def on_exit(self, _):
         """Leave room and return to lobby, while announcing to rest of room."""

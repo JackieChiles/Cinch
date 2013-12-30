@@ -15,6 +15,7 @@ from socketIO_client import SocketIO, BaseNamespace
 import os
 import imp # Import module functionality
 import sys
+import threading
 
 from time import sleep
 
@@ -122,7 +123,7 @@ class AIManager:
 
         # Attach socketIO event handlers
         self.ns.on('getAIList', self.on_getAIList)
-        self.ns.on('requestAI', self.on_requestAI)
+        self.ns.on('summonAI', self.on_summonAI)
 
         self.ns.emit('nickname', 'AIManager')
         self.ns.emit('join', 0) # Join lobby
@@ -131,14 +132,23 @@ class AIManager:
         """Provide AI identity information to game server."""
         self.ns.emit('aiListData', self.aiSummary)
 
-    def on_requestAI(self, *args):
-        """Spawn AI agent for a game.
+    def on_summonAI(self, *args):
+        """Spawn AI agent for a game using threading.
 
-        args -- (AI agent ID, game room number)
+        args -- {room number: (seat, AI model ID)}
 
         """
-        pass ####
-        print 'requestAI', args
+        val = args[0]
+        roomNum = int(val.keys()[0])
+        seat = val.values()[0][0]
+        modelID = val.values()[0][1]
+
+        # FUTURE: If performance is poor, rework to use sub/multiprocessing
+        # instead of threading for AI agents.
+        agent = threading.Thread(target=self.ai_classes[modelID-1],
+                                 args=(roomNum, seat))
+        agent.daemon = True
+        agent.start()
 
     def get_ai_summary(self):
         """Assemble data for choosing/viewing available AI Agents.

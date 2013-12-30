@@ -45,7 +45,7 @@ class GS(object):
     pass
 
 
-class AIBase:
+class AIBase(object):
     
     """Common features of all Cinch AI Agents."""
 
@@ -53,37 +53,53 @@ class AIBase:
     # Agent Management & Communications
     # ===============
     
-    def __init__(self, targetRoom):
+    def __init__(self, targetRoom, targetSeat, ident):
+        """Connect to server, join a game, and prepare variable space.
+
+        targetRoom -- (int) game room number for AI to join
+        targetSeat -- (int) seat number within game room
+        ident -- (dict) identifying info from agent file & structured by manager
+
+        """
         # Establish socketIO connection
         self.setupSocket()
         self.room = None
 
-        # Prepare game logic variables
-        self.running = False
-        self.name = "AIBase" ###
-        self.label = self.name
-        self.identity = {'name': self.name}
+        self.name = ident['name']
+        self.label = self.name + "_" + str(targetSeat)###
+        self.ns.emit('nickname', self.name)
 
-        self.pNum = -1
+        # Enter room and take a seat
+        self.join(targetRoom)
+        self.ns.emit('seat', targetSeat)
+        self.socket.wait(0.1) # To receive ackJoin & ackSeat
+
+        # Prepare game logic variables
         self.hand = []
         self.gs = GS() # Game state object
-        self.gs.cardsInPlay = list()
-        self.gs.takenCards = defaultdict(list) # Storage for taken tricks
+        self.resetGamestate()
 
-        
-
-        log.info("{0}AI loaded into Game Room {1}".format(self.name, targetRoom))
+        log.info("{0}_AI loaded into Game {1} Seat {2}*"
+                 "".format(self.name, targetRoom, targetSeat))
 
     def __del__(self):
-        """Safely shutdown AI agent."""
-        self.quit()
+        """Cleanly shutdown AI agent."""
+        self.stop()
+
+    def resetGamestate(self):
+        """Reset certain fields in the gamestate object."""
+        self.gs.cardsInPlay = list()
+        self.gs.bidLog = dict()
+        self.gs.takenCards = defaultdict(list)
+        self.gs.highBid = -1
 
     # Event handlers
 
     def on_ackJoin(self, *args):
         # Successful join request was made
         self.room = args[0][0]
-        log.info("AI joined Room {0}".format(self.room))
+        if self.room != 0:
+            log.info("AI joined Room {0}".format(self.room))
 
     def on_ackSeat(self, *args):
         self.pNum = args[0]
@@ -108,6 +124,8 @@ class AIBase:
                 self.bid()
             else: # AI should be playing
                 self.play()
+        else:
+            self.think()
 
     def on_startData(self, *args):
         # Initialize internal game state
@@ -124,10 +142,8 @@ class AIBase:
         self.ns.on('ackSeat',   self.on_ackSeat)
         self.ns.on('bid',       self.on_game_action)
         self.ns.on('err',       self.on_err)
-        self.ns.on('queryAI',   self.on_queryAI) 
         self.ns.on('play',      self.on_game_action)
         self.ns.on('startData', self.on_startData)
-        self.ns.on('summonAI',  self.on_summonAI)
 
     # Other management functions
 
@@ -167,9 +183,7 @@ class AIBase:
             for num in msg['addC']:
                 self.hand.append(cards.Card(num))
             
-            # Clear these logs
-            self.bidLog = dict()
-            self.gs.takenCards = defaultdict(list)
+            self.resetGamestate()
 
         if 'trp' in msg:
             self.gs.trump = msg['trp']
@@ -181,7 +195,9 @@ class AIBase:
             self.gs.actor = msg['actor']
 
         if 'bid' in msg:
-            self.bidLog[msg['actor']] = msg['bid']
+            self.gs.bidLog[msg['actor']] = msg['bid']
+            if msg['bid'] > self.gs.highBid:
+                self.gs.highBid = msg['bid']
 
         if 'playC' in msg:
             self.gs.cardsInPlay.append(cards.Card(msg['playC']))        
@@ -265,13 +281,13 @@ class AIBase:
 
         """
         if bid == 0:
-            if self.pNum == self.gs.dealer and max(self.bidLog.value()) == 0:
+            if self.pNum == self.gs.dealer and max(self.gs.bidLog.value()) == 0:
                 return False # Stuck dealer, must not pass
             else:
                 return True # Always legal to pass otherwise
         elif bid < 0 or bid > 5:
             return False # Bid out of bounds
-        elif bid > max(self.bidLog.values()):
+        elif bid > max(self.gs.bidLog.values()):
             return True
         elif bid == 5 & self.pNum == self.gs.dlr:
             return True
@@ -284,7 +300,7 @@ class AIBase:
         card (Card): proposed play
 
         """
-        if len(self.gs.cards_in_play) == 0:
+        if len(self.gs.cardsInPlay) == 0:
             return True # No restriction on what can be led
         else:
             if card.suit == self.gs.trump:
@@ -305,28 +321,35 @@ class AIBase:
     # ===============
 
     def bid(self):
-        """Bidding logic. This is to be implemented within each agent."""
-#        raise NotImplementedError("bid() needs to be implemented in subclass.")
-        print 'bidding...'
-        self.send_bid(1)
+        """Bidding logic. This is to be implemented within each agent.
+
+        This gets called only when game mode == BID and self is active player.
+
+        """
+        raise NotImplementedError("bid() needs to be implemented in subclass.")
+#        self.send_bid(1)
 
     def play(self):
-        """Play logic. This is to be implemented within each agent."""
-#        raise NotImplementedError("play() needs to be implemented in subclass.")
-        print "im playing"
-        self.send_play(self.hand[0])
+        """Play logic. This is to be implemented within each agent.
 
+        This gets called only when game mode == PLAY and self is active player.
+
+        """
+        raise NotImplementedError("play() needs to be implemented in subclass.")
+#        self.send_play(self.hand[0])
+
+    def think(self):
+        """Thinking logic. This is to be optionally implemented within each agent.
+
+        This gets called after bids/plays but self is not the active player
+        (e.g. for pruning move trees after a card is played).
+
+        """
+        pass
 
 # TODO test is_legal_bid due to change in first case
 
 
-#####
-
-#testAI = AIBase()
-
-#testAI.ns.emit('nickname', 'Mr AI')
-
-#testAI.socket.wait()
 
 
 
