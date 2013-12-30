@@ -108,7 +108,7 @@ class AIManager:
 
         self.setupSocket()
 
-        log.info("AI Management Agency open.")
+        log.info("AI Management Agency open")
 
         self.socket.wait() # Blocks
 

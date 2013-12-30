@@ -327,10 +327,10 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
             self.emit('ackNickname', name)  # ack nickname okay
 
     # --------------------
-    # Game methods
+    # AI methods
     # --------------------
     
-    def on_aiList(self):
+    def on_aiList(self, *args):
         """Provide client with list of available AIs and their information."""
         if self.session['room'].num == LOBBY:
             self.emit_to_room('getAIList', None)
@@ -341,8 +341,17 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
     def on_aiListData(self, msg):
         """Receive AI identity information from AI manager."""
         self.request['aiListData'] = msg
+
+    def on_summonAI(self, *args):
+        """Human client has requested an AI agent for a game room."""
+        print args
+        log.debug("AI model {0} summoned".format(args[0]['id']))
         
     # TODO need way to let player request AI join their game
+
+    # --------------------
+    # Game methods
+    # --------------------
 
     def on_bid(self, bid):
         """Pass bid to game."""

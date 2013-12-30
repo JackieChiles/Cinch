@@ -1,6 +1,7 @@
 #!/usr/bin/python2
 """
-game engine
+Game engine.
+
 """
 import logging
 import logging.config
@@ -9,14 +10,10 @@ import threading
 import web.server
 from ai.manager import AIManager
 
-#from engine.client_manager import ClientManager
-#from engine.game_router import GameRouter
-
 
 class Cinch:
     def __init__(self):
         logging.config.fileConfig('logging.config')
-        self.running = True
 
         # Start AI manager
         manager = threading.Thread(target=AIManager)
@@ -24,11 +21,11 @@ class Cinch:
         manager.start()
 
         # Start server
-        web.server.runServer() # This blocks until keyboard interrupt
+        web.server.runServer() # Blocks
         
         # Begin cleanup
         logging.info("Cleaning up...")
-        self.running = False
+
 
 # Command console will be implemented as a client with access to a different
 # namespace. make use of an ACL and perform some authentication. Easy approach
