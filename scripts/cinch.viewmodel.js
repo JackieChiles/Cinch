@@ -262,6 +262,13 @@ function CinchViewModel__() {
             self.users(msg);
         });
 
+        socket.on('seatChart', function(msg) {
+            console.log("'seatChart' -- ", msg);
+
+	    //TODO: use this info to update/set seating arrangement
+        });
+	
+
         socket.on('enter', function(msg) {
             console.log("'enter' -- ", msg);
 

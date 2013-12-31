@@ -96,11 +96,11 @@ class Room(object):
                     sock.session['seat'] = curSeat
                     sock['/cinch'].emit('ackSeat', curSeat)
                     sock['/cinch'].emit_to_room('userInSeat', { 'actor': curSeat, 'name': sock.session['nickname'] })
-                    # changing the namespace name will break this
+                    # changing the namespace name will break this; TODO use variable
             
             if len(self.getAvailableSeats()) > 0:
                 # Something has gone wrong
-                print "bad seating error in startGame()"
+                log.error("bad seating error in startGame()")
                 sock['/cinch'].emit_to_room('err', 'Problem starting game')
                 return
 
@@ -192,6 +192,8 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         This method sends an 'ack' to the client, instructing the client to join
         the room, separating the creation of the room from the act of joining
         it.
+
+        TODO: need to accept request for own seat number
         
         """
         roomNum = len(self.request['rooms'])    # rooms is list of Room objects
@@ -203,11 +205,14 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         self.broadcast_event('newRoom', roomNum)  # goes to all clients in room
         
         self.emit('ackCreate', roomNum)           # tell user to join the room
-        
+
         # Summon AI players
-        for seat in args.keys():
-            self.emit_to_room('summonAI', {roomNum: (int(seat), int(args[seat]))})
-        
+        try:
+            for seat in args.keys():
+                self.emit_to_room('summonAI', {roomNum: (int(seat), int(args[seat]))})
+        except AttributeError as e:
+            pass # No args given
+
         # FUTURE add way to system to add AIs after creating room; useful for filling
         # a room that won't fill. Would be separate command from createRoom.
     
@@ -280,9 +285,11 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
                     self.emit('ackJoin', (roomNum, seats))
 
                 # Send list of usernames in room
+                # TODO make client handle seatChart; may remove 'users'
                 self.emit('users', self.getUsernamesInRoom(room))
-                
-                # tell others in room that someone has joined
+                self.emit('seatChart', self.getSeatingChart(room))
+
+                # Tell others in room that someone has joined
                 self.emit_to_room_not_me('enter', self.session['nickname'])
                 
                 # if the room is now full, begin the game
@@ -313,9 +320,9 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         
         name -- desired nickname
         
-        This method sends an 'ack' to the client to confirm the request and
+        TODO: This method sends an 'ack' to the client to confirm the request and
         instruct it to update its local copy of the nickname. This is to allow
-        the server to prevent duplicate nicknames (TODO).
+        the server to prevent duplicate nicknames.
         
         The nickname cannot be changed while the user is in a room other than
         the lobby. This is to protect the integrity of any game logging done.
@@ -349,8 +356,6 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         print args
         log.debug("AI model {0} summoned".format(args[0]['id']))
         
-    # TODO need way to let player request AI join their game
-
     # --------------------
     # Game methods
     # --------------------
@@ -445,7 +450,27 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
             names.append(sock.session['nickname'])
         
         return names
-        
+
+    def getSeatingChart(self, room):
+        """Returns a list of (username, seat) pairs for a given room.
+
+        room -- Room object
+
+        If a user does not have a seat, they are given seat = -1.
+
+        """
+        seatChart = []
+        for sock in room.users:
+            name = sock.session['nickname']
+            if 'seat' not in sock.session:
+                seat = -1
+            else:
+                seat = sock.session['seat']
+
+            seatChart.append((name, seat))
+
+        return seatChart
+
 
 class Server(object):
 
