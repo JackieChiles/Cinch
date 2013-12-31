@@ -151,7 +151,7 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
 
     def on_test(self, *args):
         # Dummy command to get the console __init__ to fire.
-        print 'Console connected.'
+        log.info('Console connected.')
         return ['ok']
             
     # --------------------
