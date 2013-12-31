@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+# -*- coding: utf-8 -*-
 """
 Define basic properties of cards and decks of cards. 
 """
@@ -6,6 +7,7 @@ import random
 from random import shuffle
 from os import name as os_name
 from math import floor
+import sys
 
 
 # Constants to use for card identification
@@ -31,10 +33,14 @@ SUITS_BY_NUM = {CLUBS:'Clubs', DIAMONDS:'Diamonds', HEARTS:'Hearts',
                 SPADES:'Spades'}
 
 # Code to support deprecated/legacy development platforms:
-if os_name == 'nt':
+# Same code supports deprecated/legacy developers:
+#TODO make unicode work in console
+
+if os_name == 'nt' or sys.version_info.major == 2:
     SUITS_SHORT = {0:'C', 1:'D', 2:'H', 3:'S'}
 else: # Unicode is awesome
-    SUITS_SHORT = {0:'\u2663', 1:'\u2666', 2:'\u2665', 3:'\u2660'}
+    SUITS_SHORT = {0:'♣', 1:'♠', 2:'♥', 3:'♦'}
+    '''{0:'\u2663' 1:'\u2666', 2:'\u2665', 3:'\u2660'}'''
 
 NUM_RANKS = 13
 NUM_SUITS = 4

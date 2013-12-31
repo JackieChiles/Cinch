@@ -152,18 +152,10 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         self.on_exit(0)      # Remove user from its current room
         self.disconnect(silent=True)
 
-    # %%%%%
-    def on_exec(self, message):
-        # Debugging helper - client sends arbitrary Python code for execution
-        # From the client browser console, type:
-        # socket.emit('exec', <your Python code>)
-        # Please be careful. This is offensively dangerous.
-        #
-        # remove this method before it goes live
-        try:
-            exec(message)
-        except Exception, e:
-            print 'on_exec error: ', e
+    def on_test(self, *args):
+        # Dummy command to get the console __init__ to fire.
+        log.info('Console connected.')
+        return ['ok']
             
     # --------------------
     # Room & chat management methods
@@ -183,7 +175,7 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
             self.emit_to_room('chat', [self.session['nickname'], message])
         else:
             self.emit('err', 'You must set a nickname first')
-            
+    
     def on_createRoom(self, args):
         """Create new room and announce new room's existance to clients.
         
@@ -377,9 +369,10 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         g = self.session['room'].game
         pNum = self.session['seat']
         
-        res = g.handle_card_played(pNum, int(play)) #False on bad play, None for inactive player
+        res = g.handle_card_played(pNum, int(play))
+        #False on bad play, None for inactive player
         
-        if res is False:
+        if res is (False or None):
             self.emit('err', 'Bad play')
         else:
             # TODO implement better way of sending private messages
