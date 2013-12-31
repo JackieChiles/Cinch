@@ -346,9 +346,10 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         g = self.session['room'].game
         pNum = self.session['seat']
         
-        res = g.handle_card_played(pNum, int(play)) #False on bad play, None for inactive player
+        res = g.handle_card_played(pNum, int(play))
+        #False on bad play, None for inactive player
         
-        if res is False:
+        if res is (False or None):
             self.emit('err', 'Bad play')
         else:
             # TODO implement better way of sending private messages

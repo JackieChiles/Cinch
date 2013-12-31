@@ -9,6 +9,9 @@ This package will also support the AI program.
 
 """
 
+# Executive summary for help page.
+DESC = 'Command-line console for the Cinch card game.'
+
 import curses
 import curses.textpad
 
@@ -16,9 +19,10 @@ import threading
 from time import sleep
 from socketIO_client import SocketIO, BaseNamespace
 
+import argparse
 import logging
 log = logging.getLogger(__name__)
-logging.basicConfig(level=logging.WARNING)
+LOG_SHORT ={'d':'DEBUG', 'i':'INFO', 'w':'WARNING', 'e':'ERROR', 'c':'CRITICAL'}
 
 import core.gamestate as gamestate
 import core.cards as cards
@@ -29,6 +33,9 @@ import core.cards as cards
 class Namespace(BaseNamespace):
 
     def __init__(self, *args):
+        #TODO: Define RoomView or similar class that extends GameState
+        # and incorporates all this garbage.
+
         super(Namespace, self).__init__(*args)
         self.window = None # Must connect a screen!
         self.nickname = 'NewUser' # Server auto-assigns nickname
@@ -36,6 +43,7 @@ class Namespace(BaseNamespace):
         self.seat = None # Don't have a seat to start.
         self.gs = None # No game at first - initialized by startGame event
         self.hand = [] # self.hand will be a list of Card objects.
+        self.table_view = [None, None, None, None] # Player names 0-3.
 
     #------------------------#
     # Console Logging Method #
@@ -69,12 +77,23 @@ class Namespace(BaseNamespace):
         if type(msg) is list:
             msg = msg[0] # Unpack dict enclosed in list
 
-        if 'actor' in msg:
-            if 'playC' in msg:
-                if msg['actor'] == self.seat:
-                    self.hand.remove(cards.Card(msg['playC']))
-            if 'bid' in msg:
-                pass #TODO track bidding
+        if 'playC' in msg:
+            if msg['actor'] == self.seat:
+                self.hand.remove(cards.Card(msg['playC']))
+            else:
+                self.log_to_console('Seat '+str(msg['actor'])+' played '+
+                                    str(cards.Card(msg['playC']))+'.')
+            self.gs.cards_in_play.append(cards.Card(msg['playC']))
+            if len(self.gs.cards_in_play) == 4:
+                #TODO Fix this; doesn't display at correct time.
+                #self.log_to_console(str(self.gs.trick_winning_card()) + 
+                #                    ' won the trick.')
+                self.gs.cards_in_play = []
+        if 'bid' in msg:
+            pass #TODO track bidding
+            bid_cmts = {0:' passes.', 1:' bids 1.', 2:' bids 2.', 3:' bids 3.',
+                        4:' bids 4.', 5:' cinches!'}
+            self.log_to_console('Seat '+str(msg['actor'])+bid_cmts[msg['bid']])
         if 'dlr' in msg:
             self.gs.dealer = msg['dlr']
         if 'actvP' in msg:
@@ -104,15 +123,23 @@ class Namespace(BaseNamespace):
         self.emit('join', room_num)
 
     def on_ackJoin(self, args):
+        # Clear any game/room data when moving from room to room.
+        self.gs = None # Erase current game data - no re-joins allowed yet.
+        self.hand = []
+        self.seat = None
+
         if args[0] == 0:
             self.log_to_console('You are in the lobby.')
+            self.room = args[0]
         else:
+            self.room = args[0]
             self.log_to_console('You are in room '+str(args[0])+'.')
             self.log_to_console('Seats available: '+str(args[1]))
 
     def on_ackSeat(self, seat_num):
         self.log_to_console('You have been placed in seat '+str(seat_num))
         self.seat = seat_num
+        self.table_view[seat_num] = 'You'
 
     def on_ackNickname(self, nickname):
         resp_line = 'New nickname: '+nickname
@@ -120,7 +147,7 @@ class Namespace(BaseNamespace):
         self.nickname = nickname
 
     def on_bid(self, msg):
-        self.log_to_console(str(msg)) #DEBUG
+        # self.log_to_console(str(msg)) #DEBUG See on_play
         self.gs_modify(msg)
 
     def on_chat(self, chat_packet):
@@ -134,6 +161,8 @@ class Namespace(BaseNamespace):
 
     def on_disconnect(self, *args):
         self.gs = None # Erase current game data - no re-joins allowed yet.
+        self.hand = []
+        self.seat = None
         self.log_to_console('[Disconnected]')
         for x in args:
             self.log_to_console(str(x))
@@ -149,10 +178,14 @@ class Namespace(BaseNamespace):
 
     def on_exit(self, exiter):
         self.gs = None # Erase current game data - no re-joins allowed yet.
+        self.hand = []
+        self.seat = None
+        # This kills the game memory locally if any client drops.
+
         self.log_to_console(str(exiter) + ' has left the room.')
 
     def on_play(self, msg):
-        self.log_to_console(str(msg)) #DEBUG
+        # self.log_to_console(str(msg)) #DEBUG #TODO make way to toggle in-game
         self.gs_modify(msg)
         
     def on_roomFull(self, *args):
@@ -174,6 +207,7 @@ class Namespace(BaseNamespace):
         else:
             self.log_to_console(json['name'] + ' is now sitting in seat ' +
                                 str(json['actor']) + '.')
+            self.table_view[json['actor']] = json['name']
 
     def on_users(self, users):
         self.log_to_console('In the room: '+', '.join([str(x) for x in users]))
@@ -197,7 +231,15 @@ def listen_to_server(socket):
     while True:
         socket.wait()
 
-def console(scr): # Put optional custom connection info here later?
+def console(scr, host='localhost', port=8088):
+    """main console function. called by the curses wrapper.
+
+    scr: curses window to write to
+    host: address of the server
+    port: port the server can be found on
+    
+    Default host:port is localhost:8088.
+    """
 
     # Enable scrolling of command window
     scr.scrollok(True)
@@ -206,7 +248,7 @@ def console(scr): # Put optional custom connection info here later?
     PROMPT_STR = "cinch>"
 
     # Establish connection
-    socket = SocketIO('localhost', 8088)
+    socket = SocketIO(host, port)
     listener = threading.Thread(target=listen_to_server, args=(socket,))
     listener.daemon = True
     listener.start()
@@ -341,6 +383,19 @@ def console(scr): # Put optional custom connection info here later?
 # Curses Wrapper #
 #----------------#
 
-curses.wrapper(console)
+def main(host, port):
+    curses.wrapper(console, host, port)
 
-# Need to detect server-side if the client closes the connection.
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description = DESC)
+    parser.add_argument("-l", "--loglevel",
+                        help="set log level (default=WARNING)", type=str,
+                        choices = list(LOG_SHORT.keys()), default='w')
+    parser.add_argument("--host", help="hostname (default=localhost)", type=str,
+                        default='localhost')
+    parser.add_argument("-p", "--port", help="port no. (default=8088)",
+                        type=int, default=8088)
+    args = parser.parse_args()
+    logging.basicConfig(level = LOG_SHORT[args.loglevel])
+
+    main(args.host, args.port)
