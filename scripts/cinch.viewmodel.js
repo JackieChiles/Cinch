@@ -257,9 +257,18 @@ function CinchViewModel() {
         });
 
         socket.on('users', function(msg) {
+            var i = 0;
+
             console.log("'users' -- ", msg);
 
             self.users(msg);
+
+            //Announce users already in-game
+            if(self.activeView() === CinchApp.views.game) {
+                for(i = 0; i < msg.length; i++) {
+                    self.announceUser(msg[i]);
+                }
+            }
         });
 
         socket.on('seatChart', function(msg) {
@@ -272,7 +281,9 @@ function CinchViewModel() {
         socket.on('enter', function(msg) {
             console.log("'enter' -- ", msg);
 
+            //Add the new user to the collection and announce if in game view
             self.users.push(msg);
+            self.activeView() === CinchApp.views.game && self.announceUser(msg);
         });
 
         socket.on('roomFull', function(msg) {
@@ -388,6 +399,11 @@ function CinchViewModel() {
         });
     };
 
+    //Print a message to the chat window to announce the arrival of a user
+    self.announceUser = function(username) {
+        username && self.chats.push(new VisibleMessage(['User', username, 'is now in the game.'].join(' '), 'System'));
+    };
+
     //Subscriptions
     self.activeView.subscribe(function(newValue) {
         //Fades the current view out and the new view in
@@ -421,9 +437,6 @@ function CinchViewModel() {
                 }
             });
         }
-    });
-    self.users.subscribe(function(nameArray) {
-        self.chats.push(new VisibleMessage(['User', nameArray[nameArray.length - 1], 'is now in the game.'].join(' '), 'System'));
     });
     self.activePlayerNum.subscribe(function(newValue) {
         var i = 0;
