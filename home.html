@@ -101,8 +101,7 @@
                     </div>
                 </div>
             </div>
-        </div><!-- /ai page
-        -->
+        </div><!-- /ai page -->
 
         <div id="hand-end-page" class="cinch-view">
             <div class="header">
@@ -185,7 +184,7 @@
             </div><!-- /header -->
             <div id="game-content">
                 <div id="left-content">
-                    <div data-bind="with: players()[CinchApp__.players.north]" class="other-player partner no-mobile">
+                    <div data-bind="with: players()[CinchApp.players.north]" class="other-player partner no-mobile">
                         <div data-bind="css: { 'active-border' : active }" class="ab-left ab-top ab-z">
                             <div>
                                 <div data-bind="text: numCardsInHand" class="card-counter vert"></div>
@@ -201,7 +200,7 @@
                         </div>
                     </div>
                     
-                    <div data-bind="with: players()[CinchApp__.players.west]" class="other-player middle-row opponent no-mobile">
+                    <div data-bind="with: players()[CinchApp.players.west]" class="other-player middle-row opponent no-mobile">
                         <div data-bind="css: { 'active-border' : active }" class="ab-left ab-top ab-z">
                             <div>
                                 <div data-bind="text: numCardsInHand" class="card-counter horiz"></div>
@@ -221,7 +220,7 @@
                         <canvas id="play-surface"></canvas>
                     </div>
                         
-                    <div data-bind="with: players()[CinchApp__.players.east]" class="other-player middle-row opponent no-mobile">
+                    <div data-bind="with: players()[CinchApp.players.east]" class="other-player middle-row opponent no-mobile">
                         <div data-bind="css: { 'active-border' : active }" class="ab-left ab-top ab-z">
                             <div>
                                 <div>
@@ -266,14 +265,14 @@
                             value: value,
                             text: name,
                             click: submit,
-                            enable: isValid() && $root.gameMode() == CinchApp__.gameModes.bid,
-                            css: { 'active-border' : $root.players()[CinchApp__.players.south].currentBidValue() == value }">
+                            enable: isValid() && $root.gameMode() == CinchApp.gameModes.bid,
+                            css: { 'active-border' : $root.players()[CinchApp.players.south].currentBidValue() == value }">
                         </button>
                     </span>
                 </div>
                 <div data-bind="foreach: cardsInHand">
                     <div class="tile-button">
-                        <div data-bind="visible: !($root.isActivePlayer() && $root.gameMode() == CinchApp__.gameModes.play)" class="card-disabler"></div>
+                        <div data-bind="visible: !($root.isActivePlayer() && $root.gameMode() == CinchApp.gameModes.play)" class="card-disabler"></div>
                         <img data-bind="attr: { src: imagePath}, click: submit" />
                     </div>
                 </div>

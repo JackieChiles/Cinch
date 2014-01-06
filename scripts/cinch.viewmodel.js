@@ -1,23 +1,23 @@
 //Knockout.js viewmodel
-function CinchViewModel__() {
+function CinchViewModel() {
     var self = this;
 
     //Data
-    self.socket = CinchApp__.socket;
+    self.socket = CinchApp.socket;
     self.username = ko.observable('');
     self.myPlayerNum = ko.observable(0); //Player num assigned by server
     self.myTeamNum = ko.computed(function() {
         //Team number according to server
-        return self.myPlayerNum() % CinchApp__.numTeams;
+        return self.myPlayerNum() % CinchApp.numTeams;
     });
     self.activeView = ko.observable();
     self.games = ko.observableArray([]);
     self.users = ko.observableArray([]);
     self.players = ko.observableArray(ko.utils.arrayMap([
-            CinchApp__.players.south,
-            CinchApp__.players.west,
-            CinchApp__.players.north,
-            CinchApp__.players.east
+            CinchApp.players.south,
+            CinchApp.players.west,
+            CinchApp.players.north,
+            CinchApp.players.east
         ], function(pNum) {
             return new Player('-', pNum);
     }));
@@ -25,10 +25,10 @@ function CinchViewModel__() {
     self.activePlayerNum = ko.computed(function() {
         var serverNum = self.activePlayerNumServer();
 
-        return CinchApp__.isNullOrUndefined(serverNum) ? null : CinchApp__.serverToClientPNum(self.activePlayerNumServer());
+        return CinchApp.isNullOrUndefined(serverNum) ? null : CinchApp.serverToClientPNum(self.activePlayerNumServer());
     });
     self.isActivePlayer = ko.computed(function() { //Active player is "me"
-        return self.activePlayerNum() === CinchApp__.players.south;
+        return self.activePlayerNum() === CinchApp.players.south;
     });
     self.highBid = ko.computed(function() {
         return Math.max.apply(null, ko.utils.arrayMap(self.players(), function(p) {
@@ -36,12 +36,12 @@ function CinchViewModel__() {
         }));
     });
     self.possibleBids = ko.utils.arrayMap([
-        CinchApp__.bids.pass,
-        CinchApp__.bids.one,
-        CinchApp__.bids.two,
-        CinchApp__.bids.three,
-        CinchApp__.bids.four,
-        CinchApp__.bids.cinch
+        CinchApp.bids.pass,
+        CinchApp.bids.one,
+        CinchApp.bids.two,
+        CinchApp.bids.three,
+        CinchApp.bids.four,
+        CinchApp.bids.cinch
     ], function(b) {
         return new Bid(self, b);
     });
@@ -56,28 +56,28 @@ function CinchViewModel__() {
     self.trumpName = ko.computed(function() {
         var trump = self.trump();
 
-        return CinchApp__.isNullOrUndefined(trump) ? null : CinchApp__.suitNames[trump] || '-';
+        return CinchApp.isNullOrUndefined(trump) ? null : CinchApp.suitNames[trump] || '-';
     });
     self.dealerServer = ko.observable(); //pNum for dealer from server perspective
     self.dealer = ko.computed(function() {
         var dealerServer = self.dealerServer();
 
-        return CinchApp__.isNullOrUndefined(dealerServer) ? null : CinchApp__.serverToClientPNum(dealerServer);
+        return CinchApp.isNullOrUndefined(dealerServer) ? null : CinchApp.serverToClientPNum(dealerServer);
     });
     self.dealerName = ko.computed(function() {
         var dealer = self.dealer();
 
-        return CinchApp__.isNullOrUndefined(dealer) ? null : self.players()[dealer].name() || '-';
+        return CinchApp.isNullOrUndefined(dealer) ? null : self.players()[dealer].name() || '-';
     });
     self.trickWinnerServer = ko.observable();
     self.trickWinner = ko.computed(function() {
         var tws = self.trickWinnerServer();
 
-        return CinchApp__.isNullOrUndefined(tws) ? null : CinchApp__.serverToClientPNum(tws);
+        return CinchApp.isNullOrUndefined(tws) ? null : CinchApp.serverToClientPNum(tws);
     });
     self.gameMode = ko.observable();
     self.isGameStarted = ko.computed(function() {
-        return self.gameMode() === CinchApp__.gameModes.play || self.gameMode() === CinchApp__.gameModes.bid;
+        return self.gameMode() === CinchApp.gameModes.play || self.gameMode() === CinchApp.gameModes.bid;
     });
     self.newChat = ko.observable('');
     self.chats = ko.observableArray([]);
@@ -127,16 +127,16 @@ function CinchViewModel__() {
     
     //These are just team strings used for display, not the team integer values
     self.highTeam = ko.computed(function() {
-        return self.getMatchPointTeam(CinchApp__.pointTypes.high);
+        return self.getMatchPointTeam(CinchApp.pointTypes.high);
     });
     self.lowTeam = ko.computed(function() {
-        return self.getMatchPointTeam(CinchApp__.pointTypes.low);
+        return self.getMatchPointTeam(CinchApp.pointTypes.low);
     });
     self.jackTeam = ko.computed(function() {
-        return self.getMatchPointTeam(CinchApp__.pointTypes.jack);
+        return self.getMatchPointTeam(CinchApp.pointTypes.jack);
     });
     self.gameTeam = ko.computed(function() {
-        return self.getMatchPointTeam(CinchApp__.pointTypes.game);
+        return self.getMatchPointTeam(CinchApp.pointTypes.game);
     });
 
     //Functions
@@ -145,7 +145,7 @@ function CinchViewModel__() {
     //submit nickname request and switch to lobby view
     self.enterLobby = function() {
         self.username() && self.socket.emit('nickname', self.username());
-        self.activeView(CinchApp__.views.lobby);
+        self.activeView(CinchApp.views.lobby);
     };
 
     //When the user chooses to start a new game, request to create
@@ -165,7 +165,7 @@ function CinchViewModel__() {
 
     self.logError = function(msg) {
         console.log("Error: ", msg);
-        self.chats.push(new VisibleMessage(msg, 'Error', CinchApp__.messageTypes.error));
+        self.chats.push(new VisibleMessage(msg, 'Error', CinchApp.messageTypes.error));
     };
 
     self.playCard = function(cardNum, playerNum) {
@@ -174,7 +174,7 @@ function CinchViewModel__() {
         
         cardToPlay.play(playerNum);
 
-        if(playerNum === CinchApp__.players.south) { //Client player
+        if(playerNum === CinchApp.players.south) { //Client player
             self.encodedCards.remove(cardNum);
         }
         else {
@@ -184,7 +184,7 @@ function CinchViewModel__() {
     };
 
     self.handEndContinue = function() {
-        var views = CinchApp__.views;
+        var views = CinchApp.views;
 
         self.activeView(self.isGameOver() ? views.home : views.game);
     };
@@ -251,7 +251,7 @@ function CinchViewModel__() {
             //Take action only if joined room was not the lobby (always ID of zero)
             //TODO: change this to be an object property instead of array element
             if(msg[0] !== 0) {
-                self.activeView(CinchApp__.views.game);
+                self.activeView(CinchApp.views.game);
                 self.users([]); //New room, new set of users
             }
         });
@@ -288,7 +288,7 @@ function CinchViewModel__() {
         socket.on('userInSeat', function(msg) {
             console.log("'userInSeat' -- ", msg);
 
-            var clientPNum = CinchApp__.serverToClientPNum(msg.actor)
+            var clientPNum = CinchApp.serverToClientPNum(msg.actor)
 
             self.players()[clientPNum].name(msg.name);
         });
@@ -300,7 +300,7 @@ function CinchViewModel__() {
 
         // Game message handlers
         socket.on('startData', function(msg) {
-            var app = CinchApp__;
+            var app = CinchApp;
 
             console.log("'startData' -- ", msg);
 
@@ -311,26 +311,26 @@ function CinchViewModel__() {
         });
 
         socket.on('bid', function(msg) {
-            var app = CinchApp__;
+            var app = CinchApp;
             var msg = msg[0]; //TODO: Why??
 
             console.log("'bid' (from server) -- ", msg);
 
             app.isNullOrUndefined(msg.dlr)      || self.dealerServer(msg.dlr);
-            app.isNullOrUndefined(msg.actor)    || self.players()[CinchApp__.serverToClientPNum(msg.actor)].currentBidValue(msg.bid);
+            app.isNullOrUndefined(msg.actor)    || self.players()[CinchApp.serverToClientPNum(msg.actor)].currentBidValue(msg.bid);
             app.isNullOrUndefined(msg.mode)     || self.gameMode(msg.mode);
             app.isNullOrUndefined(msg.actvP)    || self.activePlayerNumServer(msg.actvP);
         });
 
         socket.on('play', function(msg) {
-            var app = CinchApp__;
+            var app = CinchApp;
             var msg = msg[0]; //TODO: Why??
 
             console.log("'play' (from server) -- ", msg);
 
             app.isNullOrUndefined(msg.trp)      || self.trump(msg.trp);
             app.isNullOrUndefined(msg.dlr)      || self.dealerServer(msg.dlr);
-            app.isNullOrUndefined(msg.actor)    || self.playCard(msg.playC, CinchApp__.serverToClientPNum(msg.actor));
+            app.isNullOrUndefined(msg.actor)    || self.playCard(msg.playC, CinchApp.serverToClientPNum(msg.actor));
             app.isNullOrUndefined(msg.remP)     || self.handleTrickWinner(msg.remP);
             msg.sco                             && self.gameScores(msg.sco);
             msg.mp                              && self.matchPoints(msg.mp);
@@ -346,7 +346,7 @@ function CinchViewModel__() {
     };
 
     self.handleAddCards = function(msg) {
-        if(!CinchApp__.isNullOrUndefined(msg.addC)) {
+        if(!CinchApp.isNullOrUndefined(msg.addC)) {
             var i = 0;
 
             self.encodedCards(msg.addC);
@@ -384,7 +384,7 @@ function CinchViewModel__() {
             //Wait a bit so the ending play can be seen
             setTimeout(function () {
                 finishClearingBoard();
-            }, CinchApp__.boardClearDelay);
+            }, CinchApp.boardClearDelay);
         });
     };
 
@@ -436,7 +436,7 @@ function CinchViewModel__() {
         players[newValue].active(true);
     });
     self.gameMode.subscribe(function(newValue) {
-        if(newValue == CinchApp__.gameModes.bid) {
+        if(newValue == CinchApp.gameModes.bid) {
             //If match points on record, hand ended
             if(self.matchPoints().length > 0) {
                 var i = 0;
@@ -444,7 +444,7 @@ function CinchViewModel__() {
                 //Not really an animation, but wait until animations are complete before showing hand end dialog
                 //A hint of the ugly old actionQueue days, but not too bad
                 self.addAnimation(function() {
-                    self.activeView(CinchApp__.views.handEnd);
+                    self.activeView(CinchApp.views.handEnd);
                 });
             
                 //Clear any old bids
@@ -454,7 +454,7 @@ function CinchViewModel__() {
                 self.trump(null);
                 
                 while(i < self.chats().length) {
-                    if(self.chats()[i].type() === CinchApp__.messageTypes.error) {
+                    if(self.chats()[i].type() === CinchApp.messageTypes.error) {
                         self.chats.splice(i, 1);
                     }
                     else {

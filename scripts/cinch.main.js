@@ -1,5 +1,5 @@
 //Main namespace
-var CinchApp__ = {
+var CinchApp = {
     viewModel: null,
     socket: io.connect(host_path),
     
@@ -68,6 +68,6 @@ var CinchApp__ = {
     },
     serverToClientPNum: function(serverNum) {
         //Adjusts serverNum to match "client is South" perspective
-        return (serverNum - CinchApp__.viewModel.myPlayerNum() + CinchApp__.numPlayers) % CinchApp__.numPlayers;
+        return (serverNum - CinchApp.viewModel.myPlayerNum() + CinchApp.numPlayers) % CinchApp.numPlayers;
     }
 };

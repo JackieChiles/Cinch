@@ -1,9 +1,9 @@
 // Initialization
 
-CinchApp__.viewModel = new CinchViewModel__();
+CinchApp.viewModel = new CinchViewModel();
 
 $(function () {
-    var socket = CinchApp__.socket;
+    var socket = CinchApp.socket;
 
     // Exit page cleanly
     $(window).bind("beforeunload", function() {
@@ -11,13 +11,13 @@ $(function () {
     });
 
     //Apply Knockout bindings
-    ko.applyBindings(CinchApp__.viewModel);
+    ko.applyBindings(CinchApp.viewModel);
 
     //Switch to the home view
-    CinchApp__.viewModel.activeView(CinchApp__.views.home);
+    CinchApp.viewModel.activeView(CinchApp.views.home);
 
     //Set up socket listeners
-    CinchApp__.viewModel.setUpSocket();
+    CinchApp.viewModel.setUpSocket();
         
     //Add a binding to the chat input to submit chats when enter is pressed
     $('#text-to-insert').keypress(function(event) {
@@ -28,5 +28,5 @@ $(function () {
     });
 
     //Set the width and height of the play surface canvas
-    $('#play-surface').attr('width', CinchApp__.playSurfaceWidth).attr('height', CinchApp__.playSurfaceHeight);
+    $('#play-surface').attr('width', CinchApp.playSurfaceWidth).attr('height', CinchApp.playSurfaceHeight);
 });
