@@ -274,7 +274,17 @@ function CinchViewModel() {
         socket.on('seatChart', function(msg) {
             console.log("'seatChart' -- ", msg);
 
-	    //TODO: use this info to update/set seating arrangement
+	        var i = 0;
+            var clientPNum = 0;
+
+            //msg is an array of 2-element arrays... index 0 username, index 1 seat
+            for(i = 0; i < msg.length; i++) {
+                //Seat could be -1 if player not in any seat yet
+                if(msg[i][1] > 0) {
+                    clientPNum = CinchApp.serverToClientPNum(msg[i][1]);
+                    self.players()[clientPNum].name(msg[i][0]);
+                }
+            }
         });
 	
 
@@ -299,7 +309,7 @@ function CinchViewModel() {
         socket.on('userInSeat', function(msg) {
             console.log("'userInSeat' -- ", msg);
 
-            var clientPNum = CinchApp.serverToClientPNum(msg.actor)
+            var clientPNum = CinchApp.serverToClientPNum(msg.actor);
 
             self.players()[clientPNum].name(msg.name);
         });
