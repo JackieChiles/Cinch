@@ -139,6 +139,13 @@ function CinchViewModel() {
         return self.getMatchPointTeam(CinchApp.pointTypes.game);
     });
 
+    //AI module selection
+    self.ai = ko.observableArray([]);
+    self.chosenAi = {}; //Contains AI modules chosen by user
+    self.chosenAi[CinchApp.players.west] = ko.observable();
+    self.chosenAi[CinchApp.players.north] = ko.observable();
+    self.chosenAi[CinchApp.players.east] = ko.observable();
+
     //Functions
 
     //When the user chooses to enter the lobby to select a game,
@@ -148,12 +155,29 @@ function CinchViewModel() {
         self.activeView(CinchApp.views.lobby);
     };
 
+    self.enterAi = function() {
+        self.activeView(CinchApp.views.ai);
+        self.socket.emit('aiList', '');
+    };
+
     //When the user chooses to start a new game, request to create
     // a room and submit a nickname request
     self.startNew = function () {
-        //TODO: enter AI view when server AI is back in action
+        var aiSelection = {};
+        var ai = {};
+        var chosenAi = self.chosenAi;
+
         self.username() && self.socket.emit('nickname', self.username());
-        self.socket.emit('createRoom', '');
+        
+        //Loop through all AI agents chosen by the user and add them to the createRoom request
+        for(ai in chosenAi) {
+            if(chosenAi.hasOwnProperty(ai)) {
+                chosenAi[ai]() && (aiSelection[ai] = chosenAi[ai]().id);
+            }
+        }
+
+        //The format for aiSelection is { seatNumber:aiAgentId }
+        self.socket.emit('createRoom', aiSelection);
     };
 
     self.submitChat = function() {
@@ -214,6 +238,8 @@ function CinchViewModel() {
 
 	socket.on('aiInfo', function(msg) {
 	    console.log("'aiInfo' -- ", msg);
+
+        self.ai(msg);
 	});
 
         socket.on('chat', function(msg) {
@@ -274,7 +300,17 @@ function CinchViewModel() {
         socket.on('seatChart', function(msg) {
             console.log("'seatChart' -- ", msg);
 
-	    //TODO: use this info to update/set seating arrangement
+	        var i = 0;
+            var clientPNum = 0;
+
+            //msg is an array of 2-element arrays... index 0 username, index 1 seat
+            for(i = 0; i < msg.length; i++) {
+                //Seat could be -1 if player not in any seat yet
+                if(msg[i][1] > 0) {
+                    clientPNum = CinchApp.serverToClientPNum(msg[i][1]);
+                    self.players()[clientPNum].name(msg[i][0]);
+                }
+            }
         });
 	
 
@@ -299,7 +335,7 @@ function CinchViewModel() {
         socket.on('userInSeat', function(msg) {
             console.log("'userInSeat' -- ", msg);
 
-            var clientPNum = CinchApp.serverToClientPNum(msg.actor)
+            var clientPNum = CinchApp.serverToClientPNum(msg.actor);
 
             self.players()[clientPNum].name(msg.name);
         });
