@@ -139,6 +139,13 @@ function CinchViewModel() {
         return self.getMatchPointTeam(CinchApp.pointTypes.game);
     });
 
+    //AI module selection
+    self.ai = ko.observableArray([]);
+    self.chosenAi = {}; //Contains AI modules chosen by user
+    self.chosenAi[CinchApp.players.west] = ko.observable();
+    self.chosenAi[CinchApp.players.north] = ko.observable();
+    self.chosenAi[CinchApp.players.east] = ko.observable();
+
     //Functions
 
     //When the user chooses to enter the lobby to select a game,
@@ -148,12 +155,29 @@ function CinchViewModel() {
         self.activeView(CinchApp.views.lobby);
     };
 
+    self.enterAi = function() {
+        self.activeView(CinchApp.views.ai);
+        self.socket.emit('aiList', '');
+    };
+
     //When the user chooses to start a new game, request to create
     // a room and submit a nickname request
     self.startNew = function () {
-        //TODO: enter AI view when server AI is back in action
+        var aiSelection = {};
+        var ai = {};
+        var chosenAi = self.chosenAi;
+
         self.username() && self.socket.emit('nickname', self.username());
-        self.socket.emit('createRoom', '');
+        
+        //Loop through all AI agents chosen by the user and add them to the createRoom request
+        for(ai in chosenAi) {
+            if(chosenAi.hasOwnProperty(ai)) {
+                chosenAi[ai]() && (aiSelection[ai] = chosenAi[ai]().id);
+            }
+        }
+
+        //The format for aiSelection is { seatNumber:aiAgentId }
+        self.socket.emit('createRoom', aiSelection);
     };
 
     self.submitChat = function() {
@@ -214,6 +238,8 @@ function CinchViewModel() {
 
 	socket.on('aiInfo', function(msg) {
 	    console.log("'aiInfo' -- ", msg);
+
+        self.ai(msg);
 	});
 
         socket.on('chat', function(msg) {
