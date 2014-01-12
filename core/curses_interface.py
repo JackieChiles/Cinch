@@ -16,6 +16,8 @@ import threading
 from time import sleep
 
 from textwrap import TextWrapper
+from Queue import Queue
+import re
 
 import argparse
 import logging
@@ -29,9 +31,12 @@ class CinchScreen():
         self.PROMPT = "cinch> "
         self.textwrapper = TextWrapper(width = self.xm) # used in write()
         self.cmd = '' # User input command; starts blank.
+        self.queue = Queue() # Where parsed commands go.
+        self._valid_commands = {} ### Maintained with register_command() and
+        self._command_usage = {}  ### deregister_command().
 
         # Define sub-window dimensions here.
-        
+
         # First define the functional layout.
         self.DASHBOARD_HEIGHT = 10
         self.COMMAND_HEIGHT = 1
@@ -117,9 +122,65 @@ class CinchScreen():
         return ym, xm
 
     def _parse_command(self):
+        '''
+        Called by console_input. Takes input lines from cmdpad, echoes to the
+        screen, parses, and adds well-formed commands to the queue. Rejects
+        bad syntax, but bad input parameters will be checked by the console.
+        '''
+        # FUTURE: Write parallel method to handle getch() mode.
+
+        # First, echo the command to the output window.
+        # Later, consider adding an option to set echo to all, 
+        # all but chats or none.
+
         self.write(self.PROMPT + self.cmd)
-        cmd = self.cmd.split()
-        self.cmd = ''
+
+        if self.cmd == '':
+            return
+
+        cmd_name = self.cmd.split()[0]
+
+        # Command syntax: "name <args>", where args matches the cmd regex.
+        if cmd_name in self._valid_commands:
+            # Valid command name; check arg syntax
+            cmd_args = self.cmd[len(cmd_name):].strip() # Rem. name & whitespace
+            if self._valid_commands[cmd_name].match(cmd_args):
+                # OK syntax; add to queue
+                self.queue.put({cmd_name:cmd_args})
+            else:
+                # Syntax not OK; print usage
+                self.write(cmd_name + ": " + self._command_usage[cmd_name]
+                           + "(" + cmd_args + " received)")
+        else:
+            # Not a valid command name
+            self.write(cmd_name + ": not a valid command")
+        
+        self.cmd = '' # Unblock the listener.
+
+    def register_command(self, name, regex=r'^$', usage='usage not supplied'):
+        '''
+        The main console calls this on init to add recognized commands.
+        name: Name of the command. Does not include any cmdline-specific control
+              characters (such as '/'); this will be CinchScreen's choice.
+        regex: Raw string containing a regex representing valid arg strings.
+               User input will be parsed and rejected if it doesn't match.
+        usage: The console will echo the command name and this string to the
+               screen if invalid input is detected.
+        '''
+        
+        self._valid_commands[name] = re.compile(regex)
+        self._command_usage[name] = usage
+
+    def unregister_command(self, name):
+        '''
+        Remove a command from the list of valid commands.
+        name: name of the command to remove.
+        '''
+        try:
+            del self._valid_commands[name]
+            del self._command_usage[name]
+        except KeyError:
+            self.write("KeyError deleting command " + name + ": not found")
 
     def write(self, *stuff):
         '''Display text in the console text window, scrolling the existing
@@ -139,19 +200,27 @@ class CinchScreen():
             self.text_win.move(self.text_win.getmaxyx()[0] - 1, 0)
             self.text_win.addstr(thing)
         self.text_win.refresh()
+        self.cmdline.refresh() # Set displayed cursor back to cmdline.
 
 def driver(window, flags):
     cs = CinchScreen(window)
     commandline_listener = threading.Thread(target=cs.console_input)
     commandline_listener.daemon = True
     commandline_listener.start()
-
+    cs.write('Console interface test driver.')
+    cs.write('------------------------------')
     if flags['s']:
         suits = u"Suit symbol test\n♥♦♣♠.".encode("UTF-8")
         cs.write(suits)
+
+    if flags['a']:
+        cs.register_command('test', r'^[0-9]$', "test N (single digit only)")
+    if flags['b']:
+        cs.unregister_command('test')
+
     else:
         pass
-    while True: #cs.cmd is '':
+    while True:
         sleep(0.1)
 
 if __name__ == "__main__":
