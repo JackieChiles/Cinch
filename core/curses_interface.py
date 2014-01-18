@@ -186,7 +186,7 @@ class CinchScreen():
             else:
                 # Syntax not OK; print usage
                 self.write(cmd_name + ": " + self._command_usage[cmd_name]
-                           + "(" + cmd_args + " received)")
+                           + " (" + cmd_args + " received)")
         else:
             # Not a valid command name
             self.write(cmd_name + ": not a valid command")

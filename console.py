@@ -18,9 +18,19 @@ import curses
 COMMANDS = [ ['test', r'^$', '(null): test connection to server'],
              ['nick', r'^.*', '[<str>]: display nick or change to <str>'],
              ['chat', r'^.*', '<str>: send message <str> to current room'],
-             ['room', r'^$', '(null): spawn new room'],
+             ['room', r'^([0-3]:\d+\s+){0,3}([0-3]:\d+)?$',
+              '[<seat>:<ai_id> x0-4]: spawn new room [with opt. ai seating]'],
              ['lobby', r'^$', '(null): leave current room and join lobby'],
-             ['join', r'^[0-9]*$', 'N: join room N']
+             ['join', r'^[0-9]+$', 'N: join room N'],
+             ['help', r'^[v]?$', '[v]: list registered commands [-v w/regex]'],
+             ['seat', r'^[0-3]?$', '[N]: show seat or sit in seat N (0-3)'],
+             ['ai', r'^(list|refresh)$',
+              'list: show AIs | refresh: get list from server'],
+             ['bid', r'^[0-5]$|^[Cc]{1}(inch|INCH)?$|^[Pp]{1}(ass|ASS)?$',
+              '0-5, c[inch], p[ass]: send bid to server'],
+             ['play', r'^[2-9TtJjQqKkAa][CcDdHhSs]$', 'NS: play card'],
+             ['hand', r'^$', '(null): display your current cards in hand'],
+             ['exit', r'^.*', 'unconditional quit']
            ]
 
 
@@ -82,6 +92,7 @@ class Namespace(BaseNamespace):
         self.gs = None # No game at first - initialized by startGame event
         self.hand = [] # self.hand will be a list of Card objects.
         self.table_view = [None, None, None, None] # Player names 0-3.
+        self.ai_list = []
 
     #-------------------------#
     # Gamestate Update Method #
@@ -171,13 +182,17 @@ class Namespace(BaseNamespace):
         log.info(resp_line)
         self.nickname = nickname
 
+    def on_aiInfo(self, bot_list):
+        self.ai_list = bot_list # Refreshes ai_info but doesn't display.
+        log.info('Updated AI agent list.')
+
     def on_bid(self, msg):
         # log.info(str(msg)) #DEBUG See on_play
         self.gs_modify(msg)
 
     def on_chat(self, chat_packet):
         if chat_packet[0] == self.nickname:
-            pass # Don't echo self-chat messages.
+            log.info('You: ' + str(chat_packet[1])) #TODO enable custom echo
         else:
             log.info(str(chat_packet[0]) + ': ' + str(chat_packet[1]))
 
@@ -294,106 +309,112 @@ def console(window, host='localhost', port=8088):
             while True:
                 while cl.cs.queue.empty():
                     sleep(0.1)
-                cmd = cl.cs.queue.get(timeout=3)
+                cmd = cl.cs.queue.get(timeout=0.2)
     
                 # Process the command.
     
                 # test
                 if 'test' in cmd:
                     ns.emit('test', 'console')
-    
-            '''
-            # nick
-            elif 'nick' in cmd:
-                if len(cmd) > 5:
-                    ns.emit('nickname', cmd[5:].strip())
-                else:
-                    ns.log_to_console(ns.nickname)
-                    
-            # chat
-            elif cmd.startswith('chat'):
-                if len(cmd) > 5:
-                    ns.emit('chat', cmd[5:].strip())
-                else:
-                    ns.log_to_console('Chat message blank - no command sent.')
-    
-            # room
-            elif cmd.startswith('room'):
-                ns.emit('createRoom', '') # Add parameters later (see server.py)
-            
-            # lobby
-            elif cmd.startswith('lobby'):
-                ns.emit('exit', '')
-    
-            # join
-            elif cmd.startswith('join'):
-                try:
-                    room_num = int(cmd[5:])
-                    if ns.room <> 0:
-                        ns.log_to_console('join: must be in lobby to join a room')
+                elif 'help' in cmd:
+                    for command in COMMANDS:
+                        output = command[0] + ': ' + command[2]
+                        if 'v' in cmd['help']:
+                            output += r' (regex: /' + command[1] + r'/)'
+                        cl.cs.write(output)
+                elif 'nick' in cmd:
+                    if cmd['nick'] == '':
+                        cl.cs.write(ns.nickname) #TODO RoomView
                     else:
-                        ns.emit('join', room_num)
-                except ValueError:
-                    if len(cmd) > 5:
-                        ns.log_to_console('join: can\'t make head or tails of room: '
-                                          + str(cmd[5:]))
+                        ns.emit('nickname', cmd['nick'])
+                        #TODO status window update nick
+                elif 'chat' in cmd:
+                    ns.emit('chat', cmd['chat'])
+                elif 'room' in cmd:
+                    #if cmd['room'] == '':
+                    #    ns.emit('createRoom', '')
+                    #else:
+                    try:
+                        ai_requests = cmd['room'].split()
+                        ai_req_output = {}
+                        for request in ai_requests:
+                            x = request.split(':')
+                            ai_req_output[int(x[0])] = int(x[1])
+                        ns.emit('createRoom', ai_req_output)
+                    except ValueError:
+                        log.exception('room: arg from queue: %s', cmd['room'])
+                        log.error('room: A problem occurred.')
+                elif 'lobby' in cmd:
+                    ns.emit('exit', '')
+                elif 'join' in cmd:
+                    try:
+                        room_num = int(cmd['join'])
+                        if ns.room <> 0:
+                            cl.cs.write('join: must be in lobby to join a room')
+                        else:
+                            ns.emit('join', room_num)
+                    except ValueError:
+                        log.exception('join: arg from queue: %s', cmd['join'])
+                        log.error('join: A problem occurred.')
+                elif 'seat' in cmd:
+                    if cmd['seat'] == '':
+                        cl.cs.write('seat: currently in room ' + str(ns.room) +
+                                    ', seat ' + str(ns.seat) + '.')
                     else:
-                        ns.log_to_console('join: must specify room number')
-    
-            # seat
-            elif cmd.startswith('seat'):
-                if len(cmd) < 5:
-                    log.info('seat: currently in room ' + self.room +
-                                        ', seat ' + self.seat + '.')
-                try:
-                    seat_num = int(cmd[5:])
-                    if seat_num > 3 or seat_num < 0:
-                        raise ValueError
-                    ns.emit('seat', seat_num)
-                except ValueError:
-                    ns.log_to_console('seat: bad seat number')
-    
-            # ai
-            elif cmd.startswith('ai'):
-                ns.log_to_console('--future--') #TODO
-    
-            # bid
-            elif cmd.startswith('bid'):
-                try:
-                    if cmd[4:].strip().lower() in ['cinch', 'c']:
+                        try:
+                            seat_num = int(cmd['seat'])
+                            ns.emit('seat', seat_num)
+                        except ValueError:
+                            log.exception('seat: arg from queue: %s',
+                                          cmd['seat'])
+                            log.error('seat: A problem occurred.')
+                elif 'ai' in cmd:
+                    if cmd['ai'] == 'refresh':
+                        ns.emit('aiList', '')
+                    elif cmd['ai'] == 'list':
+                        cl.cs.write("Available AI agents:")
+                        for ai in ns.ai_list:
+                            cl.cs.write(str(ai['id']) + ': ' + ai['name'] +
+                                        ' - ' + ai['desc'])
+                    else:
+                        try:
+                            raise ValueError
+                        except ValueError:
+                            log.exception("ai: couldn't handle arg %s", cmd['ai'])
+                elif 'bid' in cmd:
+                    if cmd['bid'].lower() in ['cinch', 'c']:
                         ns.emit('bid', 5)
-                    elif cmd[4:].strip().lower() in ['pass', 'p']:
+                    elif cmd['bid'].lower() in ['pass', 'p']:
                         ns.emit('bid', 0)
                     else:
-                        bid = int(cmd[4:])
-                        if bid > 5 or bid < 0:
-                            raise OverflowError
-                        ns.emit('bid', bid)
-                except ValueError:
-                    ns.log_to_console('bid: couldn\'t understand bid')
-                except OverflowError:
-                    ns.log_to_console('bid: bid out of range [0-5, cinch, pass]')
-    
-            # play
-            elif cmd.startswith('play'):
-                try:
-                    # Strict NS-style shorthand for now; #TODO develop better UI later
-                    play = cmd[5:].strip().upper()
-                    ivRANKS_SHORT = {v: k for k, v in cards.RANKS_SHORT.items()}
-                    ivSUITS_SHORT = {v: k for k, v in cards.SUITS_SHORT.items()}
-                    p_card = cards.Card(ivRANKS_SHORT[play[0]], ivSUITS_SHORT[play[1]])
-                    ns.emit('play', p_card.encode())
-                except Exception as e:
-                    ns.log_to_console(str(e))
-    
-            #hand 
-            elif cmd.startswith('hand'):
-                hand_str = 'Your hand: '+', '.join([str(card) for card in self.hand])
-                log.info(hand_str)
-        '''
+                        try:
+                            ns.emit('bid', int(cmd['bid']))
+                        except ValueError:
+                            log.exception('bid: arg from queue: %s',
+                                          cmd['bid'])
+                            log.error('bid: A problem occurred.')
+                elif 'play' in cmd:
+                    try:
+                        # Strict NS-style shorthand for now
+                        #TODO develop better UI later
+                        ivRANKS_SHORT = {v: k for k, v in cards.RANKS_SHORT.items()}
+                        ivSUITS_SHORT = {v: k for k, v in cards.SUITS_SHORT.items()}
+                        p_card = cards.Card(ivRANKS_SHORT[cmd['play'].upper()[0]],
+                                            ivSUITS_SHORT[cmd['play'].upper()[1]])
+                        ns.emit('play', p_card.encode())
+                    except Exception:
+                        log.exception('play: generic problem')
+                elif 'hand' in cmd:
+                    hand_str = ('Your hand: ' +
+                                ', '.join([str(card) for card in ns.hand]))
+                    cl.cs.write(hand_str)
+                elif 'exit' in cmd:
+                    raise SystemExit
     
         except KeyboardInterrupt:
             log.warning("C-c detected; exiting...")
+        except SystemExit:
+            log.warning("Exiting...")
     
         # Disconnect
         socket.disconnect()
