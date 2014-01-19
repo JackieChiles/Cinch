@@ -372,8 +372,8 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         res = g.handle_card_played(pNum, int(play))
         #False on bad play, None for inactive player
 
-        print "in on_play, res = "
-        print res
+        if res is False:
+            log.debug("on_play: illegal play attempted in seat " + str(pNum))
         
         if res is False or res is None:
             self.emit('err', 'Bad play')

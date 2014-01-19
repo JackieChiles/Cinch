@@ -166,6 +166,9 @@ class AIBase(object):
             self.stop()
             return
 
+        if 'playC' in msg:
+            self.gs.cardsInPlay.append(cards.Card(msg['playC']))        
+
         if 'sco' in msg:
             self.gs.score = msg['sco']
 
@@ -203,9 +206,6 @@ class AIBase(object):
             self.gs.bidLog[msg['actor']] = msg['bid']
             if msg['bid'] > self.gs.highBid:
                 self.gs.highBid = msg['bid']
-
-        if 'playC' in msg:
-            self.gs.cardsInPlay.append(cards.Card(msg['playC']))        
 
     def join(self, room):
         """Make request to join room. Receipt of 'ackJoin' completes process.

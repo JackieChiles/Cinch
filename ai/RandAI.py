@@ -22,7 +22,7 @@ class Rand(AIBase):
 
     def bid(self):
         """Overriding base class bid."""
-        log.info("{0} is bidding...".format(self.label))
+        # log.debug("{0} is bidding...".format(self.label))
         r = random.random()
 
         if self.is_legal_bid(self.gs.highBid+1) and (r < 0.5):
@@ -33,12 +33,13 @@ class Rand(AIBase):
 
     def play(self):
         """Overriding base class play."""
-        log.info("{0} is playing...".format(self.label))
+        # log.debug("{0} is playing...".format(self.label))
         legal_cards = []
         for c in self.hand:
             if self.is_legal_play(c):
                 legal_cards.append(c)
         chosen_card_pos = random.randint(0,len(legal_cards)-1)
+        # log.debug(str(legal_cards))
         chosen_card = legal_cards[chosen_card_pos]
         self.send_play(chosen_card)
 
