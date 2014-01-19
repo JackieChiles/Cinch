@@ -36,11 +36,17 @@ SUITS_BY_NUM = {CLUBS:'Clubs', DIAMONDS:'Diamonds', HEARTS:'Hearts',
 # Same code supports deprecated/legacy developers:
 #TODO make unicode work in console
 
-if os_name == 'nt' or sys.version_info.major == 2:
+if os_name == 'nt':
     SUITS_SHORT = {0:'C', 1:'D', 2:'H', 3:'S'}
 else: # Unicode is awesome
     SUITS_SHORT = {0:'♣', 1:'♠', 2:'♥', 3:'♦'}
-    '''{0:'\u2663' 1:'\u2666', 2:'\u2665', 3:'\u2660'}'''
+
+    '''
+    club symbol: '\u2663'
+    diamond symbol: '\u2666'
+    heart symbol: '\u2665'
+    spade symbol: '\u2660'}
+    '''
 
 NUM_RANKS = 13
 NUM_SUITS = 4
