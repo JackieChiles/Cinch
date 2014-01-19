@@ -120,10 +120,8 @@ class Namespace(BaseNamespace):
                 log.info('Seat '+str(msg['actor'])+' played '+
                                     str(cards.Card(msg['playC']))+'.')
             self.gs.cards_in_play.append(cards.Card(msg['playC']))
-            if len(self.gs.cards_in_play) == 4:
-                #TODO Fix this; doesn't display at correct time.
-                #log.info(str(self.gs.trick_winning_card()) + 
-                #                    ' won the trick.')
+            if 'remP' in msg:
+                log.info('Seat ' + str(msg['remP']) + ' won the trick.')
                 self.gs.cards_in_play = []
         if 'bid' in msg:
             pass #TODO track bidding
@@ -140,6 +138,10 @@ class Namespace(BaseNamespace):
                 self.hand.append(cards.Card(card_code))
         if 'mode' in msg:
             self.gs.game_mode = msg['mode']
+        if 'sco' in msg:
+            self.scores = msg['sco']
+            log.info('Scores: You ' + str(self.scores[self.seat % 2]) +
+                     ', them ' + str(self.scores[(self.seat + 1) % 2]))
 
         if self.gs.active_player == self.seat:
             if self.gs.game_mode == 2:
