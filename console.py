@@ -400,7 +400,7 @@ def console(window, host='localhost', port=8088):
                         # Strict NS-style shorthand for now
                         #TODO develop better UI later
                         ivRANKS_SHORT = {v: k for k, v in cards.RANKS_SHORT.items()}
-                        ivSUITS_SHORT = {v: k for k, v in cards.SUITS_SHORT.items()}
+                        ivSUITS_SHORT = {'C':0, 'D':1, 'H':2, 'S':3}
                         p_card = cards.Card(ivRANKS_SHORT[cmd['play'].upper()[0]],
                                             ivSUITS_SHORT[cmd['play'].upper()[1]])
                         ns.emit('play', p_card.encode())

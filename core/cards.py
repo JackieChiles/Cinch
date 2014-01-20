@@ -39,7 +39,7 @@ SUITS_BY_NUM = {CLUBS:'Clubs', DIAMONDS:'Diamonds', HEARTS:'Hearts',
 if os_name == 'nt':
     SUITS_SHORT = {0:'C', 1:'D', 2:'H', 3:'S'}
 else: # Unicode is awesome
-    SUITS_SHORT = {0:'♣', 1:'♠', 2:'♥', 3:'♦'}
+    SUITS_SHORT = {0:'♣', 1:'♦', 2:'♥', 3:'♠'}
 
     '''
     club symbol: '\u2663'
