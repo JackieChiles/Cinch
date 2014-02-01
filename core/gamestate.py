@@ -12,7 +12,7 @@ TEAM_SIZE = 2
 NUM_PLAYERS = NUM_TEAMS * TEAM_SIZE
 
 
-class GameState:
+class GameState(object):
     """
     Define object for GameState with class variables:
     

@@ -48,6 +48,77 @@ import core.gamestate as gamestate
 import core.cards as cards
 
 
+class RoomView(gamestate.GameState):
+    def __init__(self, *args):
+        super(RoomView, self).__init__(0)
+        self.room = None
+        self.seat = None
+        self.hand = [] # self.hand will be a list of Card objects.
+        self.table_view = [None, None, None, None] # Player names 0-3.
+
+    #-------------------------#
+    # Gamestate Update Method #
+    #-------------------------#
+
+    # Note: find better way to do this - maybe build into GameState itself?
+
+    def modify(self, msg):
+        """
+        Take incoming json from the server and use it to update the console's
+        GameState object.
+
+        msg: json dict from server to parse.
+        """
+
+        if msg is None:
+            return
+        elif type(msg) is dict:
+            pass # This is the expected case.
+        elif type(msg) is list:
+            msg = msg[0] # Unpack dict enclosed in list
+        else:
+            raise TypeError("Couldn't unpack dictionary from JSON object: %s", msg)
+
+        if 'playC' in msg:
+            if msg['actor'] == self.seat:
+                self.hand.remove(cards.Card(msg['playC']))
+            else:
+                log.info('Seat '+str(msg['actor'])+' played '+
+                                    str(cards.Card(msg['playC']))+'.')
+            self.cards_in_play.append(cards.Card(msg['playC']))
+            if 'remP' in msg:
+                log.info('Seat ' + str(msg['remP']) + ' won the trick.')
+                self.cards_in_play = []
+        if 'bid' in msg:
+            pass #TODO track bidding
+            bid_cmts = {0:' passes.', 1:' bids 1.', 2:' bids 2.', 3:' bids 3.',
+                        4:' bids 4.', 5:' cinches!'}
+            log.info('Seat '+str(msg['actor'])+bid_cmts[msg['bid']])
+        if 'dlr' in msg:
+            self.dealer = msg['dlr']
+        if 'actvP' in msg:
+            self.active_player = msg['actvP']
+        if 'addC' in msg:
+            for card_code in msg['addC']:
+                # Add a Card object corresponding to the code sent.
+                self.hand.append(cards.Card(card_code))
+        if 'mode' in msg:
+            self.game_mode = msg['mode']
+        if 'sco' in msg:
+            self.scores = msg['sco']
+            log.info('Scores: You ' + str(self.scores[self.seat % 2]) +
+                     ', them ' + str(self.scores[(self.seat + 1) % 2]))
+
+        if self.active_player == self.seat:
+            if self.game_mode == 2:
+                action_str = 'bid.'
+            else:
+                action_str = 'play.'
+            log.info('Your turn to ' + action_str)
+            hand_str = 'Your hand: '+', '.join([str(card) for card in self.hand])
+            log.info(hand_str)
+
+
 class CursesLogger(object):
     def __init__(self, curses_stream):
         self.cs = curses_stream
@@ -81,76 +152,10 @@ class CursesLogger(object):
 class Namespace(BaseNamespace):
 
     def __init__(self, *args):
-        #TODO: Define RoomView or similar class that extends GameState
-        # and incorporates all this garbage.
-
         super(Namespace, self).__init__(*args)
-        self.window = None # Must connect a screen!
-        self.nickname = 'NewUser' # Server auto-assigns nickname
-        self.room = 0 # Server auto-assigns to the lobby.
-        self.seat = None # Don't have a seat to start.
-        self.gs = None # No game at first - initialized by startGame event
-        self.hand = [] # self.hand will be a list of Card objects.
-        self.table_view = [None, None, None, None] # Player names 0-3.
         self.ai_list = []
-
-    #-------------------------#
-    # Gamestate Update Method #
-    #-------------------------#
-
-    # Note: find better way to do this - maybe build into GameState itself?
-
-    def gs_modify(self, msg):
-        """
-        Take incoming json from the server and use it to update the console's
-        GameState object.
-
-        msg: json dict from server to parse.
-        """
-
-        if msg is None:
-            return
-        if type(msg) is list:
-            msg = msg[0] # Unpack dict enclosed in list
-
-        if 'playC' in msg:
-            if msg['actor'] == self.seat:
-                self.hand.remove(cards.Card(msg['playC']))
-            else:
-                log.info('Seat '+str(msg['actor'])+' played '+
-                                    str(cards.Card(msg['playC']))+'.')
-            self.gs.cards_in_play.append(cards.Card(msg['playC']))
-            if 'remP' in msg:
-                log.info('Seat ' + str(msg['remP']) + ' won the trick.')
-                self.gs.cards_in_play = []
-        if 'bid' in msg:
-            pass #TODO track bidding
-            bid_cmts = {0:' passes.', 1:' bids 1.', 2:' bids 2.', 3:' bids 3.',
-                        4:' bids 4.', 5:' cinches!'}
-            log.info('Seat '+str(msg['actor'])+bid_cmts[msg['bid']])
-        if 'dlr' in msg:
-            self.gs.dealer = msg['dlr']
-        if 'actvP' in msg:
-            self.gs.active_player = msg['actvP']
-        if 'addC' in msg:
-            for card_code in msg['addC']:
-                # Add a Card object corresponding to the code sent.
-                self.hand.append(cards.Card(card_code))
-        if 'mode' in msg:
-            self.gs.game_mode = msg['mode']
-        if 'sco' in msg:
-            self.scores = msg['sco']
-            log.info('Scores: You ' + str(self.scores[self.seat % 2]) +
-                     ', them ' + str(self.scores[(self.seat + 1) % 2]))
-
-        if self.gs.active_player == self.seat:
-            if self.gs.game_mode == 2:
-                action_str = 'bid.'
-            else:
-                action_str = 'play.'
-            log.info('Your turn to ' + action_str)
-            hand_str = 'Your hand: '+', '.join([str(card) for card in self.hand])
-            log.info(hand_str)
+        self.rv = RoomView(0)
+        self.nickname = 'NewUser' # Assigned but not transmitted by server.
 
     #----------------#
     # Event Handlers #
@@ -162,22 +167,20 @@ class Namespace(BaseNamespace):
 
     def on_ackJoin(self, args):
         # Clear any game/room data when moving from room to room.
-        self.gs = None # Erase current game data - no re-joins allowed yet.
-        self.hand = []
-        self.seat = None
+        self.rv = RoomView(0) # Erase current game data - no re-joins allowed yet.
 
         if args[0] == 0:
             log.info('You are in the lobby.')
-            self.room = args[0]
+            self.rv.room = args[0]
         else:
-            self.room = args[0]
+            self.rv.room = args[0]
             log.info('You are in room '+str(args[0])+'.')
             log.info('Seats available: '+str(args[1]))
 
     def on_ackSeat(self, seat_num):
         log.info('You have been placed in seat '+str(seat_num))
-        self.seat = seat_num
-        self.table_view[seat_num] = 'You'
+        self.rv.seat = seat_num
+        self.rv.table_view[seat_num] = 'You'
 
     def on_ackNickname(self, nickname):
         resp_line = 'New nickname: '+nickname
@@ -190,7 +193,7 @@ class Namespace(BaseNamespace):
 
     def on_bid(self, msg):
         # log.info(str(msg)) #DEBUG See on_play
-        self.gs_modify(msg)
+        self.rv.modify(msg)
 
     def on_chat(self, chat_packet):
         if chat_packet[0] == self.nickname:
@@ -202,9 +205,7 @@ class Namespace(BaseNamespace):
         log.info('[Connected]')
 
     def on_disconnect(self, *args):
-        self.gs = None # Erase current game data - no re-joins allowed yet.
-        self.hand = []
-        self.seat = None
+        self.rv = None # Erase current game data - no re-joins allowed yet.
         log.info('[Disconnected]')
         for x in args:
             log.info(str(x))
@@ -219,16 +220,15 @@ class Namespace(BaseNamespace):
         log.info(resp_line)
 
     def on_exit(self, exiter):
-        self.gs = None # Erase current game data - no re-joins allowed yet.
-        self.hand = []
-        self.seat = None
-        # This kills the game memory locally if any client drops.
-
+        # Currently kills game memory locally if any client drops.
+        # This is due to the server re-starting the game if the room partially
+        # empties and re-fills. TODO separate room filling from game starting.
+        self.rv = None # Erase current game data - no re-joins allowed yet.
         log.info(str(exiter) + ' has left the room.')
 
     def on_play(self, msg):
         # log.info(str(msg)) #DEBUG #TODO make way to toggle in-game
-        self.gs_modify(msg)
+        self.rv.modify(msg)
         
     def on_roomFull(self, *args):
         log.info('Room is full.')
@@ -238,9 +238,8 @@ class Namespace(BaseNamespace):
         log.info(resp_line)
     
     def on_startData(self, msg):
-        self.gs = gamestate.GameState(0) #TODO No local game_id needed for now
-        self.gs_modify(msg)
-        hand_str = 'Your hand: '+', '.join([str(card) for card in self.hand])
+        self.rv.modify(msg)
+        hand_str = 'Your hand: '+', '.join([str(card) for card in self.rv.hand])
         log.info(hand_str)
 
     def on_userInSeat(self, json):
@@ -249,7 +248,7 @@ class Namespace(BaseNamespace):
         else:
             log.info(json['name'] + ' is now sitting in seat ' +
                                 str(json['actor']) + '.')
-            self.table_view[json['actor']] = json['name']
+            self.rv.table_view[json['actor']] = json['name']
 
     def on_users(self, users):
         log.info('In the room: '+', '.join([str(x) for x in users]))
@@ -272,7 +271,10 @@ def listen_to_server(socket):
     '''
 
     while True:
-        socket.wait()
+        try:
+            socket.wait()
+        except Exception:
+            log.exception("Exception caught while handling event.")
 
 def console(window, host='localhost', port=8088):
     """Main console function. Inits all other modules/classes as needed.
@@ -360,8 +362,9 @@ def console(window, host='localhost', port=8088):
                         log.error('join: A problem occurred.')
                 elif 'seat' in cmd:
                     if cmd['seat'] == '':
-                        cl.cs.write('seat: currently in room ' + str(ns.room) +
-                                    ', seat ' + str(ns.seat) + '.')
+                        cl.cs.write('seat: currently in room ' +
+                                    str(ns.rv.room) + ', seat ' +
+                                    str(ns.rv.seat) + '.')
                     else:
                         try:
                             seat_num = int(cmd['seat'])
@@ -408,7 +411,7 @@ def console(window, host='localhost', port=8088):
                         log.exception('play: generic problem')
                 elif 'hand' in cmd:
                     hand_str = ('Your hand: ' +
-                                ', '.join([str(card) for card in ns.hand]))
+                                ', '.join([str(card) for card in ns.rv.hand]))
                     cl.cs.write(hand_str)
                 elif 'exit' in cmd:
                     raise SystemExit
