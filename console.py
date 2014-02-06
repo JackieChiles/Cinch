@@ -171,7 +171,7 @@ class Namespace(BaseNamespace):
 
         if args[0] == 0:
             log.info('You are in the lobby.')
-            self.rv.room = args[0]
+            self.rv = None
         else:
             self.rv.room = args[0]
             log.info('You are in room '+str(args[0])+'.')
@@ -353,7 +353,7 @@ def console(window, host='localhost', port=8088):
                 elif 'join' in cmd:
                     try:
                         room_num = int(cmd['join'])
-                        if ns.room <> 0:
+                        if ns.rv is None: # Not in a room; must be in the lobby
                             cl.cs.write('join: must be in lobby to join a room')
                         else:
                             ns.emit('join', room_num)
