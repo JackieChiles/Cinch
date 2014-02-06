@@ -353,7 +353,7 @@ def console(window, host='localhost', port=8088):
                 elif 'join' in cmd:
                     try:
                         room_num = int(cmd['join'])
-                        if ns.rv is None: # Not in a room; must be in the lobby
+                        if ns.rv is not None: # Not in a room; must be in the lobby
                             cl.cs.write('join: must be in lobby to join a room')
                         else:
                             ns.emit('join', room_num)
