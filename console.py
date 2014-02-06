@@ -154,7 +154,7 @@ class Namespace(BaseNamespace):
     def __init__(self, *args):
         super(Namespace, self).__init__(*args)
         self.ai_list = []
-        self.rv = RoomView(0)
+        self.rv = None
         self.nickname = 'NewUser' # Assigned but not transmitted by server.
 
     #----------------#
@@ -167,7 +167,7 @@ class Namespace(BaseNamespace):
 
     def on_ackJoin(self, args):
         # Clear any game/room data when moving from room to room.
-        self.rv = RoomView(0) # Erase current game data - no re-joins allowed yet.
+        self.rv = RoomView(0) # Set up a RoomView to hold game info.
 
         if args[0] == 0:
             log.info('You are in the lobby.')
@@ -220,10 +220,6 @@ class Namespace(BaseNamespace):
         log.info(resp_line)
 
     def on_exit(self, exiter):
-        # Currently kills game memory locally if any client drops.
-        # This is due to the server re-starting the game if the room partially
-        # empties and re-fills. TODO separate room filling from game starting.
-        self.rv = None # Erase current game data - no re-joins allowed yet.
         log.info(str(exiter) + ' has left the room.')
 
     def on_play(self, msg):
