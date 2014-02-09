@@ -49,12 +49,10 @@ function Card(encodedCard) {
     self.imagePath = CinchApp.cardImageDir + self.decoded + CinchApp.cardImageExtension;
     
     self.play = function(player) {
-        CinchApp.viewModel.addAnimation(function() {
-            var cardImage = new Image();
+        var cardImage = new Image();
 
-            cardImage.src = self.imagePath;
-            CinchApp.viewModel.cardImagesInPlay[player] = new CardAnimation(cardImage, player);
-        });
+        cardImage.src = self.imagePath;
+        CinchApp.viewModel.cardImagesInPlay[player] = new CardAnimation(cardImage, player);
     };
     
     self.submit = function() {

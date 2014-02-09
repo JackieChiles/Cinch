@@ -4,6 +4,7 @@ function CinchViewModel() {
 
     //Data
     self.socket = CinchApp.socket;
+    self.actionQueue = []; //Don't add to this directly: call self.addAction
     self.username = ko.observable('');
     self.myPlayerNum = ko.observable(0); //Player num assigned by server
     self.myTeamNum = ko.computed(function() {
@@ -225,26 +226,44 @@ function CinchViewModel() {
     self.setUpSocket = function() {
         var socket = self.socket;
 
-        //Set up socket listeners
-        socket.on('rooms', function(msg) {
-            var i = 0;
+        //Adds action to queue with console message: unlockBoard() must be added within handler()
+        function addSocketAction(id, msg, handler) {
+            self.addAction(function() {
+                console.log('Running socket response for "' + id + '": ', msg);
+                handler(msg);
+            });
+        }
 
-            console.log("'rooms' -- ", msg);
+        //Can be used in most cases: just unlocks at end of execution of handler
+        function addSocketActionDefaultUnlock(id, msg, handler) {
+            addSocketAction(id, msg, function() {
+                handler(msg);
+                self.unlockBoard();
+            });
+        }
+
+        //This can be used for a normal socket handler
+        //Some handlers must be split into multiple actions, and can be dealt with case-by-case
+        function addSocketHandler(id, handler) {
+            socket.on(id, function(msg) {
+                addSocketActionDefaultUnlock(id, msg, handler);           
+            });
+        }
+
+        //Set up socket listeners
+        addSocketHandler('rooms', function(msg) {
+            var i = 0;
 
             for(i = 0; i < msg.length; i++) {
                 self.games.push(new Game(msg[i], i));
             }
         });
 
-	socket.on('aiInfo', function(msg) {
-	    console.log("'aiInfo' -- ", msg);
+        addSocketHandler('aiInfo', function(msg) {
+            self.ai(msg);
+        });
 
-        self.ai(msg);
-	});
-
-        socket.on('chat', function(msg) {
-            console.log("'chat' -- ", msg);
-
+        addSocketHandler('chat', function(msg) {
             var listElement = document.getElementById('output-list');
 
             //TODO: change this to be an object property instead of array element
@@ -254,26 +273,20 @@ function CinchViewModel() {
             listElement.scrollTop = listElement.scrollHeight;
         });
 
-        socket.on('err', function(msg) {
+        addSocketHandler('err', function(msg) {
             self.logError(msg);
         });
 
-        socket.on('newRoom', function(msg) {
-            console.log("'newRoom' -- ", msg);
-
+        addSocketHandler('newRoom', function(msg) {
             self.games.push(new Game(msg, self.games().length));
         });
 
-        socket.on('ackCreate', function(msg) {
-            console.log("'ackCreate' -- ", msg);
-
+        addSocketHandler('ackCreate', function(msg) {
             //Join the newly created room
             socket.emit('join', msg);
         });
 
-        socket.on('ackJoin', function(msg) {
-            console.log("'ackJoin' -- ", msg);
-
+        addSocketHandler('ackJoin', function(msg) {
             //Take action only if joined room was not the lobby (always ID of zero)
             //TODO: change this to be an object property instead of array element
             if(msg[0] !== 0) {
@@ -282,10 +295,8 @@ function CinchViewModel() {
             }
         });
 
-        socket.on('users', function(msg) {
+        addSocketHandler('users', function(msg) {
             var i = 0;
-
-            console.log("'users' -- ", msg);
 
             self.users(msg);
 
@@ -297,10 +308,8 @@ function CinchViewModel() {
             }
         });
 
-        socket.on('seatChart', function(msg) {
-            console.log("'seatChart' -- ", msg);
-
-	        var i = 0;
+        addSocketHandler('seatChart', function(msg) {
+            var i = 0;
             var clientPNum = 0;
 
             //msg is an array of 2-element arrays... index 0 username, index 1 seat
@@ -312,44 +321,33 @@ function CinchViewModel() {
                 }
             }
         });
-	
 
-        socket.on('enter', function(msg) {
-            console.log("'enter' -- ", msg);
-
+        addSocketHandler('enter', function(msg) {
             //Add the new user to the collection and announce if in game view
             self.users.push(msg);
             self.activeView() === CinchApp.views.game && self.announceUser(msg);
         });
 
-        socket.on('roomFull', function(msg) {
-            console.log("'roomFull' -- ", msg);
-        });
+        addSocketHandler('roomFull', function(msg) { });
 
-        socket.on('ackSeat', function(msg) {
-            console.log("'ackSeat' -- ", msg);
-
+        addSocketHandler('ackSeat', function(msg) {
             self.myPlayerNum(msg);
         });
 
-        socket.on('userInSeat', function(msg) {
-            console.log("'userInSeat' -- ", msg);
-
+        //TODO: replace with seatChart
+        addSocketHandler('userInSeat', function(msg) {
             var clientPNum = CinchApp.serverToClientPNum(msg.actor);
 
             self.players()[clientPNum].name(msg.name);
         });
 
-        socket.on('ackNickname', function(msg) {
-            console.log("'ackNickname' -- ", msg);
+        addSocketHandler('ackNickname', function(msg) {
             //TODO: wait for confirmation before changing username on client
         });
 
         // Game message handlers
-        socket.on('startData', function(msg) {
+        addSocketHandler('startData', function(msg) {
             var app = CinchApp;
-
-            console.log("'startData' -- ", msg);
 
             app.isNullOrUndefined(msg.dlr)      || self.dealerServer(msg.dlr);
             app.isNullOrUndefined(msg.mode)     || self.gameMode(msg.mode);
@@ -357,11 +355,9 @@ function CinchViewModel() {
             app.isNullOrUndefined(msg.actvP)    || self.activePlayerNumServer(msg.actvP);
         });
 
-        socket.on('bid', function(msg) {
+        addSocketHandler('bid', function(msg) {
             var app = CinchApp;
             var msg = msg[0]; //TODO: Why??
-
-            console.log("'bid' (from server) -- ", msg);
 
             app.isNullOrUndefined(msg.dlr)      || self.dealerServer(msg.dlr);
             app.isNullOrUndefined(msg.actor)    || self.players()[CinchApp.serverToClientPNum(msg.actor)].currentBidValue(msg.bid);
@@ -373,22 +369,33 @@ function CinchViewModel() {
             var app = CinchApp;
             var msg = msg[0]; //TODO: Why??
 
-            console.log("'play' (from server) -- ", msg);
+            //First, set trump and dealer
+            addSocketActionDefaultUnlock('play (trp, dlr)', msg, function(msg) {
+                app.isNullOrUndefined(msg.trp) || self.trump(msg.trp);
+                app.isNullOrUndefined(msg.dlr) || self.dealerServer(msg.dlr);
+            });
 
-            app.isNullOrUndefined(msg.trp)      || self.trump(msg.trp);
-            app.isNullOrUndefined(msg.dlr)      || self.dealerServer(msg.dlr);
-            app.isNullOrUndefined(msg.actor)    || self.playCard(msg.playC, CinchApp.serverToClientPNum(msg.actor));
-            app.isNullOrUndefined(msg.remP)     || self.handleTrickWinner(msg.remP);
-            msg.sco                             && self.gameScores(msg.sco);
-            msg.mp                              && self.matchPoints(msg.mp);
-            msg.gp                              && self.gamePoints(msg.gp);
-            app.isNullOrUndefined(msg.win)      || self.winner(msg.win);
-            app.isNullOrUndefined(msg.mode)     ||
-                self.addAnimation(function() {
-                    self.gameMode(msg.mode);
-                });
-            self.handleAddCards(msg);
-            app.isNullOrUndefined(msg.actvP)    || self.activePlayerNumServer(msg.actvP);
+            //Next show the card being played
+            app.isNullOrUndefined(msg.actor) || addSocketAction('play (actor)', msg, function(msg) {
+                self.playCard(msg.playC, CinchApp.serverToClientPNum(msg.actor));
+            });
+            
+            //Then show the trick-end board clearing
+            app.isNullOrUndefined(msg.remP) || addSocketAction('play (remP)', msg, function(msg) {
+                self.handleTrickWinner(msg.remP);
+            });
+
+            //After animations execute, handle other items
+            //Includes game mode, which triggers showing of hand-end screen so it must be after animations
+            addSocketActionDefaultUnlock('play (trp, dlr)', msg, function(msg) {
+                msg.sco                             && self.gameScores(msg.sco);
+                msg.mp                              && self.matchPoints(msg.mp);
+                msg.gp                              && self.gamePoints(msg.gp);
+                app.isNullOrUndefined(msg.win)      || self.winner(msg.win);
+                app.isNullOrUndefined(msg.mode)     || self.gameMode(msg.mode);
+                self.handleAddCards(msg);
+                app.isNullOrUndefined(msg.actvP)    || self.activePlayerNumServer(msg.actvP);
+            });
         });
     };
 
@@ -403,36 +410,33 @@ function CinchViewModel() {
         }
     };
 
-    self.addAnimation = function(anim) {
-        //If another animation is executing, queue this one. Otherwise, lock and execute now.
+    //Used to add actions to the queue: all must call unlockBoard() at some point.
+    self.addAction = function(action) {
+        //Run action if board not locked, otherwise enqueue it
         if(self.isBoardLocked()) {
-            self.animationQueue.push(anim);
+            self.actionQueue.push(action);
         }
         else {
-            self.isBoardLocked(true);
-            anim();
+            self.lockBoard();
+            action();
         }
     };
 
+    self.lockBoard = function () {
+        self.isBoardLocked(true);
+    };
+
     self.unlockBoard = function () {
-        //Execute the next animation if any
-        if(self.animationQueue.length > 0) {
-            self.animationQueue.shift()();
-        }
-        else { //If none, unlock board to allow execution of new animations
-            self.isBoardLocked(false);
-        }
+        self.isBoardLocked(false);
     };
 
     self.handleTrickWinner = function(pNum) {
         self.trickWinnerServer(pNum);
 
-        self.addAnimation(function() {
-            //Wait a bit so the ending play can be seen
-            setTimeout(function () {
-                finishClearingBoard();
-            }, CinchApp.boardClearDelay);
-        });
+        //Wait a bit so the ending play can be seen
+        setTimeout(function () {
+            finishClearingBoard();
+        }, CinchApp.boardClearDelay);
     };
 
     //Print a message to the chat window to announce the arrival of a user
@@ -441,6 +445,15 @@ function CinchViewModel() {
     };
 
     //Subscriptions
+    self.isBoardLocked.subscribe(function(newValue) {
+        console.log('isBoardLocked', newValue);
+
+        //If the board has been unlocked, execute the next action if available       
+        if(!newValue && self.actionQueue.length > 0) {
+            self.lockBoard();
+            self.actionQueue.shift()();
+        }
+    });
     self.activeView.subscribe(function(newValue) {
         //Fades the current view out and the new view in
 
@@ -490,11 +503,7 @@ function CinchViewModel() {
             if(self.matchPoints().length > 0) {
                 var i = 0;
             
-                //Not really an animation, but wait until animations are complete before showing hand end dialog
-                //A hint of the ugly old actionQueue days, but not too bad
-                self.addAnimation(function() {
-                    self.activeView(CinchApp.views.handEnd);
-                });
+                self.activeView(CinchApp.views.handEnd);
             
                 //Clear any old bids
                 self.resetBids();
@@ -502,6 +511,7 @@ function CinchViewModel() {
                 //Clear trump and error messages before beginning of the next hand
                 self.trump(null);
                 
+                //Remove last hand's error messages from chat
                 while(i < self.chats().length) {
                     if(self.chats()[i].type() === CinchApp.messageTypes.error) {
                         self.chats.splice(i, 1);
@@ -513,5 +523,8 @@ function CinchViewModel() {
                 }
             } //Otherwise, game just started, start bidding.
         }
+    });
+    self.winner.subscribe(function(newValue) {
+        self.activeView(CinchApp.views.handEnd);
     });
 }
