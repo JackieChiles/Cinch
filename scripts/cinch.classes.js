@@ -52,7 +52,10 @@ function Card(encodedCard) {
         var cardImage = new Image();
 
         cardImage.src = self.imagePath;
-        CinchApp.viewModel.cardImagesInPlay[player] = new CardAnimation(cardImage, player);
+        
+        cardImage.onload = function() {
+            CinchApp.viewModel.cardImagesInPlay[player] = new CardAnimation(cardImage, player);
+        };
     };
     
     self.submit = function() {
