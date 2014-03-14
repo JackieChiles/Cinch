@@ -179,7 +179,7 @@ class Namespace(BaseNamespace):
         self.seat = seat_num
         self.table_view[seat_num] = 'You'
 
-    def on_ackNickname(self, nickname):
+    def ackNickname(self, nickname):
         resp_line = 'New nickname: '+nickname
         log.info(resp_line)
         self.nickname = nickname
@@ -328,7 +328,7 @@ def console(window, host='localhost', port=8088):
                     if cmd['nick'] == '':
                         cl.cs.write(ns.nickname) #TODO RoomView
                     else:
-                        ns.emit('nickname', cmd['nick'])
+                        ns.emit('nickname', cmd['nick'], ns.ackNickname)
                         #TODO status window update nick
                 elif 'chat' in cmd:
                     ns.emit('chat', cmd['chat'])

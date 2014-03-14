@@ -304,8 +304,11 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
             
             #Announce the seat occupant to all users          
             self.emit_to_room('userInSeat', { 'actor': seat, 'name': self.session['nickname'] })
+###            return (seat,)
+
         else:
             self.emit('err', 'That seat is already taken. Pick a different one')
+###            return (None,)
 
     def on_nickname(self, name):
         """Set nickname for user.
@@ -322,10 +325,11 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         """
         if self.session['room'].num != LOBBY:  # if room is not Lobby
             self.emit('err', 'You cannot change names while in a game')
+            return (None,)
         else:
             # set nickname for user
             self.session['nickname'] = name
-            self.emit('ackNickname', name)  # ack nickname okay
+            return (name,)
 
     # --------------------
     # AI methods

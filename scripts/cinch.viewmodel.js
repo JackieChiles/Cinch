@@ -152,7 +152,10 @@ function CinchViewModel() {
     //When the user chooses to enter the lobby to select a game,
     //submit nickname request and switch to lobby view
     self.enterLobby = function() {
-        self.username() && self.socket.emit('nickname', self.username());
+        self.username() && self.socket.emit('nickname', self.username, function(msg) {
+            //TODO: wait for confirmation before changing username on client
+	    console.log('new nickname = ', msg);
+	});
         self.activeView(CinchApp.views.lobby);
     };
 
@@ -327,19 +330,15 @@ function CinchViewModel() {
 
         addSocketHandler('roomFull', function(msg) { });
 
-        addSocketHandler('ackSeat', function(msg) {
+/*        addSocketHandler('ackSeat', function(msg) {
             self.myPlayerNum(msg);
         });
-
+*/
         //TODO: replace with seatChart
         addSocketHandler('userInSeat', function(msg) {
             var clientPNum = CinchApp.serverToClientPNum(msg.actor);
 
             self.players()[clientPNum].name(msg.name);
-        });
-
-        addSocketHandler('ackNickname', function(msg) {
-            //TODO: wait for confirmation before changing username on client
         });
 
         // Game message handlers
