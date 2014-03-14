@@ -196,14 +196,14 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         # TODO broadcast only to lobby
         self.broadcast_event('newRoom', roomNum)  # goes to all clients in room
         
-        self.emit('ackCreate', roomNum)           # tell user to join the room
-
         # Summon AI players
         try:
             for seat in args.keys():
                 self.emit_to_room('summonAI', {roomNum: (int(seat), int(args[seat]))})
         except AttributeError as e:
             pass # No args given
+
+        return (roomNum, ) # Tells user to join room
 
         # FUTURE add way to system to add AIs after creating room; useful for filling
         # a room that won't fill. Would be separate command from createRoom.

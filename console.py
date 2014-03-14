@@ -156,7 +156,7 @@ class Namespace(BaseNamespace):
     # Event Handlers #
     #----------------#
 
-    def on_ackCreate(self, room_num):
+    def ackCreate(self, room_num):
         log.info('Room '+str(room_num)+' created.')
         self.emit('join', room_num)
 
@@ -342,7 +342,7 @@ def console(window, host='localhost', port=8088):
                         for request in ai_requests:
                             x = request.split(':')
                             ai_req_output[int(x[0])] = int(x[1])
-                        ns.emit('createRoom', ai_req_output)
+                        ns.emit('createRoom', ai_req_output, ns.ackCreate)
                     except ValueError:
                         log.exception('room: arg from queue: %s', cmd['room'])
                         log.error('room: A problem occurred.')

@@ -178,7 +178,9 @@ function CinchViewModel() {
         }
 
         //The format for aiSelection is { seatNumber:aiAgentId }
-        self.socket.emit('createRoom', aiSelection);
+        self.socket.emit('createRoom', aiSelection, function(roomNum) {
+	    self.socket.emit('join', roomNum);
+	});
     };
 
     self.submitChat = function() {
@@ -279,11 +281,6 @@ function CinchViewModel() {
 
         addSocketHandler('newRoom', function(msg) {
             self.games.push(new Game(msg, self.games().length));
-        });
-
-        addSocketHandler('ackCreate', function(msg) {
-            //Join the newly created room
-            socket.emit('join', msg);
         });
 
         addSocketHandler('ackJoin', function(msg) {
