@@ -85,8 +85,6 @@ class AIBase(object):
         log.info("{0}_AI loaded into Game {1} Seat {2}*"
                  "".format(self.name, targetRoom, targetSeat))
 
-        self.callbackTest() #####
-
     def __del__(self):
         """Cleanly shutdown AI agent."""
         self.stop()
@@ -345,15 +343,6 @@ class AIBase(object):
 
         """
         pass
-
-
-    ## Callback demo
-    def myCallback(self, arg):
-        print 'myCallback', arg
-
-    def callbackTest(self):
-        self.ns.emit('callbackTest', 'foo', self.myCallback)
-        #self.ns.wait_for_callbacks()
 
 
 # TODO test is_legal_bid due to change in first case

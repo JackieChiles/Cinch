@@ -223,13 +223,6 @@ function CinchViewModel() {
         }
     };
 
-    //////Callback test
-    self.callbackTest = function() {
-	self.socket.emit('callbackTest', 'foo', function(msg) {
-	    console.log('callbackTest', msg);
-	});
-    };
-
     self.setUpSocket = function() {
         var socket = self.socket;
 

@@ -467,13 +467,6 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
 
         return seatChart
 
-    ### Callback test
-    def on_callbackTest(self, val):
-        if val == 'foo':
-            return ('bar', )
-        else:
-            return ('zed', )
-
 
 class Server(object):
 
