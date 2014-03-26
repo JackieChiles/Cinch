@@ -315,7 +315,7 @@ function CinchViewModel() {
             //msg is an array of 2-element arrays... index 0 username, index 1 seat
             for(i = 0; i < msg.length; i++) {
                 //Seat could be -1 if player not in any seat yet
-                if(msg[i][1] > 0) {
+                if(msg[i][1] >= 0) {
                     clientPNum = CinchApp.serverToClientPNum(msg[i][1]);
                     self.players()[clientPNum].name(msg[i][0]);
                 }
@@ -334,7 +334,7 @@ function CinchViewModel() {
             self.myPlayerNum(msg);
         });
 */
-        //TODO: replace with seatChart
+
         addSocketHandler('userInSeat', function(msg) {
             var clientPNum = CinchApp.serverToClientPNum(msg.actor);
 
@@ -442,8 +442,6 @@ function CinchViewModel() {
 
     //Subscriptions
     self.isBoardLocked.subscribe(function(newValue) {
-        console.log('isBoardLocked', newValue);
-
         //If the board has been unlocked, execute the next action if available       
         if(!newValue && self.actionQueue.length > 0) {
             self.lockBoard();

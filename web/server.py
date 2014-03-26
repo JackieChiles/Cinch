@@ -95,7 +95,6 @@ class Room(object):
                     curSeat = availableSeats.pop() 
                     sock.session['seat'] = curSeat
                     sock['/cinch'].emit('ackSeat', curSeat)
-                    sock['/cinch'].emit_to_room('userInSeat', { 'actor': curSeat, 'name': sock.session['nickname'] })
                     # changing the namespace name will break this; TODO use variable
             
             if len(self.getAvailableSeats()) > 0:
@@ -103,6 +102,9 @@ class Room(object):
                 log.error("bad seating error in startGame()")
                 sock['/cinch'].emit_to_room('err', 'Problem starting game')
                 return
+
+        #Send out the final seat chart
+        sock['/cinch'].emit_to_room('seatChart', sock['/cinch'].getSeatingChart(sock['/cinch'].session['room']))
 
         #FIXME if players leave then rejoin, a new game is started.
         self.game = Game()
