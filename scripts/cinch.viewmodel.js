@@ -185,10 +185,9 @@ function CinchViewModel() {
 	    self.socket.emit('join', roomNum, function(msg) {
                 self.activeView(CinchApp.views.game);
 		if (msg.roomNum != 0) {
-		    console.log('seatChart: ', msg.seatChart);///
+		    console.log('seatChart: ', msg.seatChart);///TODO use only seatChart
 		    self.socket.$events.seatChart(msg.seatChart);
 		    self.socket.$events.users(msg.users);
-
 		}
 
 	    });
@@ -295,16 +294,6 @@ function CinchViewModel() {
             self.games.push(new Game(msg, self.games().length));
         });
 
-        // addSocketHandler('ackJoin', function(msg) {
-        //     //Take action only if joined room was not the lobby (always ID of zero)
-        //     //TODO: change this to be an object property instead of array element
-	//     console.log("processing ackJoin event");///
-        //     if(msg[0] !== 0) {
-        //         self.activeView(CinchApp.views.game);
-        //         self.users([]); //New room, new set of users
-        //     }
-        // });
-
         addSocketHandler('users', function(msg) {
             var i = 0;
 
@@ -340,6 +329,7 @@ function CinchViewModel() {
 
         addSocketHandler('roomFull', function(msg) { });
 
+	//TODO: when client seat selection is re-enabled, move this into that
         addSocketHandler('ackSeat', function(msg) {
             self.myPlayerNum(msg);
         });

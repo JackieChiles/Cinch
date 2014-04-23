@@ -10,7 +10,7 @@ function Game(name, number) {
         CinchApp.socket.emit('join', number, function(msg) {
                 CinchApp.viewModel.activeView(CinchApp.views.game);
 		if (msg.roomNum != 0) {
-		    console.log('seatChart: ', msg.seatChart);///
+		    console.log('seatChart: ', msg.seatChart);///reminder to implement seatChart
 		    CinchApp.socket.$events.users(msg.users);
 		    CinchApp.socket.$events.seatChart(msg.seatChart);
 		}

@@ -270,28 +270,11 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
                 
                 # Add user to room server-side
                 room.users.append(self.socket) # socket includes session field            
-                ### The challenge of removing the ackJoin event is so much happens
-                ### here after emitting it...
-                ###
-                ### join() should return to client: seat chart (implies avail. seats)
-
-                # # Confirm join to client & provide list of available seats
-                # if roomNum == 0:
-                #     self.emit('ackJoin', (0, 'lobby'))
-                # else:
-                #     seats = room.getAvailableSeats()
-                #     self.emit('ackJoin', (roomNum, seats))
-
-                # Send list of usernames in room
-                # TODO make client handle seatChart; may remove 'users'
-                # self.emit('users', self.getUsernamesInRoom(room))
-                # self.emit('seatChart', self.getSeatingChart(room))
-
                 # Tell others in room that someone has joined
                 self.emit_to_room_not_me('enter', self.session['nickname'])
                 
                 # if the room is now full, begin the game
-                # client may want to inhibit/delay ability to leave room at this point
+                # client may want to block/delay ability to leave room at this point
                 if room.isFull():
                     self.emit_to_room('roomFull', '')
                     room.startGame()
@@ -301,8 +284,9 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
                 else:
                     seatChart = self.getSeatingChart(room)
 
+                # TODO make client handle seatChart; may then remove 'users'
                 users = self.getUsernamesInRoom(room) ###
-                return ({'roomNum': roomNum, 'seatChart': seatChart, 'users': users}, )
+                return ({'roomNum': roomNum, 'seatChart': seatChart, 'users': users},)
 
     def on_seat(self, seat):
         """Set seat number in room for user.
@@ -318,7 +302,7 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
             
             #Announce the seat occupant to all users          
             self.emit_to_room('userInSeat', { 'actor': seat, 'name': self.session['nickname'] })
-###            return (seat,)
+###            return (seat,) #TODO: Pending re-enabling of client seat selection
 
         else:
             self.emit('err', 'That seat is already taken. Pick a different one')
@@ -328,10 +312,6 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         """Set nickname for user.
         
         name -- desired nickname
-        
-        TODO: This method sends an 'ack' to the client to confirm the request and
-        instruct it to update its local copy of the nickname. This is to allow
-        the server to prevent duplicate nicknames.
         
         The nickname cannot be changed while the user is in a room other than
         the lobby. This is to protect the integrity of any game logging done.
