@@ -6,8 +6,15 @@ function Game(name, number) {
 
     self.name = name;
     self.number = number;
-    self.join = function() {
-        CinchApp.socket.emit('join', number);
+    self.join = function() { // Only called when joining existing game, not ICW new
+        CinchApp.socket.emit('join', number, function(msg) {
+                CinchApp.viewModel.activeView(CinchApp.views.game);
+		if (msg.roomNum != 0) {
+		    console.log('seatChart: ', msg.seatChart);///
+		    CinchApp.socket.$events.users(msg.users);
+		    CinchApp.socket.$events.seatChart(msg.seatChart);
+		}
+	});
     };
 }
 

@@ -252,6 +252,8 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
             # Simply using index of room in request['rooms'] for now. When we
             # decide to have completed games be deleted, we'll need a different
             # data structure and an update to this block.
+            # Or, instead of deleting from the array, just zeroize that element.
+            # That will also protect the sequencing of the game numbers.
             self.emit('err', "%s does not exist" % roomNum)
         else:  
             # Set local ref to room
@@ -268,18 +270,22 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
                 
                 # Add user to room server-side
                 room.users.append(self.socket) # socket includes session field            
-                
-                # Confirm join to client & provide list of available seats
-                if roomNum == 0:
-                    self.emit('ackJoin', (0, 'lobby'))
-                else:
-                    seats = room.getAvailableSeats()
-                    self.emit('ackJoin', (roomNum, seats))
+                ### The challenge of removing the ackJoin event is so much happens
+                ### here after emitting it...
+                ###
+                ### join() should return to client: seat chart (implies avail. seats)
+
+                # # Confirm join to client & provide list of available seats
+                # if roomNum == 0:
+                #     self.emit('ackJoin', (0, 'lobby'))
+                # else:
+                #     seats = room.getAvailableSeats()
+                #     self.emit('ackJoin', (roomNum, seats))
 
                 # Send list of usernames in room
                 # TODO make client handle seatChart; may remove 'users'
-                self.emit('users', self.getUsernamesInRoom(room))
-                self.emit('seatChart', self.getSeatingChart(room))
+                # self.emit('users', self.getUsernamesInRoom(room))
+                # self.emit('seatChart', self.getSeatingChart(room))
 
                 # Tell others in room that someone has joined
                 self.emit_to_room_not_me('enter', self.session['nickname'])
@@ -289,6 +295,14 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
                 if room.isFull():
                     self.emit_to_room('roomFull', '')
                     room.startGame()
+
+                if roomNum == 0:
+                    seatChart = "lobby"
+                else:
+                    seatChart = self.getSeatingChart(room)
+
+                users = self.getUsernamesInRoom(room) ###
+                return ({'roomNum': roomNum, 'seatChart': seatChart, 'users': users}, )
 
     def on_seat(self, seat):
         """Set seat number in room for user.
