@@ -181,10 +181,6 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         
         args -- {seat: ai_model_id, seat2: ...}
         
-        This method sends an 'ack' to the client, instructing the client to join
-        the room, separating the creation of the room from the act of joining
-        it.
-
         TODO: need to accept request for own seat number
         
         """
@@ -236,14 +232,9 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         
         roomNum -- index in request[rooms] for target room
         
-        This method sends an 'ack' to the client, which includes the room number
-        for confirmation and a list of available seats for selection. The client
-        should prompt the user to select one and emit a 'seat' command.
-        
         Client should not allow moving directly from one room to another without
         returning to the lobby. That's done by leaving the room (on_exit), which
-        automatically takes you to the lobby. Only then should new joins be allowed.          
-        
+        automatically takes you to the lobby. Only then should new joins be allowed.         
         """   
         roomNum = int(roomNum) # sent as unicode from browser
         
