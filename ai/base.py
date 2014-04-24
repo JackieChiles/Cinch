@@ -98,9 +98,10 @@ class AIBase(object):
 
     # Event handlers
 
-    def on_ackJoin(self, *args):
+    def ackJoin(self, *args):
+        print args
         # Successful join request was made
-        self.room = args[0][0]
+        self.room = args[0]['roomNum']
         if self.room != 0:
             log.info("AI joined Room {0}".format(self.room))
 
@@ -143,7 +144,6 @@ class AIBase(object):
         self.ns = self.socket.define(BaseNamespace, NS)
 
         # Attach socketIO event handlers 
-        self.ns.on('ackJoin',   self.on_ackJoin)
         self.ns.on('ackSeat',   self.on_ackSeat)
         self.ns.on('bid',       self.on_game_action)
         self.ns.on('err',       self.on_err)
@@ -208,12 +208,12 @@ class AIBase(object):
                 self.gs.highBid = msg['bid']
 
     def join(self, room):
-        """Make request to join room. Receipt of 'ackJoin' completes process.
+        """Make request to join room.
 
         room -- (int) room number
 
         """
-        self.ns.emit('join', room)
+        self.ns.emit('join', room, self.ackJoin)
 
     def start(self):
         """Activate AI."""

@@ -152,7 +152,7 @@ function CinchViewModel() {
     //When the user chooses to enter the lobby to select a game,
     //submit nickname request and switch to lobby view
     self.enterLobby = function() {
-        self.username() && self.socket.emit('nickname', self.username, function(msg) {
+        self.username() && self.socket.emit('nickname', self.username(), function(msg) {
             //TODO: wait for confirmation before changing username on client
 	    console.log('new nickname = ', msg);
 	});
@@ -182,7 +182,15 @@ function CinchViewModel() {
 
         //The format for aiSelection is { seatNumber:aiAgentId }
         self.socket.emit('createRoom', aiSelection, function(roomNum) {
-	    self.socket.emit('join', roomNum);
+	    self.socket.emit('join', roomNum, function(msg) {
+                self.activeView(CinchApp.views.game);
+		if (msg.roomNum != 0) {
+		    console.log('seatChart: ', msg.seatChart);///TODO use only seatChart
+		    self.socket.$events.seatChart(msg.seatChart);
+		    self.socket.$events.users(msg.users);
+		}
+
+	    });
 	});
     };
 
@@ -286,15 +294,6 @@ function CinchViewModel() {
             self.games.push(new Game(msg, self.games().length));
         });
 
-        addSocketHandler('ackJoin', function(msg) {
-            //Take action only if joined room was not the lobby (always ID of zero)
-            //TODO: change this to be an object property instead of array element
-            if(msg[0] !== 0) {
-                self.activeView(CinchApp.views.game);
-                self.users([]); //New room, new set of users
-            }
-        });
-
         addSocketHandler('users', function(msg) {
             var i = 0;
 
@@ -330,11 +329,12 @@ function CinchViewModel() {
 
         addSocketHandler('roomFull', function(msg) { });
 
-/*        addSocketHandler('ackSeat', function(msg) {
+	//TODO: when client seat selection is re-enabled, move this into that
+        addSocketHandler('ackSeat', function(msg) {
             self.myPlayerNum(msg);
         });
-*/
 
+        //TODO: replace with seatChart
         addSocketHandler('userInSeat', function(msg) {
             var clientPNum = CinchApp.serverToClientPNum(msg.actor);
 
