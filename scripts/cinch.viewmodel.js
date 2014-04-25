@@ -268,7 +268,7 @@ function CinchViewModel() {
             var i = 0;
 
             for(i = 0; i < msg.length; i++) {
-                self.games.push(new Game(msg[i], i));
+                self.games.push(new Game(msg[i].name, msg[i].num));
             }
         });
 
@@ -291,7 +291,7 @@ function CinchViewModel() {
         });
 
         addSocketHandler('newRoom', function(msg) {
-            self.games.push(new Game(msg, self.games().length));
+            self.games.push(new Game(msg.name, msg.num));
         });
 
         addSocketHandler('users', function(msg) {

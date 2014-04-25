@@ -147,7 +147,8 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         self.session['nickname'] = 'NewUser'
         
         self.on_join(LOBBY) # Join lobby
-        self.emit('rooms', [str(x) for x in self.request['rooms']])
+        self.emit('rooms', [{'name': str(x), 'num':x.num} 
+                            for x in self.request['rooms']])
 
     def recv_disconnect(self):
         """Close the socket connection when the client requests a disconnect."""
@@ -194,13 +195,15 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         
         """
         # 'rooms' is list of Room objects
-        roomNum = max([x.num for x in self.request['rooms']]) + 1
+        roomNum = self.request['curMaxRoomNum'] + 1
         newRoom = Room(roomNum)
+        self.request['curMaxRoomNum'] += 1
 
         self.request['rooms'].append(newRoom)     # store new room in Server
         
         # TODO broadcast only to lobby
-        self.broadcast_event('newRoom', roomNum)  # goes to all clients in room
+        # Goes to all clients in room
+        self.broadcast_event('newRoom', {'name': str(newRoom), 'num': roomNum})
         
         # Summon AI players
         try:
@@ -252,16 +255,9 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         roomNum = int(roomNum) # sent as unicode from browser
         
         # move to room numbered roomNum if it exists
-        if roomNum not in range(0, len(self.request['rooms'])):
-            # Simply using index of room in request['rooms'] for now. When we
-            # decide to have completed games be deleted, we'll need a different
-            # data structure and an update to this block.
-            # Or, instead of deleting from the array, just zeroize that element.
-            # That will also protect the sequencing of the game numbers.
-            self.emit('err', "%s does not exist" % roomNum)
-        else:  
+        try:
             # Set local ref to room
-            room = self.request['rooms'][roomNum]
+            room = [x for x in self.request['rooms'] if x.num == roomNum][0]
             
             if room.isFull():
                 self.emit('err', 'That room is full')
@@ -292,6 +288,9 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
                 # TODO make client handle seatChart; may then remove 'users'
                 users = self.getUsernamesInRoom(room) ###
                 return ({'roomNum': roomNum, 'seatChart': seatChart, 'users': users},)
+
+        except IndexError:
+            self.emit('err', "Room %s does not exist" % roomNum)
 
     def on_seat(self, seat):
         """Set seat number in room for user.
@@ -476,7 +475,7 @@ class Server(object):
     """Manages namespaces and connections while holding server-global info."""
 
     # Server-global dict object available to every connection
-    request = {'rooms':[Room(LOBBY)], 'aiInfo':dict() } # Room 0:Lobby
+    request = {'rooms':[Room(LOBBY)], 'curMaxRoomNum': LOBBY, 'aiInfo':dict() } # Room 0:Lobby
     
     def __call__(self, environ, start_response):
         """Delegate incoming message to appropriate namespace."""
