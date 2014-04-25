@@ -165,14 +165,14 @@ class Namespace(BaseNamespace):
         self.gs = None # Erase current game data - no re-joins allowed yet.
         self.hand = []
         self.seat = None
-
-        if args[0] == 0:
+        log.info(args)###
+        if args['roomNum'] == 0:
             log.info('You are in the lobby.')
-            self.room = args[0]
+            self.room = 0
         else:
-            self.room = args[0]
-            log.info('You are in room '+str(args[0])+'.')
-            log.info('Seats available: '+str(args[1]))
+            self.room = args['roomNum']
+            log.info('You are in room ' +str(self.room)+'.')
+            log.info('Seats available: ' + str(args['seatChart']))##TODO make useful
 
     def on_ackSeat(self, seat_num):
         log.info('You have been placed in seat '+str(seat_num))
@@ -234,7 +234,8 @@ class Namespace(BaseNamespace):
         log.info('Room is full.')
 
     def on_rooms(self, room_list): #TODO Change to silent update & add command
-        resp_line = "Rooms: "+', '.join(room_list)
+        # room_list is a dict with items name and num
+        resp_line = "Rooms: "+', '.join([x['name'] for x in room_list])
         log.info(resp_line)
     
     def on_startData(self, msg):
