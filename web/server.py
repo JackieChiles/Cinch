@@ -155,6 +155,7 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         curRoom = self.session['room']
 
         self.on_exit(0) # Remove user from its current room
+        self.on_exit(0) # Remove user lobby
 
         # If curRoom is now empty, remove the room
         if len(curRoom.users) == 0 and curRoom.num != LOBBY: # Don't delete Lobby
@@ -187,7 +188,7 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
             self.emit('err', 'You must set a nickname first')
     
     def on_createRoom(self, args):
-        """Create new room and announce new room's existance to clients.
+        """Create new room and announce new room's existence to clients.
         
         args -- {seat: ai_model_id, seat2: ...}
         
@@ -258,7 +259,7 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         try:
             # Set local ref to room
             room = [x for x in self.request['rooms'] if x.num == roomNum][0]
-            
+
             if room.isFull():
                 self.emit('err', 'That room is full')
             else:
