@@ -327,6 +327,11 @@ function CinchViewModel() {
             self.activeView() === CinchApp.views.game && self.announceUser(msg);
         });
 
+	addSocketHandler('exit', function(username) {
+	    //Notify client that someone has left
+	    self.chats.push(new VisibleMessage(['User', username, 'has departed.'].join(' '), 'System'));
+	});
+
         addSocketHandler('roomFull', function(msg) { });
 
 	//TODO: when client seat selection is re-enabled, move this into that

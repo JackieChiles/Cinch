@@ -150,8 +150,14 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         self.emit('rooms', [str(x) for x in self.request['rooms']])
 
     def recv_disconnect(self):
-        """Close the socket connection when the client requests a disconnect."""    
+        """Close the socket connection when the client requests a disconnect."""
+        curRoom = self.session['room']
+
         self.on_exit(0)      # Remove user from its current room
+
+        # If curRoom is now empty, delete the room
+        # TODO
+
         self.disconnect(silent=True)
 
     def on_test(self, *args):
@@ -208,8 +214,11 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
     
     def on_exit(self, _):
         """Leave room and return to lobby, while announcing to rest of room."""
+        if self.socket not in self.session['room'].users:
+            return
+
         self.emit_to_room_not_me('exit', self.session['nickname'])
-        
+
         # When exit fires on disconnect, this may fail, so try-except
         try:
             # Remove user from room
@@ -255,9 +264,10 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
             if room.isFull():
                 self.emit('err', 'That room is full')
             else:
-                if 'room' in self.session:
+                try:
                     self.on_exit(0) # Leave current room if we're in a room
-                                    # (won't be in a room at start of connection)
+                except KeyError: # No 'room' key in self.session at start of session
+                    pass
                 
                 self.session['room'] = room     # Record room pointer in session
                 
