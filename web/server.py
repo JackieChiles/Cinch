@@ -153,10 +153,11 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         """Close the socket connection when the client requests a disconnect."""
         curRoom = self.session['room']
 
-        self.on_exit(0)      # Remove user from its current room
+        self.on_exit(0) # Remove user from its current room
 
-        # If curRoom is now empty, delete the room
-        # TODO
+        # If curRoom is now empty, remove the room
+        if len(curRoom.users) == 0 and curRoom.num != LOBBY: # Don't delete Lobby
+            self.request['rooms'].remove(curRoom)
 
         self.disconnect(silent=True)
 
@@ -192,7 +193,8 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         TODO: need to accept request for own seat number
         
         """
-        roomNum = len(self.request['rooms'])    # rooms is list of Room objects
+        # 'rooms' is list of Room objects
+        roomNum = max([x.num for x in self.request['rooms']]) + 1
         newRoom = Room(roomNum)
 
         self.request['rooms'].append(newRoom)     # store new room in Server
