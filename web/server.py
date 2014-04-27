@@ -348,7 +348,6 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
 
     def on_summonAI(self, *args):
         """Human client has requested an AI agent for a game room."""
-        print args
         log.debug("AI model {0} summoned".format(args[0]['id']))
         
     # --------------------

@@ -18,6 +18,8 @@ from socketIO_client import SocketIO, BaseNamespace
 import sys, os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),"..")))
 
+import time, random
+
 import core.cards as cards
 
 import logging
@@ -99,7 +101,6 @@ class AIBase(object):
     # Event handlers
 
     def ackJoin(self, *args):
-        print args
         # Successful join request was made
         self.room = args[0]['roomNum']
         if self.room != 0:
@@ -122,6 +123,10 @@ class AIBase(object):
             print 'on_game_action: ', args
 
         self.applyUpdate(msg)
+
+        # Check if game is over -- msg contains 'win'
+        if 'win' in msg:
+            return
 
         # Determine if AI should be playing or bidding
         if msg['actvP'] == self.pNum:
@@ -221,7 +226,13 @@ class AIBase(object):
 
     def stop(self):
         """Gracefully shutdown AI agent."""
-        self.socket._stop_waiting(False)
+        # Adds random backoff before AI disconnects. This helps suppress the 
+        # "SOCKET IS DEAD" exception caused by all agents quitting at once, which
+        # causes a race condition when the server sends out the 'exit' events. This
+        # only servers to suppress an unhandled exception. A "Failed to write closing
+        # frame" message still gets printed to the DEBUG handler, though.
+        time.sleep(2*random.random())
+        
         self.socket.disconnect()
         # TODO do any final cleanup (logging, etc)
 
