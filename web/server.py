@@ -95,7 +95,6 @@ class Room(object):
                     curSeat = availableSeats.pop() 
                     sock.session['seat'] = curSeat
                     sock['/cinch'].emit('ackSeat', curSeat)
-                    sock['/cinch'].emit_to_room('userInSeat', { 'actor': curSeat, 'name': sock.session['nickname'] })
                     # changing the namespace name will break this; TODO use variable
             
             if len(self.getAvailableSeats()) > 0:
@@ -103,6 +102,9 @@ class Room(object):
                 log.error("bad seating error in startGame()")
                 sock['/cinch'].emit_to_room('err', 'Problem starting game')
                 return
+
+        #Send out the final seat chart
+        sock['/cinch'].emit_to_room('seatChart', sock['/cinch'].getSeatingChart(sock['/cinch'].session['room']))
 
         #FIXME if players leave then rejoin, a new game is started.
         self.game = Game()
@@ -145,11 +147,20 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         self.session['nickname'] = 'NewUser'
         
         self.on_join(LOBBY) # Join lobby
-        self.emit('rooms', [str(x) for x in self.request['rooms']])
+        self.emit('rooms', [{'name': str(x), 'num':x.num} 
+                            for x in self.request['rooms']])
 
     def recv_disconnect(self):
-        """Close the socket connection when the client requests a disconnect."""    
-        self.on_exit(0)      # Remove user from its current room
+        """Close the socket connection when the client requests a disconnect."""
+        curRoom = self.session['room']
+
+        self.on_exit(0) # Remove user from its current room
+        self.on_exit(0) # Remove user lobby
+
+        # If curRoom is now empty, remove the room
+        if len(curRoom.users) == 0 and curRoom.num != LOBBY: # Don't delete Lobby
+            self.request['rooms'].remove(curRoom)
+
         self.disconnect(silent=True)
 
     def on_test(self, *args):
@@ -177,27 +188,24 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
             self.emit('err', 'You must set a nickname first')
     
     def on_createRoom(self, args):
-        """Create new room and announce new room's existance to clients.
+        """Create new room and announce new room's existence to clients.
         
         args -- {seat: ai_model_id, seat2: ...}
         
-        This method sends an 'ack' to the client, instructing the client to join
-        the room, separating the creation of the room from the act of joining
-        it.
-
         TODO: need to accept request for own seat number
         
         """
-        roomNum = len(self.request['rooms'])    # rooms is list of Room objects
+        # 'rooms' is list of Room objects
+        roomNum = self.request['curMaxRoomNum'] + 1
         newRoom = Room(roomNum)
+        self.request['curMaxRoomNum'] += 1
 
         self.request['rooms'].append(newRoom)     # store new room in Server
         
         # TODO broadcast only to lobby
-        self.broadcast_event('newRoom', roomNum)  # goes to all clients in room
+        # Goes to all clients in room
+        self.broadcast_event('newRoom', {'name': str(newRoom), 'num': roomNum})
         
-        self.emit('ackCreate', roomNum)           # tell user to join the room
-
         # Summon AI players
         try:
             for seat in args.keys():
@@ -205,13 +213,18 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         except AttributeError as e:
             pass # No args given
 
+        return (roomNum, ) # Tells user to join room
+
         # FUTURE add way to system to add AIs after creating room; useful for filling
         # a room that won't fill. Would be separate command from createRoom.
     
     def on_exit(self, _):
         """Leave room and return to lobby, while announcing to rest of room."""
+        if self.socket not in self.session['room'].users:
+            return
+
         self.emit_to_room_not_me('exit', self.session['nickname'])
-        
+
         # When exit fires on disconnect, this may fail, so try-except
         try:
             # Remove user from room
@@ -236,59 +249,49 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         
         roomNum -- index in request[rooms] for target room
         
-        This method sends an 'ack' to the client, which includes the room number
-        for confirmation and a list of available seats for selection. The client
-        should prompt the user to select one and emit a 'seat' command.
-        
         Client should not allow moving directly from one room to another without
         returning to the lobby. That's done by leaving the room (on_exit), which
-        automatically takes you to the lobby. Only then should new joins be allowed.          
-        
+        automatically takes you to the lobby. Only then should new joins be allowed.         
         """   
         roomNum = int(roomNum) # sent as unicode from browser
         
         # move to room numbered roomNum if it exists
-        if roomNum not in range(0, len(self.request['rooms'])):
-            # Simply using index of room in request['rooms'] for now. When we
-            # decide to have completed games be deleted, we'll need a different
-            # data structure and an update to this block.
-            self.emit('err', "%s does not exist" % roomNum)
-        else:  
+        try:
             # Set local ref to room
-            room = self.request['rooms'][roomNum]
-            
+            room = [x for x in self.request['rooms'] if x.num == roomNum][0]
+
             if room.isFull():
                 self.emit('err', 'That room is full')
             else:
-                if 'room' in self.session:
+                try:
                     self.on_exit(0) # Leave current room if we're in a room
-                                    # (won't be in a room at start of connection)
+                except KeyError: # No 'room' key in self.session at start of session
+                    pass
                 
                 self.session['room'] = room     # Record room pointer in session
                 
                 # Add user to room server-side
                 room.users.append(self.socket) # socket includes session field            
-                
-                # Confirm join to client & provide list of available seats
-                if roomNum == 0:
-                    self.emit('ackJoin', (0, 'lobby'))
-                else:
-                    seats = room.getAvailableSeats()
-                    self.emit('ackJoin', (roomNum, seats))
-
-                # Send list of usernames in room
-                # TODO make client handle seatChart; may remove 'users'
-                self.emit('users', self.getUsernamesInRoom(room))
-                self.emit('seatChart', self.getSeatingChart(room))
-
                 # Tell others in room that someone has joined
                 self.emit_to_room_not_me('enter', self.session['nickname'])
                 
                 # if the room is now full, begin the game
-                # client may want to inhibit/delay ability to leave room at this point
+                # client may want to block/delay ability to leave room at this point
                 if room.isFull():
                     self.emit_to_room('roomFull', '')
                     room.startGame()
+
+                if roomNum == 0:
+                    seatChart = "lobby"
+                else:
+                    seatChart = self.getSeatingChart(room)
+
+                # TODO make client handle seatChart; may then remove 'users'
+                users = self.getUsernamesInRoom(room) ###
+                return ({'roomNum': roomNum, 'seatChart': seatChart, 'users': users},)
+
+        except IndexError:
+            self.emit('err', "Room %s does not exist" % roomNum)
 
     def on_seat(self, seat):
         """Set seat number in room for user.
@@ -304,17 +307,16 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
             
             #Announce the seat occupant to all users          
             self.emit_to_room('userInSeat', { 'actor': seat, 'name': self.session['nickname'] })
+###            return (seat,) #TODO: Pending re-enabling of client seat selection
+
         else:
             self.emit('err', 'That seat is already taken. Pick a different one')
+###            return (None,)
 
     def on_nickname(self, name):
         """Set nickname for user.
         
         name -- desired nickname
-        
-        TODO: This method sends an 'ack' to the client to confirm the request and
-        instruct it to update its local copy of the nickname. This is to allow
-        the server to prevent duplicate nicknames.
         
         The nickname cannot be changed while the user is in a room other than
         the lobby. This is to protect the integrity of any game logging done.
@@ -322,10 +324,11 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         """
         if self.session['room'].num != LOBBY:  # if room is not Lobby
             self.emit('err', 'You cannot change names while in a game')
+            return (None,)
         else:
             # set nickname for user
             self.session['nickname'] = name
-            self.emit('ackNickname', name)  # ack nickname okay
+            return (name,)
 
     # --------------------
     # AI methods
@@ -345,7 +348,6 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
 
     def on_summonAI(self, *args):
         """Human client has requested an AI agent for a game room."""
-        print args
         log.debug("AI model {0} summoned".format(args[0]['id']))
         
     # --------------------
@@ -473,7 +475,7 @@ class Server(object):
     """Manages namespaces and connections while holding server-global info."""
 
     # Server-global dict object available to every connection
-    request = {'rooms':[Room(LOBBY)], 'aiInfo':dict() } # Room 0:Lobby
+    request = {'rooms':[Room(LOBBY)], 'curMaxRoomNum': LOBBY, 'aiInfo':dict() } # Room 0:Lobby
     
     def __call__(self, environ, start_response):
         """Delegate incoming message to appropriate namespace."""

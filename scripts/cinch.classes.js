@@ -6,8 +6,15 @@ function Game(name, number) {
 
     self.name = name;
     self.number = number;
-    self.join = function() {
-        CinchApp.socket.emit('join', number);
+    self.join = function() { // Only called when joining existing game, not ICW new
+        CinchApp.socket.emit('join', number, function(msg) {
+                CinchApp.viewModel.activeView(CinchApp.views.game);
+		if (msg.roomNum != 0) {
+		    console.log('seatChart: ', msg.seatChart);///reminder to implement seatChart
+		    CinchApp.socket.$events.users(msg.users);
+		    CinchApp.socket.$events.seatChart(msg.seatChart);
+		}
+	});
     };
 }
 
@@ -49,12 +56,13 @@ function Card(encodedCard) {
     self.imagePath = CinchApp.cardImageDir + self.decoded + CinchApp.cardImageExtension;
     
     self.play = function(player) {
-        CinchApp.viewModel.addAnimation(function() {
-            var cardImage = new Image();
+        var cardImage = new Image();
 
-            cardImage.src = self.imagePath;
+        cardImage.src = self.imagePath;
+        
+        cardImage.onload = function() {
             CinchApp.viewModel.cardImagesInPlay[player] = new CardAnimation(cardImage, player);
-        });
+        };
     };
     
     self.submit = function() {

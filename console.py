@@ -161,11 +161,11 @@ class Namespace(BaseNamespace):
     # Event Handlers #
     #----------------#
 
-    def on_ackCreate(self, room_num):
+    def ackCreate(self, room_num):
         log.info('Room '+str(room_num)+' created.')
-        self.emit('join', room_num)
+        self.emit('join', room_num, self.ackJoin)
 
-    def on_ackJoin(self, args):
+    def ackJoin(self, args):
         # Clear any game/room data when moving from room to room.
         self.rv = RoomView(0) # Set up a RoomView to hold game info.
 
@@ -182,7 +182,7 @@ class Namespace(BaseNamespace):
         self.rv.seat = seat_num
         self.rv.table_view[seat_num] = 'You'
 
-    def on_ackNickname(self, nickname):
+    def ackNickname(self, nickname):
         resp_line = 'New nickname: '+nickname
         log.info(resp_line)
         self.nickname = nickname
@@ -230,7 +230,8 @@ class Namespace(BaseNamespace):
         log.info('Room is full.')
 
     def on_rooms(self, room_list): #TODO Change to silent update & add command
-        resp_line = "Rooms: "+', '.join(room_list)
+        # room_list is a dict with items name and num
+        resp_line = "Rooms: "+', '.join([x['name'] for x in room_list])
         log.info(resp_line)
     
     def on_startData(self, msg):
@@ -326,7 +327,7 @@ def console(window, host='localhost', port=8088):
                     if cmd['nick'] == '':
                         cl.cs.write(ns.nickname) #TODO RoomView
                     else:
-                        ns.emit('nickname', cmd['nick'])
+                        ns.emit('nickname', cmd['nick'], ns.ackNickname)
                         #TODO status window update nick
                 elif 'chat' in cmd:
                     ns.emit('chat', cmd['chat'])
@@ -340,7 +341,7 @@ def console(window, host='localhost', port=8088):
                         for request in ai_requests:
                             x = request.split(':')
                             ai_req_output[int(x[0])] = int(x[1])
-                        ns.emit('createRoom', ai_req_output)
+                        ns.emit('createRoom', ai_req_output, ns.ackCreate)
                     except ValueError:
                         log.exception('room: arg from queue: %s', cmd['room'])
                         log.error('room: A problem occurred.')
@@ -352,7 +353,7 @@ def console(window, host='localhost', port=8088):
                         if ns.rv is not None: # Not in a room; must be in the lobby
                             cl.cs.write('join: must be in lobby to join a room')
                         else:
-                            ns.emit('join', room_num)
+                            ns.emit('join', room_num, ns.ackJoin)
                     except ValueError:
                         log.exception('join: arg from queue: %s', cmd['join'])
                         log.error('join: A problem occurred.')
