@@ -169,13 +169,14 @@ class Namespace(BaseNamespace):
         # Clear any game/room data when moving from room to room.
         self.rv = RoomView(0) # Set up a RoomView to hold game info.
 
-        if args[0] == 0:
+        log.info(args)###
+        if args['roomNum'] == 0:
             log.info('You are in the lobby.')
             self.rv = None
         else:
-            self.rv.room = args[0]
-            log.info('You are in room '+str(args[0])+'.')
-            log.info('Seats available: '+str(args[1]))
+            self.rv.room = args['roomNum']
+            log.info('You are in room ' +str(self.rv.room)+'.')
+            log.info('Seats available: ' + str(args['seatChart']))
 
     def on_ackSeat(self, seat_num):
         log.info('You have been placed in seat '+str(seat_num))
