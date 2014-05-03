@@ -22,7 +22,7 @@ COMMANDS = [ ['test', r'^$', '(null): test connection to server'],
               '[<seat>:<ai_id> x0-4]: spawn new room [with opt. ai seating]'],
              ['lobby', r'^$', '(null): leave current room and join lobby'],
              ['join', r'^[0-9]+$', 'N: join room N'],
-             ['help', r'^-[v]?$', '[-v]: list registered commands [-v w/regex]'],
+             ['help', r'^$|^-v$', '[-v]: list registered commands [-v w/regex]'],
              ['seat', r'^[0-3]?$', '[N]: show seat or sit in seat N (0-3)'],
              ['ai', r'^(list|refresh)$',
               'list: show AIs | refresh: get list from server'],
@@ -124,29 +124,39 @@ class CursesLogger(object):
         self.cs = curses_stream
 
     def __enter__(self):
-        #TODO: There is probably a better way of redirecting logging to the
-        #curses screen.
+        # Capture stderr.
         self._old_stderr = sys.stderr
         sys.stderr = self.cs # Capture tracebacks and display nicely
 
+        # Capture all loggers.
+        for x in logging.Logger.manager.loggerDict:
+            x_log = logging.getLogger(x)
+            x_log.addHandler(logging.StreamHandler(self.cs))
+            x_log.setLevel(log.level)
+
+        # INFO level logging used for most command responses; enable them.
         self.log = logging.getLogger(__name__)
-        self.log.propagate = False
         if (self.log.level > logging.INFO) or (self.log.level == 0):
             self._old_log_level = self.log.level
             self.log.setLevel(logging.INFO)
-        self.log.addHandler(logging.StreamHandler(self.cs))
 
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        self.log.handlers = []
+        # Reset previous logging (undo INFO level set)
         try:
             self.log.setLevel(self._old_log_level)
         except AttributeError:
             pass
+
+        # Remove cinchscreen handlers
+        for x in logging.Logger.manager.loggerDict:
+            logging.getLogger(x).handlers = []
+
+        # Reset stderr
         sys.stderr = self._old_stderr
-        self.log.propagate = True
-        self.log.debug("Logged after executing self.__exit__()")
+
+        log.debug("Logged after executing self.__exit__()")
 
 
 class Namespace(BaseNamespace):
@@ -436,6 +446,6 @@ if __name__ == "__main__":
     parser.add_argument("-p", "--port", help="port no. (default=8088)",
                         type=int, default=8088)
     args = parser.parse_args()
-    logging.basicConfig(level = LOG_SHORT[args.loglevel])
 
+    log.setLevel(LOG_SHORT[args.loglevel])
     curses.wrapper(console, args.host, args.port)

@@ -122,25 +122,39 @@ class CinchScreen():
         commandline_listener.start()
         
     def __enter__(self):
-        #TODO: There is probably a better way of redirecting logging to the
-        #curses screen.
+        # Capture stderr.
+        self._old_stderr = sys.stderr
+        sys.stderr = self # Capture tracebacks and display nicely
+
+        # Capture all loggers.
+        for x in logging.Logger.manager.loggerDict:
+            x_log = logging.getLogger(x)
+            x_log.addHandler(logging.StreamHandler(self))
+            x_log.setLevel(log.level)
+
+        # INFO level logging used for most command responses; enable them.
         self.log = logging.getLogger(__name__)
-        self.log.propagate = False
         if (self.log.level > logging.INFO) or (self.log.level == 0):
             self._old_log_level = self.log.level
             self.log.setLevel(logging.INFO)
-        self.log.addHandler(logging.StreamHandler(self))
 
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        self.log.handlers = []
+        # Reset previous logging (undo INFO level set)
         try:
             self.log.setLevel(self._old_log_level)
         except AttributeError:
             pass
-        self.log.propagate = True
-        self.log.debug("Logged after executing CinchScreen.__exit__()")
+
+        # Remove cinchscreen handlers
+        for x in logging.Logger.manager.loggerDict:
+            logging.getLogger(x).handlers = []
+
+        # Reset stderr
+        sys.stderr = self._old_stderr
+
+        log.debug("Logged after executing self.__exit__()")
 
     def _console_input(self):
         # Run in separate input thread.
@@ -273,7 +287,7 @@ if __name__ == "__main__":
     parser.add_argument("-b", help="del test cmd", action='store_true')
     parser.add_argument("-s", help="suittest", action='store_true')
     args = parser.parse_args()
-    logging.basicConfig(level = LOG_SHORT[args.loglevel])
+    log.setLevel(LOG_SHORT[args.loglevel])
     flags = {'a':args.a, 'b':args.b, 'w':args.w, 's':args.s}
     log.debug("%s", flags)
     curses.wrapper(driver, flags)
