@@ -147,8 +147,9 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         self.session['nickname'] = 'NewUser'
         
         self.on_join(LOBBY) # Join lobby
-        self.emit('rooms', [{'name': str(x), 'num':x.num} 
-                            for x in self.request['rooms']])
+        roomList = [{'name': str(x), 'num':x.num} for x in self.request['rooms']]
+        del roomList[0] # Don't send lobby
+        self.emit('rooms', roomList)
 
     def recv_disconnect(self):
         """Close the socket connection when the client requests a disconnect."""
