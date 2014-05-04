@@ -67,7 +67,7 @@ class RoomView(gamestate.GameState):
         cs.update_dash('hand', []) # Clear Hand panel.
         for x in range(game.NUM_PLAYERS):
             cs.update_dash('seat', x, '')
-            cs.update_dash('bid', x, '')
+            cs.update_dash('bid', x, None)
             cs.update_dash('card', x, '')
         cs.update_dash('dealer', None)
 
@@ -103,11 +103,15 @@ class RoomView(gamestate.GameState):
             if 'remP' in msg:
                 log.info('Seat ' + str(msg['remP']) + ' won the trick.')
                 self.cards_in_play = []
+        if 'mode' in msg: # Must be processed before 'bid' due to dashboard.
+            self.game_mode = msg['mode']
+            if self.game_mode == game.GAME_MODE.BID:
+                # Clear all bids from play area before processing new.
+                for x in range(game.NUM_PLAYERS):
+                    cs.update_dash('bid', x, None)
         if 'bid' in msg:
-            pass #TODO track bidding
-            bid_cmts = {0:' passes.', 1:' bids 1.', 2:' bids 2.', 3:' bids 3.',
-                        4:' bids 4.', 5:' cinches!'}
-            log.info('Seat '+str(msg['actor'])+bid_cmts[msg['bid']])
+            apparent_seat = (msg['actor'] - self.seat) % game.NUM_PLAYERS
+            cs.update_dash('bid', apparent_seat, msg['bid'])
         if 'dlr' in msg:
             self.dealer = msg['dlr']
         if 'actvP' in msg:
@@ -116,8 +120,6 @@ class RoomView(gamestate.GameState):
             for card_code in msg['addC']:
                 # Add a Card object corresponding to the code sent.
                 self.hand.append(cards.Card(card_code))
-        if 'mode' in msg:
-            self.game_mode = msg['mode']
         if 'sco' in msg:
             self.scores = msg['sco']
             log.info('Scores: You ' + str(self.scores[self.seat % 2]) +

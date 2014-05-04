@@ -115,7 +115,7 @@ class CinchScreen():
         self.TBL_NAMES  = [( 9, 9), (5, 1), (2, 9), (5,17)]
         self.TBL_NAME_LEN = 8
         self.TBL_CARDS  = [( 7,12), (6,10), (5,12), (6,14)]
-        self.TBL_BIDS   = [(10,13), (6, 6), (3,14), (6,22)]
+        self.TBL_BIDS   = [(10, 9), (6, 1), (3, 9), (6,17)]
         self.TBL_DEALER = [( 7,10), (5,10), (5,15), (7,15)]
         self.table.refresh()
 
@@ -262,6 +262,7 @@ class CinchScreen():
 
         'hand': *args should be a len<10 list of 2-char strings to write.
         'seat': *args should be an apparent_seat and nickname to write
+        'bid': *args should be an apparent_seat and bid (int or None).
         '''
 
         try:
@@ -303,7 +304,20 @@ class CinchScreen():
                 self.table.refresh()
             
             elif msg_type is 'bid':
-                pass #TODO
+                apparent_seat = args[0]
+                bid = args[1]
+                bid_strings = {None:'', 0:'Pass', 1:'Bid 1',
+                               2:'Bid 2', 3:'Bid 3', 4:'Bid 4', 5:'Cinch!'}
+                try:
+                    bid_str = bid_strings[bid]
+                except KeyError:
+                    log.exception("Unrecognized bid %s", bid)
+                    bid_str = '????'
+                while len(bid_str) < self.TBL_NAME_LEN:
+                    bid_str += ' '
+                self.table.move(*self.TBL_BIDS[apparent_seat])
+                self.table.addstr(bid_str)
+                self.table.refresh()
                 
             elif msg_type is 'card':
                 pass #TODO
