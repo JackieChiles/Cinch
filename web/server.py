@@ -154,14 +154,8 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
 
     def recv_disconnect(self):
         """Close the socket connection when the client requests a disconnect."""
-        curRoom = self.session['room']
-
         self.on_exit(0) # Remove user from its current room
-        self.on_exit(0) # Remove user lobby
-
-        # If curRoom is now empty, remove the room
-        if len(curRoom.users) == 0 and curRoom.num != LOBBY: # Don't delete Lobby
-            self.request['rooms'].remove(curRoom)
+        self.on_exit(0) # Remove user from lobby
 
         self.disconnect(silent=True)
 
@@ -229,6 +223,8 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
 
         self.emit_to_room_not_me('exit', self.session['nickname'])
 
+        curRoom = self.session['room']
+
         # When exit fires on disconnect, this may fail, so try-except
         try:
             # If room is full before user leaves, tell Lobby room is not full
@@ -239,14 +235,23 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
             # Remove user from room
             self.session['room'].users.remove(self.socket)
             
+            # If room is now empty, remove the room and notify clients
+            # NOTE: this doesn't affect the actual room object, only its availability
+            # to clients; this may be a memory leak.
+            if len(curRoom.users) == 0 and curRoom.num != LOBBY: # Don't delete Lobby
+                self.request['rooms'].remove(curRoom)
+                self.broadcast_event('roomGone', curRoom.num)
+
             # Delete user's seat so it doesn't get carried into the next room
             try:
                 del self.session['seat']
             except:
                 pass
-        
-            if self.session['room'].num != LOBBY:   # Don't rejoin lobby if leaving lobby
+
+            # Don't rejoin lobby if leaving lobby        
+            if self.session['room'].num != LOBBY:   
                 self.on_join(LOBBY)
+
         except:
             pass
             

@@ -371,6 +371,19 @@ function CinchViewModel() {
 	    setRoomFullStatus(false, roomNum);
 	});
 
+	addSocketHandler('roomGone', function(roomNum) {
+	    //Remove room from games list
+	    var i;
+	    var games = self.games();
+console.log('roomGone!', roomNum);//
+	    for (i = 0; i < games.length; i++) {
+		if (games[i].number == roomNum) {
+		    games.splice(i, 1); // Remove element i from array
+		    self.games(games); // Update observable array
+		}
+	    }
+	});
+
 	//TODO: when client seat selection is re-enabled, move this into that
         addSocketHandler('ackSeat', function(msg) {
             self.myPlayerNum(msg);
