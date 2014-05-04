@@ -97,6 +97,11 @@ input.username {
     text-align:center;
 }
 
+.newgame button {
+    background-color:dimgrey;
+    color:whitesmoke;
+}
+
 /* AI lobby */
 #ai-upper {
     text-align:center;

@@ -152,6 +152,11 @@ function CinchViewModel() {
     //When the user chooses to enter the lobby to select a game,
     //submit nickname request and switch to lobby view
     self.enterLobby = function() {
+	// Require a non-empty username
+	if (self.username().length < 1) {
+	    alert("A username is required.");
+	    return;
+	}
         self.username() && self.socket.emit('nickname', self.username(), function(msg) {
             //TODO: wait for confirmation before changing username on client
 	    console.log('new nickname = ', msg);
@@ -268,7 +273,7 @@ function CinchViewModel() {
             var i = 0;
 
             for(i = 0; i < msg.length; i++) {
-                self.games.push(new Game(msg[i].name, msg[i].num));
+                self.games.push(new Game(msg[i].name, msg[i].num, msg[i].isFull));
             }
         });
 
@@ -291,7 +296,7 @@ function CinchViewModel() {
         });
 
         addSocketHandler('newRoom', function(msg) {
-            self.games.push(new Game(msg.name, msg.num));
+            self.games.push(new Game(msg.name, msg.num, msg.isFull));
         });
 
         addSocketHandler('users', function(msg) {
@@ -332,7 +337,29 @@ function CinchViewModel() {
 	    self.chats.push(new VisibleMessage(['User', username, 'has departed.'].join(' '), 'System'));
 	});
 
-        addSocketHandler('roomFull', function(msg) { });
+	//Helper function for setting game full status
+	function setRoomFullStatus(status, roomNum) {
+	    var i;
+	    var games = self.games();
+
+	    for (i = 0; i < games.length; i++) {
+		if (games[i].number == roomNum) {
+		    games[i].isFull(status);
+		    self.games(games); // Update class-level observable
+		    break;
+		}
+	    }
+	}
+
+        addSocketHandler('roomFull', function(roomNum) {
+	    //Disallow joining of full rooms from the Lobby
+	    setRoomFullStatus(true, roomNum);
+	});
+
+	addSocketHandler('roomNotFull', function(roomNum) {
+	    //Re-allow joining of previously full room
+	    setRoomFullStatus(false, roomNum);
+	});
 
 	//TODO: when client seat selection is re-enabled, move this into that
         addSocketHandler('ackSeat', function(msg) {

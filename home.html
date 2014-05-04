@@ -23,21 +23,26 @@
     <body>
         <div id="home-page" class="cinch-view">
             <span title="This is the name that will be displayed to other players." class="username-label">Username:</span>
-            <input data-bind="value: username" type="text" placeholder="Enter your username" class="username" />
+            <input data-bind="value: username, valueUpdate: 'afterkeydown'" type="text" placeholder="Enter your username" class="username" id="username-input" />
             
-            <button data-bind="click: enterAi">New game</button>
-            <button data-bind="click: enterLobby">Join game</button>
+            <button data-bind="click: enterLobby" id="enter-lobby-btn">OK</button>
         </div><!-- /home page -->
 
        
         <div id="lobby-page" class="cinch-view">
             <div class="header">
-                <h1>Choose a Game to Join</h1>
+                <h1>Join or Create a Game</h1>
             </div>
+
+            <div class="title-value-container game newgame">
+              <button data-bind="click: enterAi">Create New Game</button>
+            </div>
+
             <div data-bind="foreach: games">
                 <div class="title-value-container game">
-                    <button data-bind="click: join">
+                    <button data-bind="click: join, disable: isFull">
                         Join Game <span data-bind="text: name"></span>
+			<span data-bind="text: isFull() ? ' (Room Full)' : ''"></span>
                     </button>
                 </div>
             </div><!-- /game lobby page -->
