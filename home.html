@@ -51,6 +51,7 @@
         <div id="ai-page" class="cinch-view">
             <div class="header">
                 <h1>Select AI Agents (Optional)</h1>
+                <button data-bind="click: exitToLobby">Back</button>
             </div>
             
             <div id="ai-upper">
@@ -160,6 +161,14 @@
         </div><!-- /hand-end page -->
         
         <div id="game-page" class="cinch-view">
+	    <div class="header">
+	      <h1 data-bind="text: 'Room ' + curRoom()"></h1>
+	      <!-- TODO trap this button press the same way we will the 
+		   browser Back button -->
+	      <button data-bind="click: exitToLobby" id="goto-lobby-from-game-btn">
+		Go to Lobby
+	      </button>
+	    </div>
             <div class="header">
                 <div class="col4">
                     <div>

@@ -187,6 +187,7 @@ input.username {
     padding:0;
     vertical-align:top;
     width:25%;
+    text-align:center;
 }
 
 #game-page .col4 > div {
