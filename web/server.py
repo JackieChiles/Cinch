@@ -367,8 +367,16 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
     def on_bid(self, bid):
         """Pass bid to game."""
         g = self.session['room'].game
-        pNum = self.session['seat']
-        
+
+        if 'seat' in self.session:
+            pNum = self.session['seat']
+        else:
+            #Handle clients bidding while not seated.            
+            self.emit('err', 'No seat assigned; bidding not allowed.')
+            log.warning('Non-seated client "%s" sent bid %s',
+                        self.session['nickname'], bid)
+            return
+
         res = g.handle_bid(pNum, int(bid))
         
         if res is False:
@@ -379,8 +387,16 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
     def on_play(self, play):
         """Pass play to game."""
         g = self.session['room'].game
-        pNum = self.session['seat']
         
+        if 'seat' in self.session:
+            pNum = self.session['seat']
+        else:
+            #Handle clients playing while not seated.
+            self.emit('err', 'No seat assigned; playing not allowed.')
+            log.warning('Non-seated client "%s" sent play %s',
+                        self.session['nickname'], play)
+            return
+
         res = g.handle_card_played(pNum, int(play))
         #False on bad play, None for inactive player
 
