@@ -10,6 +10,7 @@ function Game(name, number, isFull) {
 
     self.join = function() { // Only called when joining existing game, not ICW new
         CinchApp.socket.emit('join', number, function(msg) {
+	        CinchApp.viewModel.curRoom(msg.roomNum);
                 CinchApp.viewModel.activeView(CinchApp.views.game);
 		if (msg.roomNum != 0) {
 		    console.log('seatChart: ', msg.seatChart);///reminder to implement seatChart

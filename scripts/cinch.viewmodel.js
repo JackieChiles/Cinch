@@ -11,6 +11,7 @@ function CinchViewModel() {
         //Team number according to server
         return self.myPlayerNum() % CinchApp.numTeams;
     });
+    self.curRoom = ko.observable();
     self.activeView = ko.observable();
     self.games = ko.observableArray([]);
     self.users = ko.observableArray([]);
@@ -164,6 +165,12 @@ function CinchViewModel() {
         self.activeView(CinchApp.views.lobby);
     };
 
+    //Moves user from a game room to the lobby
+    self.exitToLobby = function() {
+	self.socket.emit('exit', '');
+	self.activeView(CinchApp.views.lobby);
+    };
+
     self.enterAi = function() {
         self.activeView(CinchApp.views.ai);
         self.socket.emit('aiList', '');
@@ -188,6 +195,7 @@ function CinchViewModel() {
         //The format for aiSelection is { seatNumber:aiAgentId }
         self.socket.emit('createRoom', aiSelection, function(roomNum) {
 	    self.socket.emit('join', roomNum, function(msg) {
+		self.curRoom(msg.roomNum);
                 self.activeView(CinchApp.views.game);
 		if (msg.roomNum != 0) {
 		    console.log('seatChart: ', msg.seatChart);///TODO use only seatChart
@@ -227,9 +235,11 @@ function CinchViewModel() {
     };
 
     self.handEndContinue = function() {
-        var views = CinchApp.views;
+	self.curRoom(self.curRoom() + " - Game Over");
+	self.activeView(CinchApp.views.game);
+        //var views = CinchApp.views;
 
-        self.activeView(self.isGameOver() ? views.home : views.game);
+        //self.activeView(self.isGameOver() ? views.home : views.game);
     };
 
     self.resetBids = function() {
@@ -359,6 +369,19 @@ function CinchViewModel() {
 	addSocketHandler('roomNotFull', function(roomNum) {
 	    //Re-allow joining of previously full room
 	    setRoomFullStatus(false, roomNum);
+	});
+
+	addSocketHandler('roomGone', function(roomNum) {
+	    //Remove room from games list
+	    var i;
+	    var games = self.games();
+console.log('roomGone!', roomNum);//
+	    for (i = 0; i < games.length; i++) {
+		if (games[i].number == roomNum) {
+		    games.splice(i, 1); // Remove element i from array
+		    self.games(games); // Update observable array
+		}
+	    }
 	});
 
 	//TODO: when client seat selection is re-enabled, move this into that
