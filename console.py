@@ -64,12 +64,14 @@ class RoomView(gamestate.GameState):
 
     def __del__(self):
         # Need to reset all room-specific items on the display.
-        cs.update_dash('hand', []) # Clear Hand panel.
+        cs.update_dash('hand', [])
         for x in range(game.NUM_PLAYERS):
             cs.update_dash('seat', x, '')
             cs.update_dash('bid', x, None)
-            cs.update_dash('card', x, '')
+            cs.update_dash('card', x, None)
+            cs.update_dash('last', x, None)
         cs.update_dash('dealer', None)
+        cs.update_dash('taker', '')
 
     #-------------------------#
     # Gamestate Update Method #
@@ -92,17 +94,38 @@ class RoomView(gamestate.GameState):
         else:
             raise TypeError("Couldn't unpack dictionary from JSON object: %s", msg)
 
+        # Determine the apparent_seat for use with the dashboard.
+        if ('actor' in msg) and (msg['actor'] is not None):
+            apparent_seat = (msg['actor'] - self.seat) % game.NUM_PLAYERS
+        else:
+            apparent_seat = None
+
         if 'playC' in msg:
             if msg['actor'] == self.seat:
                 self.hand.remove(cards.Card(msg['playC']))
-
-            else:
-                log.info('Seat '+str(msg['actor'])+' played '+
-                                    str(cards.Card(msg['playC']))+'.')
+                cs.update_dash('hand', [str(card) for card in self.hand])
+            cs.update_dash('card', apparent_seat,
+                           str(cards.Card(msg['playC'])))
             self.cards_in_play.append(cards.Card(msg['playC']))
             if 'remP' in msg:
-                log.info('Seat ' + str(msg['remP']) + ' won the trick.')
+                # End of trick: clear previous trick to make room for this one.
+                cs.update_dash('taker', '')
+                for x in range(game.NUM_PLAYERS):
+                    cs.update_dash('last', x, '  ')
+                # Pause display with all 4 cards out.
+                sleep(0.5)
+                log.debug('%s won the trick', self._table_view[msg['remP']])
+                cs.update_dash('taker', self._table_view[msg['remP']])
+                for x in range(game.NUM_PLAYERS):
+                    sleep(0.2)
+                    # Remove cards from play, starting with trick winner.
+                    rem_from = (msg['remP'] - self.seat + x) % game.NUM_PLAYERS
+                    cs.update_dash('card', rem_from, '  ')
+                    # Pull the correct card from cards_in_play to write to cs.ud.
+                    add_to = (msg['remP'] - msg['actor'] + x - 1) % game.NUM_PLAYERS
+                    cs.update_dash('last', add_to, str(self.cards_in_play[add_to]))
                 self.cards_in_play = []
+                sleep(0.3)
         if 'mode' in msg: # Must be processed before 'bid' due to dashboard.
             self.game_mode = msg['mode']
             if self.game_mode == game.GAME_MODE.BID:
@@ -110,7 +133,6 @@ class RoomView(gamestate.GameState):
                 for x in range(game.NUM_PLAYERS):
                     cs.update_dash('bid', x, None)
         if 'bid' in msg:
-            apparent_seat = (msg['actor'] - self.seat) % game.NUM_PLAYERS
             cs.update_dash('bid', apparent_seat, msg['bid'])
         if 'dlr' in msg:
             self.dealer = msg['dlr']
@@ -120,6 +142,7 @@ class RoomView(gamestate.GameState):
             for card_code in msg['addC']:
                 # Add a Card object corresponding to the code sent.
                 self.hand.append(cards.Card(card_code))
+            cs.update_dash('hand', [str(card) for card in self.hand])
         if 'sco' in msg:
             self.scores = msg['sco']
             log.info('Scores: You ' + str(self.scores[self.seat % 2]) +
@@ -234,7 +257,6 @@ class Namespace(BaseNamespace):
 
     def on_play(self, msg):
         self.rv.modify(msg)
-        cs.update_dash('hand', [str(card) for card in self.rv.hand])
         
     def on_roomFull(self, *args):
         log.info('Room is full.')
@@ -246,7 +268,6 @@ class Namespace(BaseNamespace):
     
     def on_startData(self, msg):
         self.rv.modify(msg)
-        cs.update_dash('hand', [str(card) for card in self.rv.hand])
 
     def on_seatChart(self, chart):
         # Final seat chart is sent as list of len-2 lists [u'nick', seat_num]

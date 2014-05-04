@@ -128,13 +128,15 @@ class CinchScreen():
         self.hand.refresh()
 
         # Info display:
+        self.LAST_TRICK_DISP = [(3,2), (3,5), (3,8), (3,11)]
+        self.LAST_TAKER_DISP = (2,2)
+        self.LAST_TAKER_LEN = 14
+
         self.info = curses.newwin(nfo['h'], nfo['w'], nfo['y'], nfo['x'])
         self.info.leaveok(False)
         self.info.border()
         self.info.move(1,2)
-        self.info.addstr("Game/status info will be")
-        self.info.move(2,2)
-        self.info.addstr("written here.")
+        self.info.addstr('--Last trick--')
         self.info.refresh()
 
         commandline_listener = threading.Thread(target=self._console_input)
@@ -261,8 +263,9 @@ class CinchScreen():
         Currently allowed msg_type values:
 
         'hand': *args should be a len<10 list of 2-char strings to write.
-        'seat': *args should be an apparent_seat and nickname to write
+        'seat': *args should be an apparent_seat and nickname to write.
         'bid': *args should be an apparent_seat and bid (int or None).
+        'card': *args should be an apparent_seat and card (NS-style or '  ').
         '''
 
         try:
@@ -320,7 +323,37 @@ class CinchScreen():
                 self.table.refresh()
                 
             elif msg_type is 'card':
-                pass #TODO
+                apparent_seat = args[0]
+                card = args[1]
+                if card is None:
+                    card = '  '
+                self.table.move(*self.TBL_CARDS[apparent_seat])
+                self.table.addstr(card)
+                self.table.refresh()
+
+            #----< Info Window Updates >----#
+            elif msg_type is 'last':
+                line = args[0]
+                card = args[1]
+                if card is None:
+                    card = '  '
+                self.info.move(*self.LAST_TRICK_DISP[line])
+                self.info.addstr(card)
+                self.info.refresh()
+            
+            elif msg_type is 'taker':
+                taker = args[0]
+                if (taker is None) or (taker is ''):
+                    taker = ''
+                else:
+                    taker = taker + ' took:'
+                if len(taker) > self.LAST_TAKER_LEN:
+                    taker = taker[:self.LAST_TAKER_LEN - 7] + '> took:'
+                while len(taker) < self.LAST_TAKER_LEN:
+                    taker += ' '
+                self.info.move(*self.LAST_TAKER_DISP)
+                self.info.addstr(taker)
+                self.info.refresh()
 
             elif msg_type is 'dealer':
                 pass #TODO
