@@ -58,11 +58,13 @@ class RoomView(gamestate.GameState):
         self.hand = [] # self.hand will be a list of Card objects.
         self.table_view = [None, None, None, None] # Player names 0-3.
 
+    def __del__(self):
+        # Need to reset all room-specific items on the display.
+        cs.update_dash('hand', '') # Clear Hand panel.
+
     #-------------------------#
     # Gamestate Update Method #
     #-------------------------#
-
-    # Note: find better way to do this - maybe build into GameState itself?
 
     def modify(self, msg):
         """
@@ -125,7 +127,6 @@ class Namespace(BaseNamespace):
     def __init__(self, *args):
         super(Namespace, self).__init__(*args)
         self.ai_list = []
-        self.rv = None
         self.nickname = 'NewUser' # Assigned but not transmitted by server.
 
     #----------------#
@@ -136,12 +137,12 @@ class Namespace(BaseNamespace):
         log.info('Room '+str(room_num)+' created.')
         self.emit('join', room_num, self.ackJoin)
 
-    def ackJoin(self, args):
+    def ackJoin(self, *args):
         # Clear any game/room data when moving from room to room.
         self.rv = RoomView(0) # Set up a RoomView to hold game info.
         if args['roomNum'] == 0:
             log.info('You are in the lobby.')
-            self.rv = None
+            del self.rv
         else:
             self.rv.room = args['roomNum']
             log.info('You are in room ' +str(self.rv.room)+'.')
@@ -253,10 +254,6 @@ def console(window, host='localhost', port=8088):
     Default host:port is localhost:8088.
     """
     # Initialize curses interface
-    #cs = cinchscreen.CinchScreen(window)
-
-    #with CursesLogger(cs) as cl:
-
     global cs 
     with cinchscreen.CinchScreen(window, log) as cs:
 
@@ -325,7 +322,7 @@ def console(window, host='localhost', port=8088):
                 elif 'join' in cmd:
                     try:
                         room_num = int(cmd['join'])
-                        if ns.rv is not None: # Not in a room; must be in the lobby
+                        if not hasattr(ns, 'rv'): # No RoomView = in lobby
                             cs.write('join: must be in lobby to join a room')
                         else:
                             ns.emit('join', room_num, ns.ackJoin)

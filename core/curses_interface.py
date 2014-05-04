@@ -28,8 +28,9 @@ LOG_SHORT ={'d':'DEBUG', 'i':'INFO', 'w':'WARNING', 'e':'ERROR', 'c':'CRITICAL'}
 
 
 class CinchScreen():
-    def __init__(self, main_win, global_log):
-        # Pass logging.getLogger(__name__) to configure all logs to use curses.
+    def __init__(self, main_win, global_log, captured_loggers):
+        # Pass logging.getLogger(__name__) to enforce info-level logging.
+        # Also set other loggers to original log level.
         self.log = global_log
 
         self.main_win = main_win        
@@ -143,7 +144,7 @@ class CinchScreen():
         for x in logging.Logger.manager.loggerDict:
             x_log = logging.getLogger(x)
             x_log.addHandler(logging.StreamHandler(self))
-            x_log.setLevel(log.level)
+            x_log.setLevel(self.log.level)
 
         # INFO level logging used for most command responses; enable them.
         if (self.log.level > logging.INFO) or (self.log.level == 0):
