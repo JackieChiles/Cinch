@@ -46,21 +46,30 @@ log = logging.getLogger(__name__)
 LOG_SHORT ={'d':'DEBUG', 'i':'INFO', 'w':'WARNING', 'e':'ERROR', 'c':'CRITICAL'}
 
 
+import core.game as game
 import core.gamestate as gamestate
 import core.cards as cards
 
 
 class RoomView(gamestate.GameState):
+    '''This class extends GameState for use by the console client. A RoomView
+    should be created/deleted upon entry/exit from a room.'''
+
     def __init__(self, *args):
         super(RoomView, self).__init__(0)
         self.room = None
         self.seat = None
         self.hand = [] # self.hand will be a list of Card objects.
-        self.table_view = [None, None, None, None] # Player names 0-3.
+        self._table_view = [None, None, None, None] # Player names 0-3.
 
     def __del__(self):
         # Need to reset all room-specific items on the display.
         cs.update_dash('hand', []) # Clear Hand panel.
+        for x in range(game.NUM_PLAYERS):
+            cs.update_dash('seat', x, '')
+            cs.update_dash('bid', x, '')
+            cs.update_dash('card', x, '')
+        cs.update_dash('dealer', None)
 
     #-------------------------#
     # Gamestate Update Method #
@@ -121,6 +130,25 @@ class RoomView(gamestate.GameState):
                 action_str = 'play.'
             log.info('Your turn to ' + action_str)
 
+    def update_table(self, username, seat_num, action='add'):
+        '''Call this method when adding or removing users from seats. It will
+        automatically update the dashboard if the user is in a seat.'''
+        if not (action is 'add' or action is 'remove'):
+            log.error('rv.update_table called with invalid action %s', action)
+            return
+        if action is 'add':
+            self._table_view[seat_num] = username
+        if action is 'remove':
+            self._table_view[seat_num] = None
+        if self.seat is not None:
+            # User is in a seat so users can be drawn at their seats.
+            for actual_seat, player in enumerate(self._table_view):
+                if player is None:
+                    nick = ''
+                else:
+                    nick = player
+                apparent_seat = (actual_seat - self.seat) % game.NUM_PLAYERS
+                cs.update_dash('seat', apparent_seat, nick) 
 
 class Namespace(BaseNamespace):
 
@@ -145,14 +173,21 @@ class Namespace(BaseNamespace):
             del self.rv
         else:
             self.rv.room = args[0]['roomNum']
-            log.info('You are in room ' +str(self.rv.room)+'.')
-            #TODO pass seatChart to tableview...
-            # log.info('Seats available: ' + str(args[0]['seatChart']))
+            log.info('You are in room ' +str(self.rv.room)+'.') #TODO-dashboard
+            for player in args[0]['seatChart']:
+                # SeatCharts are lists of (username, seat) pairs.
+                if int(player[1]) == -1: # Username not in a seat...
+                    pass #TODO-dashboard put in status panel?
+                else:
+                    self.rv.update_table(player[0], int(player[1]))
 
     def on_ackSeat(self, seat_num):
-        log.info('You have been placed in seat '+str(seat_num))
-        self.rv.seat = seat_num
-        self.rv.table_view[seat_num] = 'You'
+        if hasattr(self, 'rv'):
+            log.info('You have been placed in seat '+str(seat_num))
+            self.rv.seat = seat_num
+            self.rv.update_table(self.nickname, seat_num)
+        else:
+            raise RuntimeError('Got ackSeat while not in a room??')
 
     def ackNickname(self, nickname):
         if nickname is None:
@@ -211,13 +246,18 @@ class Namespace(BaseNamespace):
         self.rv.modify(msg)
         cs.update_dash('hand', [str(card) for card in self.rv.hand])
 
+    def on_seatChart(self, chart):
+        # Final seat chart is sent as list of len-2 lists [u'nick', seat_num]
+        for entry in chart:
+            self.rv.update_table(entry[0], entry[1])
+
     def on_userInSeat(self, json):
         if json['name'] == self.nickname:
             pass # Would duplicate message from on_ackSeat
         else:
             log.info(json['name'] + ' is now sitting in seat ' +
                                 str(json['actor']) + '.')
-            self.rv.table_view[json['actor']] = json['name']
+            self.rv.update_table(json['name'], json['actor'])
 
     def on_users(self, users):
         log.info('In the room: '+', '.join([str(x) for x in users]))

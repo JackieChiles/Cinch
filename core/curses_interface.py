@@ -102,7 +102,7 @@ class CinchScreen():
         self.table.move(1,8)
         self.table.addstr("PLAY  AREA")
 
-        # draw table graphic
+        # Draw table graphic:
         self.table.move(4,9)
         self.table.addstr("┌──────┐")
         for x in range(5,8):
@@ -111,6 +111,12 @@ class CinchScreen():
         self.table.move(8,9)
         self.table.addstr("└──────┘")
 
+        # Add constants for writing table data:
+        self.TBL_NAMES  = [( 9, 9), (5, 1), (2, 9), (5,17)]
+        self.TBL_NAME_LEN = 8
+        self.TBL_CARDS  = [( 7,12), (6,10), (5,12), (6,14)]
+        self.TBL_BIDS   = [(10,13), (6, 6), (3,14), (6,22)]
+        self.TBL_DEALER = [( 7,10), (5,10), (5,15), (7,15)]
         self.table.refresh()
 
         # Hand display:
@@ -255,9 +261,11 @@ class CinchScreen():
         Currently allowed msg_type values:
 
         'hand': *args should be a len<10 list of 2-char strings to write.
+        'seat': *args should be an apparent_seat and nickname to write
         '''
 
         try:
+            #----< Hand Window Updates >----#
             if msg_type is 'hand':
                 h_upd = args[0]
 
@@ -268,10 +276,6 @@ class CinchScreen():
                 if len(h_upd) > 9:
                     log.error("update_dash(hand): too many cards")
                     return
-                #for c in h_upd:
-                 #   if len(c) is not 2:
-                  #      log.error("update_dash(hand): %s not valid card", c)
-                   #     return
 
                 # Pad to 9 entries to overwrite old hand
                 while len(h_upd) < 9:
@@ -282,6 +286,32 @@ class CinchScreen():
                     self.hand.move(k,2)
                     self.hand.addstr(v)
                     self.hand.refresh()
+
+            #----< Table Window Updates >----#
+            elif msg_type is 'seat':
+                apparent_seat = args[0]
+                nickname = args[1]
+                # Truncate long names
+                if len(nickname) > self.TBL_NAME_LEN:
+                    nickname = nickname[:(self.TBL_NAME_LEN - 1)] + '>'
+                # Pad short names
+                while len(nickname) < self.TBL_NAME_LEN:
+                    nickname += ' '
+                # Write nickname to appropriate slot
+                self.table.move(*self.TBL_NAMES[apparent_seat])
+                self.table.addstr(nickname)
+                self.table.refresh()
+            
+            elif msg_type is 'bid':
+                pass #TODO
+                
+            elif msg_type is 'card':
+                pass #TODO
+
+            elif msg_type is 'dealer':
+                pass #TODO
+
+            #----< Handle invalid input >----*
             else:
                 log.error("msg_type %s not valid in update_dash", msg_type)
         finally:
