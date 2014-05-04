@@ -28,7 +28,10 @@ LOG_SHORT ={'d':'DEBUG', 'i':'INFO', 'w':'WARNING', 'e':'ERROR', 'c':'CRITICAL'}
 
 
 class CinchScreen():
-    def __init__(self, main_win):
+    def __init__(self, main_win, global_log):
+        # Pass logging.getLogger(__name__) to configure all logs to use curses.
+        self.log = global_log
+
         self.main_win = main_win        
         self.ym, self.xm = self.getsizes()
         self.PROMPT = "cinch> "
@@ -49,10 +52,10 @@ class CinchScreen():
         # Define sub-window dimensions here.
 
         # First define the functional layout.
-        self.DASHBOARD_HEIGHT = 10
+        self.DASHBOARD_HEIGHT = 12
         self.COMMAND_HEIGHT = 1
-        self.TABLE_WIDTH = 25
-        self.HAND_WIDTH = 12
+        self.TABLE_WIDTH = 26
+        self.HAND_WIDTH = 6
         self.INFO_WIDTH = 30
 
         # Now derive the newwin() calls for each window.
@@ -95,15 +98,25 @@ class CinchScreen():
         self.table = curses.newwin(tbl['h'], tbl['w'], tbl['y'], tbl['x'])
         self.table.leaveok(False)
         self.table.border()
-        self.table.move(1,3)
-        self.table.addstr("CINCH TABLE DISPLAY")
+        self.table.move(1,8)
+        self.table.addstr("PLAY  AREA")
+
+        # draw table graphic
+        self.table.move(4,9)
+        self.table.addstr("┌──────┐")
+        for x in range(5,8):
+            self.table.move(x,9)
+            self.table.addstr("│      │")
+        self.table.move(8,9)
+        self.table.addstr("└──────┘")
+
         self.table.refresh()
 
         # Hand display:
         self.hand = curses.newwin(hnd['h'], hnd['w'], hnd['y'], hnd['x'])
         self.hand.leaveok(False)
         self.hand.border()
-        self.hand.move(1,4)
+        self.hand.move(1,1)
         self.hand.addstr("HAND")
         self.hand.refresh()
 
@@ -133,7 +146,6 @@ class CinchScreen():
             x_log.setLevel(log.level)
 
         # INFO level logging used for most command responses; enable them.
-        self.log = logging.getLogger(__name__)
         if (self.log.level > logging.INFO) or (self.log.level == 0):
             self._old_log_level = self.log.level
             self.log.setLevel(logging.INFO)
@@ -231,6 +243,48 @@ class CinchScreen():
             del self._command_usage[name]
         except KeyError:
             self.write("KeyError deleting command " + name + ": not found")
+
+    def update_dash(self, msg_type, *args):
+        '''Display information in the dashboard. Most game events should affect
+        the dashboard in some way.
+        
+        msg_type(str): Type of update to process. Allowed values will affect the
+                       required *args.
+
+        Currently allowed msg_type values:
+
+        'hand': *args should be a len<10 list of 2-char strings to write.
+        '''
+
+        try:
+            if msg_type is 'hand':
+                h_upd = args[0]
+
+                # Do some validation on input
+                if type(h_upd) is not list:
+                    log.error("update_dash(hand): hand data not list")
+                    return
+                if len(h_upd) > 9:
+                    log.error("update_dash(hand): too many cards")
+                    return
+                #for c in h_upd:
+                 #   if len(c) is not 2:
+                  #      log.error("update_dash(hand): %s not valid card", c)
+                   #     return
+
+                # Pad to 9 entries to overwrite old hand
+                while len(h_upd) < 9:
+                    h_upd.append('  ')
+
+                # Write cards to screen
+                for k,v in dict(zip(range(2,11),h_upd)).iteritems():
+                    self.hand.move(k,2)
+                    self.hand.addstr(v)
+                    self.hand.refresh()
+            else:
+                log.error("msg_type %s not valid in update_dash", msg_type)
+        finally:
+            self.cmdline.refresh() # Set displayed cursor back to cmdline.
 
     def write(self, *stuff):
         '''Display text in the console text window, scrolling the existing

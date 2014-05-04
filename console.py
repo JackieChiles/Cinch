@@ -20,6 +20,7 @@ COMMANDS = [ ['test', r'^$', '(null): test connection to server'],
              ['chat', r'^.*', '<str>: send message <str> to current room'],
              ['room', r'^([0-3]:\d+\s+){0,3}([0-3]:\d+)?$',
               '[<seat>:<ai_id> x0-4]: spawn new room [with opt. ai seating]'],
+             ['aig', r'^$', '(null): quickstart ai game for testing'],
              ['lobby', r'^$', '(null): leave current room and join lobby'],
              ['join', r'^[0-9]+$', 'N: join room N'],
              ['help', r'^$|^-v$', '[-v]: list registered commands [-v w/regex]'],
@@ -43,6 +44,7 @@ import argparse
 import logging
 log = logging.getLogger(__name__)
 LOG_SHORT ={'d':'DEBUG', 'i':'INFO', 'w':'WARNING', 'e':'ERROR', 'c':'CRITICAL'}
+
 
 import core.gamestate as gamestate
 import core.cards as cards
@@ -82,6 +84,7 @@ class RoomView(gamestate.GameState):
         if 'playC' in msg:
             if msg['actor'] == self.seat:
                 self.hand.remove(cards.Card(msg['playC']))
+
             else:
                 log.info('Seat '+str(msg['actor'])+' played '+
                                     str(cards.Card(msg['playC']))+'.')
@@ -115,48 +118,6 @@ class RoomView(gamestate.GameState):
             else:
                 action_str = 'play.'
             log.info('Your turn to ' + action_str)
-            hand_str = 'Your hand: '+', '.join([str(card) for card in self.hand])
-            log.info(hand_str)
-
-
-class CursesLogger(object):
-    def __init__(self, curses_stream):
-        self.cs = curses_stream
-
-    def __enter__(self):
-        # Capture stderr.
-        self._old_stderr = sys.stderr
-        sys.stderr = self.cs # Capture tracebacks and display nicely
-
-        # Capture all loggers.
-        for x in logging.Logger.manager.loggerDict:
-            x_log = logging.getLogger(x)
-            x_log.addHandler(logging.StreamHandler(self.cs))
-            x_log.setLevel(log.level)
-
-        # INFO level logging used for most command responses; enable them.
-        self.log = logging.getLogger(__name__)
-        if (self.log.level > logging.INFO) or (self.log.level == 0):
-            self._old_log_level = self.log.level
-            self.log.setLevel(logging.INFO)
-
-        return self
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        # Reset previous logging (undo INFO level set)
-        try:
-            self.log.setLevel(self._old_log_level)
-        except AttributeError:
-            pass
-
-        # Remove cinchscreen handlers
-        for x in logging.Logger.manager.loggerDict:
-            logging.getLogger(x).handlers = []
-
-        # Reset stderr
-        sys.stderr = self._old_stderr
-
-        log.debug("Logged after executing self.__exit__()")
 
 
 class Namespace(BaseNamespace):
@@ -178,8 +139,6 @@ class Namespace(BaseNamespace):
     def ackJoin(self, args):
         # Clear any game/room data when moving from room to room.
         self.rv = RoomView(0) # Set up a RoomView to hold game info.
-
-        log.info(args)###
         if args['roomNum'] == 0:
             log.info('You are in the lobby.')
             self.rv = None
@@ -194,6 +153,8 @@ class Namespace(BaseNamespace):
         self.rv.table_view[seat_num] = 'You'
 
     def ackNickname(self, nickname):
+        if nickname is None:
+            return
         resp_line = 'New nickname: '+nickname
         log.info(resp_line)
         self.nickname = nickname
@@ -203,7 +164,6 @@ class Namespace(BaseNamespace):
         log.info('Updated AI agent list.')
 
     def on_bid(self, msg):
-        # log.info(str(msg)) #DEBUG See on_play
         self.rv.modify(msg)
 
     def on_chat(self, chat_packet):
@@ -234,8 +194,8 @@ class Namespace(BaseNamespace):
         log.info(str(exiter) + ' has left the room.')
 
     def on_play(self, msg):
-        # log.info(str(msg)) #DEBUG #TODO make way to toggle in-game
         self.rv.modify(msg)
+        cs.update_dash('hand', [str(card) for card in self.rv.hand])
         
     def on_roomFull(self, *args):
         log.info('Room is full.')
@@ -247,8 +207,7 @@ class Namespace(BaseNamespace):
     
     def on_startData(self, msg):
         self.rv.modify(msg)
-        hand_str = 'Your hand: '+', '.join([str(card) for card in self.rv.hand])
-        log.info(hand_str)
+        cs.update_dash('hand', [str(card) for card in self.rv.hand])
 
     def on_userInSeat(self, json):
         if json['name'] == self.nickname:
@@ -294,9 +253,12 @@ def console(window, host='localhost', port=8088):
     Default host:port is localhost:8088.
     """
     # Initialize curses interface
-    cs = cinchscreen.CinchScreen(window)
+    #cs = cinchscreen.CinchScreen(window)
 
-    with CursesLogger(cs) as cl:
+    #with CursesLogger(cs) as cl:
+
+    global cs 
+    with cinchscreen.CinchScreen(window, log) as cs:
 
         # Establish server connection
         socket = SocketIO(host, port)
@@ -304,7 +266,6 @@ def console(window, host='localhost', port=8088):
         listener.daemon = True
         listener.start()
         ns = socket.define(Namespace, '/cinch')
-    
     
         # Test & initialize connection
         sleep(0.5)
@@ -314,14 +275,14 @@ def console(window, host='localhost', port=8088):
         # Register commands.
         # commands - list of 3-string lists (name, regex, usage).
         for c in COMMANDS:
-            cl.cs.register_command(*c)
+            cs.register_command(*c)
     
         # Listen to the console.
         try:
             while True:
-                while cl.cs.queue.empty():
+                while cs.queue.empty():
                     sleep(0.1)
-                cmd = cl.cs.queue.get(timeout=0.2)
+                cmd = cs.queue.get(timeout=0.2)
     
                 # Process the command.
     
@@ -333,10 +294,10 @@ def console(window, host='localhost', port=8088):
                         output = command[0] + ': ' + command[2]
                         if 'v' in cmd['help']:
                             output += r' (regex: /' + command[1] + r'/)'
-                        cl.cs.write(output)
+                        cs.write(output)
                 elif 'nick' in cmd:
                     if cmd['nick'] == '':
-                        cl.cs.write(ns.nickname) #TODO RoomView
+                        cs.write(ns.nickname) #TODO RoomView
                     else:
                         ns.emit('nickname', cmd['nick'], ns.ackNickname)
                         #TODO status window update nick
@@ -356,13 +317,16 @@ def console(window, host='localhost', port=8088):
                     except ValueError:
                         log.exception('room: arg from queue: %s', cmd['room'])
                         log.error('room: A problem occurred.')
+                elif 'aig' in cmd:
+                    # Quickstart a 3-ai game.
+                    ns.emit('createRoom', {1:1,2:1,3:1}, ns.ackCreate)
                 elif 'lobby' in cmd:
                     ns.emit('exit', '')
                 elif 'join' in cmd:
                     try:
                         room_num = int(cmd['join'])
                         if ns.rv is not None: # Not in a room; must be in the lobby
-                            cl.cs.write('join: must be in lobby to join a room')
+                            cs.write('join: must be in lobby to join a room')
                         else:
                             ns.emit('join', room_num, ns.ackJoin)
                     except ValueError:
@@ -370,7 +334,7 @@ def console(window, host='localhost', port=8088):
                         log.error('join: A problem occurred.')
                 elif 'seat' in cmd:
                     if cmd['seat'] == '':
-                        cl.cs.write('seat: currently in room ' +
+                        cs.write('seat: currently in room ' +
                                     str(ns.rv.room) + ', seat ' +
                                     str(ns.rv.seat) + '.')
                     else:
@@ -385,9 +349,9 @@ def console(window, host='localhost', port=8088):
                     if cmd['ai'] == 'refresh':
                         ns.emit('aiList', '')
                     elif cmd['ai'] == 'list':
-                        cl.cs.write("Available AI agents:")
+                        cs.write("Available AI agents:")
                         for ai in ns.ai_list:
-                            cl.cs.write(str(ai['id']) + ': ' + ai['name'] +
+                            cs.write(str(ai['id']) + ': ' + ai['name'] +
                                         ' - ' + ai['desc'])
                     else:
                         try:
@@ -418,9 +382,14 @@ def console(window, host='localhost', port=8088):
                     except Exception:
                         log.exception('play: generic problem')
                 elif 'hand' in cmd:
-                    hand_str = ('Your hand: ' +
-                                ', '.join([str(card) for card in ns.rv.hand]))
-                    cl.cs.write(hand_str)
+                    # Write current hand contents to console as well as dash.
+                    if ns.rv is None:
+                        log.info("No hand - not in a game.")
+                    else:
+                        hand_str = ('Your hand: ' +
+                                    ', '.join([str(card) for card in ns.rv.hand]))
+                        cs.write(hand_str)
+                        cs.update_dash('hand', [str(card) for card in ns.rv.hand])
                 elif 'exit' in cmd:
                     raise SystemExit
     
