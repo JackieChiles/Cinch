@@ -152,6 +152,11 @@ function CinchViewModel() {
     //When the user chooses to enter the lobby to select a game,
     //submit nickname request and switch to lobby view
     self.enterLobby = function() {
+	// Require a non-empty username
+	if (self.username().length < 1) {
+	    alert("A username is required.");
+	    return;
+	}
         self.username() && self.socket.emit('nickname', self.username(), function(msg) {
             //TODO: wait for confirmation before changing username on client
 	    console.log('new nickname = ', msg);
