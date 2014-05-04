@@ -27,6 +27,14 @@ $(function () {
         }
     });
 
+    //Add a binding to the username input to goto Lobby when enter is pressed
+    $('#username-input').keypress(function(event) {
+        if ( event.which == 13 ) {
+           event.preventDefault();
+           $('#enter-lobby-btn').click();
+        }
+    });
+
     //Set the width and height of the play surface canvas
     $('#play-surface').attr('width', CinchApp.playSurfaceWidth).attr('height', CinchApp.playSurfaceHeight);
 });
