@@ -60,7 +60,7 @@ class RoomView(gamestate.GameState):
 
     def __del__(self):
         # Need to reset all room-specific items on the display.
-        cs.update_dash('hand', '') # Clear Hand panel.
+        cs.update_dash('hand', []) # Clear Hand panel.
 
     #-------------------------#
     # Gamestate Update Method #
@@ -140,13 +140,14 @@ class Namespace(BaseNamespace):
     def ackJoin(self, *args):
         # Clear any game/room data when moving from room to room.
         self.rv = RoomView(0) # Set up a RoomView to hold game info.
-        if args['roomNum'] == 0:
+        if args[0]['seatChart'] == 'lobby':
             log.info('You are in the lobby.')
             del self.rv
         else:
-            self.rv.room = args['roomNum']
+            self.rv.room = args[0]['roomNum']
             log.info('You are in room ' +str(self.rv.room)+'.')
-            log.info('Seats available: ' + str(args['seatChart']))
+            #TODO pass seatChart to tableview...
+            # log.info('Seats available: ' + str(args[0]['seatChart']))
 
     def on_ackSeat(self, seat_num):
         log.info('You have been placed in seat '+str(seat_num))
@@ -318,7 +319,8 @@ def console(window, host='localhost', port=8088):
                     # Quickstart a 3-ai game.
                     ns.emit('createRoom', {1:1,2:1,3:1}, ns.ackCreate)
                 elif 'lobby' in cmd:
-                    ns.emit('exit', '')
+                    ns.emit('exit', '', ns.ackJoin)
+                    # Need to listen for confirmation we're back in lobby...
                 elif 'join' in cmd:
                     try:
                         room_num = int(cmd['join'])
@@ -331,9 +333,11 @@ def console(window, host='localhost', port=8088):
                         log.error('join: A problem occurred.')
                 elif 'seat' in cmd:
                     if cmd['seat'] == '':
-                        cs.write('seat: currently in room ' +
-                                    str(ns.rv.room) + ', seat ' +
-                                    str(ns.rv.seat) + '.')
+                        if hasattr(ns, 'rv'):
+                            log.info('seat: currently in room %s, seat %s',
+                                     str(ns.rv.room), str(ns.rv.seat))
+                        else:
+                            log.info('seat: currently in lobby')
                     else:
                         try:
                             seat_num = int(cmd['seat'])
@@ -380,7 +384,7 @@ def console(window, host='localhost', port=8088):
                         log.exception('play: generic problem')
                 elif 'hand' in cmd:
                     # Write current hand contents to console as well as dash.
-                    if ns.rv is None:
+                    if not hasattr(ns, 'rv'):
                         log.info("No hand - not in a game.")
                     else:
                         hand_str = ('Your hand: ' +

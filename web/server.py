@@ -246,13 +246,19 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
                 pass
         
             if self.session['room'].num != LOBBY:   # Don't rejoin lobby if leaving lobby
+                log.debug('%s left room %s; placing in lobby.',
+                          self.session['nickname'], self.session['room'].num)
                 self.on_join(LOBBY)
         except:
             pass
+
+        # If lobby successfully joined, need to send ack to client.
+        # Client won't get callback from server-emitted on_join.
+        return ({'seatChart': 'lobby'},)
             
         #FUTURE do stuff for game-in-progress -- maybe allow player to replace
         #one who left
-    
+
     def on_join(self, roomNum):
         """Join room specified by roomNum.
         
