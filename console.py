@@ -72,6 +72,9 @@ class RoomView(gamestate.GameState):
             cs.update_dash('last', x, None)
         cs.update_dash('dealer', None)
         cs.update_dash('taker', '')
+        cs.update_dash('trump', None)
+        cs.update_dash('scores', None)
+
 
     #-------------------------#
     # Gamestate Update Method #
@@ -126,12 +129,16 @@ class RoomView(gamestate.GameState):
                     cs.update_dash('last', add_to, str(self.cards_in_play[add_to]))
                 self.cards_in_play = []
                 sleep(0.3)
+        if 'trp' in msg:
+            cs.update_dash('trump', cards.SUITS_SHORT[msg['trp']])
         if 'mode' in msg: # Must be processed before 'bid' due to dashboard.
             self.game_mode = msg['mode']
             if self.game_mode == game.GAME_MODE.BID:
                 # Clear all bids from play area before processing new.
                 for x in range(game.NUM_PLAYERS):
                     cs.update_dash('bid', x, None)
+                # Clear last hand's trump.
+                cs.update_dash('trump', None)
         if 'bid' in msg:
             cs.update_dash('bid', apparent_seat, msg['bid'])
         if 'dlr' in msg:
@@ -145,8 +152,10 @@ class RoomView(gamestate.GameState):
             cs.update_dash('hand', [str(card) for card in self.hand])
         if 'sco' in msg:
             self.scores = msg['sco']
-            log.info('Scores: You ' + str(self.scores[self.seat % 2]) +
-                     ', them ' + str(self.scores[(self.seat + 1) % 2]))
+            us_score = str(self.scores[self.seat % 2])
+            them_score = str(self.scores[(self.seat + 1) % 2])
+            log.debug('Scores: You %s, them %s', us_score, them_score)
+            cs.update_dash('scores', (us_score, them_score))
 
         if self.active_player == self.seat:
             if self.game_mode == 2:

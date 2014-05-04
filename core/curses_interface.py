@@ -131,12 +131,30 @@ class CinchScreen():
         self.LAST_TRICK_DISP = [(3,2), (3,5), (3,8), (3,11)]
         self.LAST_TAKER_DISP = (2,2)
         self.LAST_TAKER_LEN = 14
+        
+        self.TRUMP_DISP = (self.DASHBOARD_HEIGHT - 2, 9)
+
+        self.US_SCORE_DISP = (3, self.INFO_WIDTH - 5)
+        self.THEM_SCORE_DISP = (6, self.INFO_WIDTH - 5)
 
         self.info = curses.newwin(nfo['h'], nfo['w'], nfo['y'], nfo['x'])
         self.info.leaveok(False)
         self.info.border()
         self.info.move(1,2)
         self.info.addstr('--Last trick--')
+        self.info.move(self.DASHBOARD_HEIGHT - 2, 2)
+        self.info.addstr('Trump:')
+
+        self.SCORES_TEMPLATE = ['   Scores  ',
+                                '      ┌───┐',
+                                ' Us:  │   │',
+                                '      └───┘',
+                                '      ┌───┐',
+                                ' Them:│   │',
+                                '      └───┘']
+        for x in range(1,8):
+            self.info.move(x, self.INFO_WIDTH - 12)
+            self.info.addstr(self.SCORES_TEMPLATE[x-1])
         self.info.refresh()
 
         commandline_listener = threading.Thread(target=self._console_input)
@@ -261,11 +279,18 @@ class CinchScreen():
                        required *args.
 
         Currently allowed msg_type values:
-
-        'hand': *args should be a len<10 list of 2-char strings to write.
-        'seat': *args should be an apparent_seat and nickname to write.
-        'bid': *args should be an apparent_seat and bid (int or None).
-        'card': *args should be an apparent_seat and card (NS-style or '  ').
+        
+        msg_type  |   args
+        ----------|-------
+        'hand'    |   A len-[0..9] list of NS-style strings.
+        'seat'    |   An apparent_seat and nickname ('' to clear).
+        'bid'     |   An apparent_seat and bid (int or None).
+        'card'    |   An apparent_seat and card (NS-style or None).
+        'last'    |   A line num (0-3) and card (NS-style or None).
+        'taker'   |   A username, None, or ''.
+        'scores'  |   A 2-tuple with Us/Them scores or None.
+        'trump'   |   A suit symbol or None.
+        'dealer'  |   <not implemented yet>
         '''
 
         try:
@@ -353,6 +378,32 @@ class CinchScreen():
                     taker += ' '
                 self.info.move(*self.LAST_TAKER_DISP)
                 self.info.addstr(taker)
+                self.info.refresh()
+
+            elif msg_type is 'scores':
+                log.debug('cs.update_dash--scores: %s', args)
+                if args[0] is None:
+                    us_score = '   '
+                    them_score = '   '
+                else:
+                    us_score = args[0][0]
+                    them_score = args[0][1]
+                us_score = (str(us_score) + '   ')[:3]
+                them_score = (str(them_score) + '   ')[:3]
+                self.info.move(*self.US_SCORE_DISP)
+                self.info.addstr(us_score)
+                self.info.move(*self.THEM_SCORE_DISP)
+                self.info.addstr(them_score)
+                self.info.refresh()
+
+            elif msg_type is 'trump':
+                log.debug('cs.update_dash--trump: %s', args)
+                if args[0] is None:
+                    trump = ' '
+                else:
+                    trump = args[0]
+                self.info.move(*self.TRUMP_DISP)
+                self.info.addstr(trump)
                 self.info.refresh()
 
             elif msg_type is 'dealer':
