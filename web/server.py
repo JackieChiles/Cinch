@@ -147,7 +147,8 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         self.session['nickname'] = 'NewUser'
         
         self.on_join(LOBBY) # Join lobby
-        roomList = [{'name': str(x), 'num':x.num} for x in self.request['rooms']]
+        roomList = [{'name': str(x), 'num':x.num, 'isFull': x.isFull()}
+                    for x in self.request['rooms']]
         del roomList[0] # Don't send lobby
         self.emit('rooms', roomList)
 
@@ -205,7 +206,8 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         
         # TODO broadcast only to lobby
         # Goes to all clients in room
-        self.broadcast_event('newRoom', {'name': str(newRoom), 'num': roomNum})
+        self.broadcast_event('newRoom', {'name': str(newRoom), 'num': roomNum, 
+                                         'isFull': newRoom.isFull()})
         
         # Summon AI players
         try:
@@ -222,12 +224,18 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
     def on_exit(self, _):
         """Leave room and return to lobby, while announcing to rest of room."""
         if self.socket not in self.session['room'].users:
+            # This user is no longer in this room, so do nothing
             return
 
         self.emit_to_room_not_me('exit', self.session['nickname'])
 
         # When exit fires on disconnect, this may fail, so try-except
         try:
+            # If room is full before user leaves, tell Lobby room is not full
+            if self.session['room'].isFull():
+                # TODO broadcast only to this room and Lobby
+                self.broadcast_event('roomNotFull', self.session['room'].num)
+            
             # Remove user from room
             self.session['room'].users.remove(self.socket)
             
@@ -279,7 +287,8 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
                 # if the room is now full, begin the game
                 # client may want to block/delay ability to leave room at this point
                 if room.isFull():
-                    self.emit_to_room('roomFull', '')
+                    # TODO emit to only this room and Lobby
+                    self.broadcast_event('roomFull', roomNum)
                     room.startGame()
 
                 if roomNum == 0:

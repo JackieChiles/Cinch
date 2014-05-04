@@ -40,7 +40,7 @@
 
             <div data-bind="foreach: games">
                 <div class="title-value-container game">
-                    <button data-bind="click: join">
+                    <button data-bind="click: join, disable: isFull">
                         Join Game <span data-bind="text: name"></span>
                     </button>
                 </div>

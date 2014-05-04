@@ -273,7 +273,7 @@ function CinchViewModel() {
             var i = 0;
 
             for(i = 0; i < msg.length; i++) {
-                self.games.push(new Game(msg[i].name, msg[i].num));
+                self.games.push(new Game(msg[i].name, msg[i].num, msg[i].isFull));
             }
         });
 
@@ -296,7 +296,7 @@ function CinchViewModel() {
         });
 
         addSocketHandler('newRoom', function(msg) {
-            self.games.push(new Game(msg.name, msg.num));
+            self.games.push(new Game(msg.name, msg.num, msg.isFull));
         });
 
         addSocketHandler('users', function(msg) {
@@ -337,7 +337,29 @@ function CinchViewModel() {
 	    self.chats.push(new VisibleMessage(['User', username, 'has departed.'].join(' '), 'System'));
 	});
 
-        addSocketHandler('roomFull', function(msg) { });
+	//Helper function for setting game full status
+	function setRoomFullStatus(status, roomNum) {
+	    var i;
+	    var games = self.games();
+
+	    for (i = 0; i < games.length; i++) {
+		if (games[i].number == roomNum) {
+		    games[i].isFull(status);
+		    self.games(games); // Update class-level observable
+		    break;
+		}
+	    }
+	}
+
+        addSocketHandler('roomFull', function(roomNum) {
+	    //Disallow joining of full rooms from the Lobby
+	    setRoomFullStatus(true, roomNum);
+	});
+
+	addSocketHandler('roomNotFull', function(roomNum) {
+	    //Re-allow joining of previously full room
+	    setRoomFullStatus(false, roomNum);
+	});
 
 	//TODO: when client seat selection is re-enabled, move this into that
         addSocketHandler('ackSeat', function(msg) {
