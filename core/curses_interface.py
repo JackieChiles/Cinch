@@ -28,7 +28,7 @@ LOG_SHORT ={'d':'DEBUG', 'i':'INFO', 'w':'WARNING', 'e':'ERROR', 'c':'CRITICAL'}
 
 
 class CinchScreen():
-    def __init__(self, main_win, global_log, captured_loggers):
+    def __init__(self, main_win, global_log):
         # Pass logging.getLogger(__name__) to enforce info-level logging.
         # Also set other loggers to original log level.
         self.log = global_log
