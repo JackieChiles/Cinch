@@ -319,14 +319,18 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
             return []
 
     def on_seat(self, seat):
-        """Set seat number in room for user.
+        """Set seat number in room for user. User cannot change seat once seated.
         
         seat -- seat number
         
         This method sends an 'ack' to confirm that the selected seat was applied.
         
         """
-        if seat in self.session['room'].getAvailableSeats():
+        if 'seat' in self.session: # User already seated; can't change
+            #TODO handle this process better pending re-enabling of client-side selection
+            self.emit('ackSeat', -1)
+
+        elif seat in self.session['room'].getAvailableSeats():
             self.session['seat'] = seat
             self.emit('ackSeat', seat)
             

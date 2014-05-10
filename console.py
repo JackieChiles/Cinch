@@ -219,11 +219,15 @@ class Namespace(BaseNamespace):
                     self.rv.update_table(player[0], int(player[1]))
 
     def on_ackSeat(self, seat_num):
-        if hasattr(self, 'rv'):
+        if seat_num == -1: # Not allowed to change seats after selecting one
+            log.info('You already have a seat. If you need to change, return to Lobby to re-join this room.')
+            return
+        elif hasattr(self, 'rv'):
             log.info('You have been placed in seat '+str(seat_num))
             self.rv.seat = seat_num
             self.rv.update_table(self.nickname, seat_num)
         else:
+            # Calling 'seat' while in lobby will raise this
             raise RuntimeError('Got ackSeat while not in a room??')
 
     def ackNickname(self, nickname):
