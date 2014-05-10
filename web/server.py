@@ -400,6 +400,8 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         
         if res is False:
             self.emit('err', 'Bad bid') #False on bad bid, None for inactive player
+        elif res is None:
+            self.emit('err', "It's not your turn")
         else:
             self.emit_to_room('bid', res)
         
@@ -421,9 +423,9 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
 
         if res is False:
             log.debug("on_play: illegal play attempted in seat " + str(pNum))
-        
-        if res is False or res is None:
             self.emit('err', 'Bad play')
+        elif res is None:
+            self.emit('err', "It's not your turn")
         else:
             # TODO implement better way of sending private messages
             if len(res) > 1: # Multiple messages == distinct messages
