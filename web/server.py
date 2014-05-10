@@ -217,13 +217,18 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
     
     def on_exit(self, _):
         """Leave room and return to lobby, while announcing to rest of room."""
-        if self.socket not in self.session['room'].users:
+        retVal =  ({'seatChart': 'lobby'},) # TODO send list of ppl in lobby
+        curRoom = self.session['room']
+
+        if self.socket not in curRoom.users:
             # This user is no longer in this room, so do nothing
-            return
+            return retVal
+
+        # If user is in the lobby, don't need to do anything
+        if curRoom.num == LOBBY:
+            return retVal
 
         self.emit_to_room_not_me('exit', self.session['nickname'])
-
-        curRoom = self.session['room']
 
         # When exit fires on disconnect, this may fail, so try-except
         try:
@@ -248,18 +253,17 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
             except:
                 pass
         
-            if self.session['room'].num != LOBBY:   # Don't rejoin lobby if leaving lobby
-                log.debug('%s left room %s; placing in lobby.',
-                          self.session['nickname'], self.session['room'].num)
-                self.on_join(LOBBY)
+            log.debug('%s left room %s; placing in lobby.',
+                      self.session['nickname'], self.session['room'].num)
+            self.on_join(LOBBY)
 
         except:
             pass
 
         # If lobby successfully joined, need to send ack to client.
         # Client won't get callback from server-emitted on_join.
-        return ({'seatChart': 'lobby'},)
-            
+        return retVal
+
         #FUTURE do stuff for game-in-progress -- maybe allow player to replace
         #one who left
 
