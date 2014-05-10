@@ -147,7 +147,8 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         self.session['nickname'] = 'NewUser'
         
         self.on_join(LOBBY) # Join lobby
-        roomList = [{'name': str(x), 'num':x.num, 'isFull': x.isFull()}
+        roomList = [{'name': str(x), 'num':x.num, 'isFull': x.isFull(), 
+                     'seatChart': self.getSeatingChart(x)}
                     for x in self.request['rooms']]
         del roomList[0] # Don't send lobby
         self.emit('rooms', roomList)

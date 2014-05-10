@@ -283,7 +283,7 @@ function CinchViewModel() {
             var i = 0;
 
             for(i = 0; i < msg.length; i++) {
-                self.games.push(new Game(msg[i].name, msg[i].num, msg[i].isFull));
+                self.games.push(new Game(msg[i].name, msg[i].num, msg[i].isFull, msg[i].seatChart));
             }
         });
 

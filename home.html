@@ -43,6 +43,7 @@
                     <button data-bind="click: join, disable: isFull">
                         Join Game <span data-bind="text: name"></span>
 			<span data-bind="text: isFull() ? ' (Room Full)' : ''"></span>
+			<span data-bind="text: '[' + getUserlist() + ']'"></span>
                     </button>
                 </div>
             </div><!-- /game lobby page -->
