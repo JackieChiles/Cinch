@@ -316,6 +316,7 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
 
         except IndexError:
             self.emit('err', "Room %s does not exist" % roomNum)
+            return []
 
     def on_seat(self, seat):
         """Set seat number in room for user.

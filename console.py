@@ -200,6 +200,9 @@ class Namespace(BaseNamespace):
         self.emit('join', room_num, self.ackJoin)
 
     def ackJoin(self, *args):
+        if len(args) == 0: # Room choice was invalid
+            return
+
         # Clear any game/room data when moving from room to room.
         self.rv = RoomView(0) # Set up a RoomView to hold game info.
         if args[0]['seatChart'] == 'lobby':
@@ -395,10 +398,10 @@ def console(window, host='localhost', port=8088):
                     # Need to listen for confirmation we're back in lobby...
                 elif 'join' in cmd:
                     try:
-                        room_num = int(cmd['join'])
-                        if not hasattr(ns, 'rv'): # No RoomView = in lobby
+                        if hasattr(ns, 'rv'): # No RoomView = in lobby
                             cs.write('join: must be in lobby to join a room')
                         else:
+                            room_num = int(cmd['join'])
                             ns.emit('join', room_num, ns.ackJoin)
                     except ValueError:
                         log.exception('join: arg from queue: %s', cmd['join'])
