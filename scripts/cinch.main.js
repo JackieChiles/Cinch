@@ -17,7 +17,8 @@ var CinchApp = {
         lobby: 'lobby-page',
         ai: 'ai-page',
         handEnd: 'hand-end-page',
-        game: 'game-page'
+        game: 'game-page',
+	seatSelect: 'seat-select-page'
     },
     players: {
         south: 0,

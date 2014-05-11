@@ -17,7 +17,6 @@
         <script type="text/javascript" src="scripts/cinch.classes.js"></script>
         <script type="text/javascript" src="scripts/cinch.viewmodel.js"></script>
         <script type="text/javascript" src="scripts/cinch.animation.js"></script>
-        <script type="text/javascript" src="scripts/cinch.init.js"></script>
     </head>
     
     <body>
@@ -40,14 +39,56 @@
 
             <div data-bind="foreach: games">
                 <div class="title-value-container game">
-                    <button data-bind="click: join, disable: isFull">
+                    <button data-bind="click: preJoin, disable: isFull">
                         Join Game <span data-bind="text: name"></span>
 			<span data-bind="text: isFull() ? ' (Room Full)' : ''"></span>
-			<span data-bind="text: '[' + getUserlist() + ']'"></span>
+			<span data-bind="text: ': ' + getUserlist()"></span>
                     </button>
                 </div>
-            </div><!-- /game lobby page -->
-        </div>
+            </div>
+        </div><!-- /game lobby page -->
+
+        <div id="seat-select-page" class="cinch-view">
+            <div class="header">
+                <h1>Select Seat</h1>
+		<button data-bind="click: exitToLobby" id="goto-lobby-from-game-btn">
+		  Cancel
+		</button>
+            </div>
+
+            <div>
+              <div class="seat-list north title-value-container">
+                <div class="small-title white-border">North</div>
+		<button class="seat-selector" id="north-seat-selector"
+			data-bind="text: northSeatSelector,
+				   click: joinSelectedGame.bind($data, 2)"></button>
+              </div>
+
+              <div class="east-west-seat-container">
+                <div class="seat-list east-west with-south title-value-container">
+                  <div class="small-title white-border">West</div>
+		  <button class="seat-selector" id="west-seat-selector" 
+			  data-bind="text: westSeatSelector,
+				     click: joinSelectedGame.bind($data, 1)"></button>
+                </div>
+
+                <div class="seat-list east-west with-south title-value-container">
+                  <div class="small-title white-border">East</div>
+		  <button class="seat-selector" id="east-seat-selector"
+			  data-bind="text: eastSeatSelector,
+				     click: joinSelectedGame.bind($data, 3)"></button>
+                </div>
+              </div>
+
+              <div class="seat-list south title-value-container">
+                <div class="small-title white-border">South</div>
+		<button class="seat-selector" id="south-seat-selector"
+			data-bind="text: southSeatSelector,
+				   click: joinSelectedGame.bind($data, 0)"></button>
+              </div>
+            </div>
+
+        </div><!-- /seat select page -->
         
         <div id="ai-page" class="cinch-view">
             <div class="header">
@@ -292,5 +333,8 @@
                 </div>
             </div><!-- /game page -->
         </div>
+
+        <script type="text/javascript" src="scripts/cinch.init.js"></script>
+
     </body>
 </html>
