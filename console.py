@@ -268,8 +268,9 @@ class Namespace(BaseNamespace):
             resp_line += err_text
         log.info(resp_line)
 
-    def on_exit(self, exiter):
+    def on_exit(self, exiter, room, seat):
         log.info(str(exiter) + ' has left the room.')
+        # TODO update dashboard
 
     def on_play(self, msg):
         self.rv.modify(msg)

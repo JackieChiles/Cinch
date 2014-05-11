@@ -406,11 +406,8 @@ function CinchViewModel() {
 
             //msg is an array of 2-element arrays... index 0 username, index 1 seat
             for(i = 0; i < msg.length; i++) {
-                //Seat could be -1 if player not in any seat yet
-                if(msg[i][1] >= 0) {
-                    clientPNum = CinchApp.serverToClientPNum(msg[i][1]);
-                    self.players()[clientPNum].name(msg[i][0]);
-                }
+                clientPNum = CinchApp.serverToClientPNum(msg[i][1]);
+                self.players()[clientPNum].name(msg[i][0]);
             }
         });
 
@@ -430,6 +427,11 @@ function CinchViewModel() {
 		    tmp.push([user, seat]);
 		    self.games()[i].seatChart(tmp);
 		}
+	    }
+
+	    //Update in-game view
+	    if (self.activeView() === CinchApp.views.game) {
+		socket.$events.seatChart(tmp);
 	    }
         });
 
@@ -453,6 +455,11 @@ function CinchViewModel() {
 		    tmp.splice(j, 1);
 		    self.games()[i].seatChart(tmp);
 		}
+	    }
+
+	    //Update in-game view
+	    if (self.activeView() === CinchApp.views.game) {
+		socket.$events.seatChart(tmp);
 	    }
 	});
 
