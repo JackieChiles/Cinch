@@ -107,6 +107,18 @@ class AIBase(object):
             log.info("AI joined Room {0}".format(self.room))
 
     def on_ackSeat(self, *args):
+        # Recover from selecting an invalid seat
+        if args[0] == -1:
+            log.debug(self.name + " tried to sit in a full/invalid seat")
+            if not hasattr(self, 'triedSeat'):
+                self.triedSeat = 0
+            elif self.triedSeat > 4:
+                return
+
+            self.ns.emit('seat', self.triedSeat)
+            self.triedSeat += 1
+            return
+
         self.pNum = args[0]
         log.info("AI sat in Seat {0}".format(self.pNum))
 

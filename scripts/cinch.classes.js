@@ -1,13 +1,13 @@
 // Classes (invoked with new keyword only)
 
 //Represents a single joinable game, as listed in the lobby
-function Game(name, number, isFull, seatChart) {
+function Game(gameMsg) {
     var self = this;
 
-    self.name = name;
-    self.number = number;
-    self.isFull = ko.observable(isFull);
-    self.seatChart = ko.observableArray(seatChart);
+    self.name = gameMsg.name;
+    self.number = gameMsg.number;
+    self.isFull = ko.observable(gameMsg.isFull);
+    self.seatChart = ko.observableArray(gameMsg.seatChart);
 
     self.join = function() { // Only called when joining existing game, not ICW new
         CinchApp.socket.emit('join', number, function(msg) {

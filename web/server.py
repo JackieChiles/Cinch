@@ -199,10 +199,11 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
 
         self.request['rooms'].append(newRoom)     # store new room in Server
         
-        # TODO broadcast only to lobby
-        # Goes to all clients in room
-        self.broadcast_event('newRoom', {'name': str(newRoom), 'num': roomNum, 
-                                         'isFull': newRoom.isFull()})
+        # Goes to all clients in Lobby
+        self.emit_to_another_room(LOBBY, 'newRoom', {'name': str(newRoom), 
+                                                     'num': roomNum, 
+                                                     'isFull': newRoom.isFull(),
+                                                     'seatChart':[]})
         
         # Summon AI players
         try:
@@ -235,8 +236,9 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         try:
             # If room is full before user leaves, tell Lobby room is not full
             if self.session['room'].isFull():
-                # TODO broadcast only to this room and Lobby
-                self.broadcast_event('roomNotFull', self.session['room'].num)
+                self.emit_to_room('roomNotFull', self.session['room'].num)
+                self.emit_to_another_room(LOBBY, 'roomNotFull', 
+                                          self.session['room'].num)
             
             # Remove user from room
             self.session['room'].users.remove(self.socket)
@@ -302,8 +304,8 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
                 # if the room is now full, begin the game
                 # client may want to block/delay ability to leave room at this point
                 if room.isFull():
-                    # TODO emit to only this room and Lobby
-                    self.broadcast_event('roomFull', roomNum)
+                    self.emit_to_room('roomFull', roomNum)
+                    self.emit_to_another_room(LOBBY, 'roomFull', roomNum)
                     room.startGame()
 
                 if roomNum == 0:
@@ -484,6 +486,28 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
                     continue
                 else:
                     socket.send_packet(pkt)
+
+    def emit_to_another_room(self, roomNum, event, *args):
+        """Send message to all users in a room identified by roomNum.
+
+        roomNum -- room number of target room; can be LOBBY
+        event -- command name for message (e.g. 'chat', 'users', 'ack')
+        args -- args for command specified by event
+
+        """
+        pkt = dict(type="event", name=event, args=args, endpoint=self.ns_name)
+
+        try:
+            room = [x for x in self.request['rooms'] if x.num == roomNum][0]
+        except IndexError:
+            log.warning(str(roomNum) + ' is not a valid room number.')
+            return
+        
+        for sessid, socket in self.socket.server.sockets.iteritems():
+            if 'room' not in socket.session:
+                continue
+            elif socket.session['room'] == room:
+                socket.send_packet(pkt)        
 
     def getUsernamesInRoom(self, room):
         """Return list of all users' nicknames in a given room
