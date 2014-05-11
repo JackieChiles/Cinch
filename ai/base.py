@@ -72,20 +72,16 @@ class AIBase(object):
         self.room = None
 
         self.name = ident['name']
-        self.label = self.name + "_" + str(targetSeat)###
+        self.label = self.name + "_" + str(targetSeat)
         self.ns.emit('nickname', self.label)
 
         # Enter room and take a seat
-        self.join(targetRoom)
-        self.ns.emit('seat', targetSeat)
+        self.join(targetRoom, targetSeat)
 
         # Prepare game logic variables
         self.hand = []
         self.gs = GS() # Game state object
         self.resetGamestate()
-
-        log.info("{0}_AI loaded into Game {1} Seat {2}*"
-                 "".format(self.name, targetRoom, targetSeat))
 
     def __del__(self):
         """Cleanly shutdown AI agent."""
@@ -103,24 +99,12 @@ class AIBase(object):
     def ackJoin(self, *args):
         # Successful join request was made
         self.room = args[0]['roomNum']
+
         if self.room != 0:
-            log.info("AI joined Room {0}".format(self.room))
+            self.pNum = args[0]['mySeat']
+            log.info("{2}_AI joined Game {0} Seat {1}".format(self.room, self.pNum, self.name))
 
-    def on_ackSeat(self, *args):
-        # Recover from selecting an invalid seat
-        if args[0] == -1:
-            log.debug(self.name + " tried to sit in a full/invalid seat")
-            if not hasattr(self, 'triedSeat'):
-                self.triedSeat = 0
-            elif self.triedSeat > 4:
-                return
-
-            self.ns.emit('seat', self.triedSeat)
-            self.triedSeat += 1
-            return
-
-        self.pNum = args[0]
-        log.info("AI sat in Seat {0}".format(self.pNum))
+            # TODO ensure it is NOT possible for an AI to try to sit in a bad seat
 
     def on_err(self, msg):
         log.debug("err: {0}".format(msg))
@@ -161,7 +145,6 @@ class AIBase(object):
         self.ns = self.socket.define(BaseNamespace, NS)
 
         # Attach socketIO event handlers 
-        self.ns.on('ackSeat',   self.on_ackSeat)
         self.ns.on('bid',       self.on_game_action)
         self.ns.on('err',       self.on_err)
         self.ns.on('play',      self.on_game_action)
@@ -224,13 +207,14 @@ class AIBase(object):
             if msg['bid'] > self.gs.highBid:
                 self.gs.highBid = msg['bid']
 
-    def join(self, room):
+    def join(self, room, seat):
         """Make request to join room.
 
         room -- (int) room number
+        seat -- (int) seat number
 
         """
-        self.ns.emit('join', room, 0, self.ackJoin)##TODO seatnum
+        self.ns.emit('join', room, seat, self.ackJoin)
 
     def start(self):
         """Activate AI."""

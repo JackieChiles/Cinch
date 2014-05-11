@@ -22,7 +22,7 @@ COMMANDS = [ ['test', r'^$', '(null): test connection to server'],
               '[<seat>:<ai_id> x0-4]: spawn new room [with opt. ai seating]'],
              ['aig', r'^$', '(null): quickstart ai game for testing'],
              ['lobby', r'^$', '(null): leave current room and join lobby'],
-             ['join', r'^[0-9]+$', 'N: join room N'],
+             ['join', r'^[0-9]+\s+[0-3]+$', 'N M: join room N seat M'],
              ['help', r'^$|^-v$', '[-v]: list registered commands [-v w/regex]'],
              ['seat', r'^[0-3]?$', '[N]: show seat or sit in seat N (0-3)'],
              ['ai', r'^(list|refresh)$',
@@ -218,17 +218,10 @@ class Namespace(BaseNamespace):
                 else:
                     self.rv.update_table(player[0], int(player[1]))
 
-    def on_ackSeat(self, seat_num):
-        if seat_num == -1: # Not allowed to change seats after selecting one
-            log.info('You already have a seat. If you need to change, return to Lobby to re-join this room.')
-            return
-        elif hasattr(self, 'rv'):
-            log.info('You have been placed in seat '+str(seat_num))
-            self.rv.seat = seat_num
-            self.rv.update_table(self.nickname, seat_num)
-        else:
-            # Calling 'seat' while in lobby will raise this
-            raise RuntimeError('Got ackSeat while not in a room??')
+
+            self.rv.seat = args[0]['mySeat']
+            self.rv.update_table(self.nickname, self.rv.seat)
+            log.info('You have been placed in seat '+str(self.rv.seat))
 
     def ackNickname(self, nickname):
         if nickname is None:
@@ -259,8 +252,15 @@ class Namespace(BaseNamespace):
         for x in args:
             log.info(str(x))
 
-    def on_enter(self, nickname):
+    def on_enter(self, nickname, seat):
         log.info(nickname+' has entered the room.')
+
+        if nickname == self.nickname:
+            pass # Would duplicate message from on_ackSeat; TODO removed ackSeat
+        else:
+            log.info(nickname + ' is now sitting in seat ' +
+                                str(seat) + '.')
+            self.rv.update_table(nickname, seat)
 
     def on_err(self, *args):
         resp_line = ''
@@ -289,14 +289,6 @@ class Namespace(BaseNamespace):
         # Final seat chart is sent as list of len-2 lists [u'nick', seat_num]
         for entry in chart:
             self.rv.update_table(entry[0], entry[1])
-
-    def on_userInSeat(self, json):
-        if json['name'] == self.nickname:
-            pass # Would duplicate message from on_ackSeat
-        else:
-            log.info(json['name'] + ' is now sitting in seat ' +
-                                str(json['actor']) + '.')
-            self.rv.update_table(json['name'], json['actor'])
 
     def on_users(self, users):
         log.info('In the room: '+', '.join([str(x) for x in users]))
@@ -405,8 +397,10 @@ def console(window, host='localhost', port=8088):
                         if hasattr(ns, 'rv'): # No RoomView = in lobby
                             cs.write('join: must be in lobby to join a room')
                         else:
-                            room_num = int(cmd['join'])
-                            ns.emit('join', room_num, 1, ns.ackJoin)##TODO seatnum
+                            tmp = cmd['join'].split()
+                            room_num = int(tmp[0])
+                            seat_num = int(tmp[1])
+                            ns.emit('join', room_num, seat_num, ns.ackJoin)
                     except ValueError:
                         log.exception('join: arg from queue: %s', cmd['join'])
                         log.error('join: A problem occurred.')

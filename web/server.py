@@ -23,6 +23,7 @@ from socketio.namespace import BaseNamespace
 from socketio.mixins import BroadcastMixin
 
 from time import sleep
+from threading import Timer
 
 import logging
 log = logging.getLogger(__name__)
@@ -69,7 +70,11 @@ class Room(object):
         """Returns list of unoccupied seat numbers in range(0, MAX_ROOM_SIZE)."""
         # TODO consider changing from base-0 to base-1 for pNums
         seats = list(range(0, MAX_ROOM_SIZE))
-        
+
+        # Seats in Lobby can hold any number of people
+        if self.num == LOBBY:
+            return seats
+
         for sock in self.users:
             if 'seat' in sock.session:
                 try:
@@ -80,35 +85,23 @@ class Room(object):
         return seats
     
     def startGame(self):
-        """Perform final player checks and start game.
-        
-        If any players are not seated when this is called, they'll be assigned
-        seats. It may be preferable to prompt unseated players first, but testing
-        is required.
-        """       
+        """Perform final player checks and start game."""       
         # Ensure all seats filled
-        availableSeats = self.getAvailableSeats()
-        if len(availableSeats) > 0:
-            # Some seats are empty, so auto-assign
-            for sock in self.users:
-                if 'seat' not in sock.session:
-                    curSeat = availableSeats.pop() 
-                    sock.session['seat'] = curSeat
-                    sock['/cinch'].emit('ackSeat', curSeat)
-                    # changing the namespace name will break this; TODO use variable
-            
-            if len(self.getAvailableSeats()) > 0:
-                # Something has gone wrong
-                log.error("bad seating error in startGame()")
-                sock['/cinch'].emit_to_room('err', 'Problem starting game')
-                return
+        if len(self.getAvailableSeats()) > 0:
+            # Something has gone wrong
+            log.error("bad seating error in startGame()")
+            sock['/cinch'].emit_to_room('err', 'Problem starting game')
+            return
+
+        else:
+            sock = self.users[0] # Need to get reference to the socket namespace
 
         #Send out the final seat chart
         sock['/cinch'].emit_to_room('seatChart', sock['/cinch'].getSeatingChart(sock['/cinch'].session['room']))
 
-        #FIXME if players leave then rejoin, a new game is started.
+        #TODO FIXME if players leave then rejoin, a new game is started.
         self.game = Game()
-        initData = self.game.start_game(self.users[0]['/cinch'].getUsernamesInRoom(self))
+        initData = self.game.start_game(sock['/cinch'].getUsernamesInRoom(self))
         
         # Send initial game data to players
         for msg in initData:
@@ -289,25 +282,38 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
 
             if room.isFull():
                 self.emit('err', 'That room is full')
+                return []
             else:
                 try:
                     self.on_exit(0) # Leave current room if we're in a room
                 except KeyError: # No 'room' key in self.session at start of session
                     pass
+
+                # Verify target seat is available
+                if seatNum not in room.getAvailableSeats():
+                    self.emit('err', 'That seat is not available')
+                    return []
+                else:
+                    # Add user to room server-side
+                    room.users.append(self.socket) # socket includes session field
+                    self.session['seat'] = seatNum
                 
                 self.session['room'] = room     # Record room pointer in session
+
+                # Tell others in room that someone has joined and sat down
+                self.emit_to_room_not_me('enter', self.session['nickname'], seatNum)
                 
-                # Add user to room server-side
-                room.users.append(self.socket) # socket includes session field            
-                # Tell others in room that someone has joined
-                self.emit_to_room_not_me('enter', self.session['nickname'])
-                
-                # if the room is now full, begin the game
+                # If the room is now full, begin the game
                 # client may want to block/delay ability to leave room at this point
                 if room.isFull():
                     self.emit_to_room('roomFull', roomNum)
                     self.emit_to_another_room(LOBBY, 'roomFull', roomNum)
-                    room.startGame()
+
+                    # Without this Timer, the last person to join will receive
+                    # start data before room data and will not have confirmed
+                    # their seat/pNum.
+                    t = Timer(0.5, room.startGame)
+                    t.start()
 
                 if roomNum == 0:
                     seatChart = "lobby"
@@ -316,35 +322,12 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
 
                 # TODO make client handle seatChart; may then remove 'users'
                 users = self.getUsernamesInRoom(room) ###
-                return ({'roomNum': roomNum, 'seatChart': seatChart, 'users': users},)
+                return ({'roomNum': roomNum, 'seatChart': seatChart, 
+                         'users': users, 'mySeat': seatNum},)
 
         except IndexError:
             self.emit('err', "Room %s does not exist" % roomNum)
             return []
-
-    def on_seat(self, seat):
-        """Set seat number in room for user. User cannot change seat once seated.
-        
-        seat -- seat number
-        
-        This method sends an 'ack' to confirm that the selected seat was applied.
-        
-        """
-        if 'seat' in self.session: # User already seated; can't change
-            #TODO handle this process better pending re-enabling of client-side selection
-            self.emit('ackSeat', -1)
-
-        elif seat in self.session['room'].getAvailableSeats():
-            self.session['seat'] = seat
-            self.emit('ackSeat', seat)
-            
-            #Announce the seat occupant to all users          
-            self.emit_to_room('userInSeat', { 'actor': seat, 'name': self.session['nickname'] })
-###            return (seat,) #TODO: Pending re-enabling of client seat selection
-
-        else:
-            self.emit('err', 'That seat is already taken. Pick a different one')
-###            return (None,)
 
     def on_nickname(self, name):
         """Set nickname for user.
