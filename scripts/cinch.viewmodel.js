@@ -183,6 +183,8 @@ function CinchViewModel() {
         var ai = {};
         var chosenAi = self.chosenAi;
 
+	var seatNum = 0; /////TODO temp
+
         self.username() && self.socket.emit('nickname', self.username());
         
         //Loop through all AI agents chosen by the user and add them to the createRoom request
@@ -194,7 +196,7 @@ function CinchViewModel() {
 
         //The format for aiSelection is { seatNumber:aiAgentId }
         self.socket.emit('createRoom', aiSelection, function(roomNum) {
-	    self.socket.emit('join', roomNum, function(msg) {
+	    self.socket.emit('join', roomNum, seatNum, function(msg) {
 		self.curRoom(msg.roomNum);
                 self.activeView(CinchApp.views.game);
 		if (msg.roomNum != 0) {

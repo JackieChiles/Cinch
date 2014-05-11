@@ -197,7 +197,7 @@ class Namespace(BaseNamespace):
 
     def ackCreate(self, room_num):
         log.info('Room '+str(room_num)+' created.')
-        self.emit('join', room_num, self.ackJoin)
+        self.emit('join', room_num, 0, self.ackJoin) ##TODO seatnum
 
     def ackJoin(self, *args):
         if len(args) == 0: # Room choice was invalid
@@ -406,7 +406,7 @@ def console(window, host='localhost', port=8088):
                             cs.write('join: must be in lobby to join a room')
                         else:
                             room_num = int(cmd['join'])
-                            ns.emit('join', room_num, ns.ackJoin)
+                            ns.emit('join', room_num, 1, ns.ackJoin)##TODO seatnum
                     except ValueError:
                         log.exception('join: arg from queue: %s', cmd['join'])
                         log.error('join: A problem occurred.')

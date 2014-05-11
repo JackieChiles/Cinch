@@ -230,7 +230,7 @@ class AIBase(object):
         room -- (int) room number
 
         """
-        self.ns.emit('join', room, self.ackJoin)
+        self.ns.emit('join', room, 0, self.ackJoin)##TODO seatnum
 
     def start(self):
         """Activate AI."""

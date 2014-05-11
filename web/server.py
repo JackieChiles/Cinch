@@ -146,7 +146,7 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         super(GameNamespace, self).__init__(*args, **kwargs)
         self.session['nickname'] = 'NewUser'
         
-        self.on_join(LOBBY) # Join lobby
+        self.on_join(LOBBY, 0) # Join lobby
         roomList = [{'name': str(x), 'num':x.num, 'isFull': x.isFull(), 
                      'seatChart': self.getSeatingChart(x)}
                     for x in self.request['rooms']]
@@ -258,7 +258,7 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         
             log.debug('%s left room %s; placing in lobby.',
                       self.session['nickname'], self.session['room'].num)
-            self.on_join(LOBBY)
+            self.on_join(LOBBY, 0)
 
         except:
             pass
@@ -270,10 +270,11 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         #FUTURE do stuff for game-in-progress -- maybe allow player to replace
         #one who left
 
-    def on_join(self, roomNum):
+    def on_join(self, roomNum, seatNum):
         """Join room specified by roomNum.
         
         roomNum -- index in request[rooms] for target room
+        seatNum -- (int) target seat number
         
         Client should not allow moving directly from one room to another without
         returning to the lobby. That's done by leaving the room (on_exit), which

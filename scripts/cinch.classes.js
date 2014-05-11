@@ -5,12 +5,13 @@ function Game(gameMsg) {
     var self = this;
 
     self.name = gameMsg.name;
-    self.number = gameMsg.number;
+    self.number = gameMsg.num;
     self.isFull = ko.observable(gameMsg.isFull);
     self.seatChart = ko.observableArray(gameMsg.seatChart);
 
-    self.join = function() { // Only called when joining existing game, not ICW new
-        CinchApp.socket.emit('join', number, function(msg) {
+    // Only called when joining existing game, not ICW new
+    self.join = function(seatNum) {
+        CinchApp.socket.emit('join', self.number, 1, function(msg) {
 	        CinchApp.viewModel.curRoom(msg.roomNum);
                 CinchApp.viewModel.activeView(CinchApp.views.game);
 		if (msg.roomNum != 0) {

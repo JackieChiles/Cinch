@@ -126,7 +126,7 @@ class AIManager:
         self.ns.on('summonAI', self.on_summonAI)
 
         self.ns.emit('nickname', 'AIManager')
-        self.ns.emit('join', 0) # Join lobby
+        self.ns.emit('join', 0, 0) # Join lobby
 
     def on_getAIList(self, *args):
         """Provide AI identity information to game server."""
