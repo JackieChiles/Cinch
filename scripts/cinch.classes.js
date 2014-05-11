@@ -11,13 +11,16 @@ function Game(gameMsg) {
 
     // Only called when joining existing game, not ICW new
     self.join = function(seatNum) {
-        CinchApp.socket.emit('join', self.number, 1, function(msg) {
+	var x = parseInt(prompt("seat num?"));
+        CinchApp.socket.emit('join', self.number, x, function(msg) {
 	        CinchApp.viewModel.curRoom(msg.roomNum);
                 CinchApp.viewModel.activeView(CinchApp.views.game);
 		if (msg.roomNum != 0) {
 		    console.log('seatChart: ', msg.seatChart);///reminder to implement seatChart
 		    CinchApp.socket.$events.users(msg.users);
 		    CinchApp.socket.$events.seatChart(msg.seatChart);
+
+		    CinchApp.viewModel.myPlayerNum(msg.mySeat);
 		}
 	});
     };

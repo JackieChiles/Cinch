@@ -223,7 +223,15 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         if curRoom.num == LOBBY:
             return retVal
 
-        self.emit_to_room_not_me('exit', self.session['nickname'])
+        try:
+            seatNum = self.session['seat']
+        except:
+            seatNum = -1
+
+        self.emit_to_room_not_me('exit', self.session['nickname'], 
+                                 curRoom.num, seatNum)
+        self.emit_to_another_room(LOBBY, 'exit', self.session['nickname'], 
+                                 curRoom.num, seatNum)
 
         # When exit fires on disconnect, this may fail, so try-except
         try:
@@ -300,8 +308,11 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
                 
                 self.session['room'] = room     # Record room pointer in session
 
-                # Tell others in room that someone has joined and sat down
-                self.emit_to_room_not_me('enter', self.session['nickname'], seatNum)
+                # Tell others in room and lobby that someone has joined and sat down
+                self.emit_to_room_not_me('enter', self.session['nickname'], 
+                                         roomNum, seatNum)
+                self.emit_to_another_room(LOBBY, 'enter', self.session['nickname'], 
+                                          roomNum, seatNum)
                 
                 # If the room is now full, begin the game
                 # client may want to block/delay ability to leave room at this point

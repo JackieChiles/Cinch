@@ -24,7 +24,7 @@ COMMANDS = [ ['test', r'^$', '(null): test connection to server'],
              ['lobby', r'^$', '(null): leave current room and join lobby'],
              ['join', r'^[0-9]+\s+[0-3]+$', 'N M: join room N seat M'],
              ['help', r'^$|^-v$', '[-v]: list registered commands [-v w/regex]'],
-             ['seat', r'^[0-3]?$', '[N]: show seat or sit in seat N (0-3)'],
+             ['seat', r'^$', 'show seat'],
              ['ai', r'^(list|refresh)$',
               'list: show AIs | refresh: get list from server'],
              ['bid', r'^[0-5]$|^[Cc]{1}(inch|INCH)?$|^[Pp]{1}(ass|ASS)?$',
@@ -252,7 +252,7 @@ class Namespace(BaseNamespace):
         for x in args:
             log.info(str(x))
 
-    def on_enter(self, nickname, seat):
+    def on_enter(self, nickname, room, seat):
         log.info(nickname+' has entered the room.')
 
         if nickname == self.nickname:
@@ -405,20 +405,11 @@ def console(window, host='localhost', port=8088):
                         log.exception('join: arg from queue: %s', cmd['join'])
                         log.error('join: A problem occurred.')
                 elif 'seat' in cmd:
-                    if cmd['seat'] == '':
-                        if hasattr(ns, 'rv'):
-                            log.info('seat: currently in room %s, seat %s',
-                                     str(ns.rv.room), str(ns.rv.seat))
-                        else:
-                            log.info('seat: currently in lobby')
+                    if hasattr(ns, 'rv'):
+                        log.info('seat: currently in room %s, seat %s',
+                                 str(ns.rv.room), str(ns.rv.seat))
                     else:
-                        try:
-                            seat_num = int(cmd['seat'])
-                            ns.emit('seat', seat_num)
-                        except ValueError:
-                            log.exception('seat: arg from queue: %s',
-                                          cmd['seat'])
-                            log.error('seat: A problem occurred.')
+                        log.info('seat: currently in lobby')
                 elif 'ai' in cmd:
                     if cmd['ai'] == 'refresh':
                         ns.emit('aiList', '')

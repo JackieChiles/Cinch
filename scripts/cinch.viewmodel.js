@@ -182,8 +182,7 @@ function CinchViewModel() {
         var aiSelection = {};
         var ai = {};
         var chosenAi = self.chosenAi;
-
-	var seatNum = 0; /////TODO temp
+	var seatNum = 0; // Room creator will always be first seat
 
         self.username() && self.socket.emit('nickname', self.username());
         
@@ -203,6 +202,8 @@ function CinchViewModel() {
 		    console.log('seatChart: ', msg.seatChart);///TODO use only seatChart
 		    self.socket.$events.seatChart(msg.seatChart);
 		    self.socket.$events.users(msg.users);
+
+		    self.myPlayerNum(msg.mySeat);
 		}
 
 	    });
@@ -257,6 +258,7 @@ function CinchViewModel() {
         var socket = self.socket;
 
         //Adds action to queue with console message: unlockBoard() must be added within handler()
+	//TODO Note: this isn't compatible with events that are sent multiple parameters.
         function addSocketAction(id, msg, handler) {
             self.addAction(function() {
                 console.log('Running socket response for "' + id + '": ', msg);
@@ -338,15 +340,46 @@ function CinchViewModel() {
             }
         });
 
-        addSocketHandler('enter', function(msg) {
+        socket.on('enter', function(user, room, seat) {
             //Add the new user to the collection and announce if in game view
-            self.users.push(msg);
-            self.activeView() === CinchApp.views.game && self.announceUser(msg);
+	    self.users.push(user);
+	    self.activeView() === CinchApp.views.game && self.announceUser(user);
+	    console.log('enter: ', user, room, seat);
+
+	    //Update the Lobby Game objects with new players
+	    var i;
+	    var tmp;
+	    var games = self.games();
+	    for (i = 0; i < games.length; i++) {
+		if (games[i].number == room) {
+		    tmp = games[i].seatChart();
+		    tmp.push([user, seat]);
+		    self.games()[i].seatChart(tmp);
+		}
+	    }
         });
 
-	addSocketHandler('exit', function(username) {
+	socket.on('exit', function(user, room, seat) {
 	    //Notify client that someone has left
-	    self.chats.push(new VisibleMessage(['User', username, 'has departed.'].join(' '), 'System'));
+	    self.chats.push(new VisibleMessage(['User', user, 'has departed.'].join(' '), 'System'));
+	    console.log('exit: ', user, room, seat);
+
+	    //Update the Lobby Game objects
+	    var i, j;
+	    var tmp;
+	    var games = self.games();
+	    for (i = 0; i < games.length; i++) {
+		if (games[i].number == room) {
+		    tmp = games[i].seatChart();
+		    for (j = 0; j < tmp.length; j++) {
+			if (tmp[j][0] == user && tmp[j][1] == seat) {
+			    break;
+			}
+		    }
+		    tmp.splice(j, 1);
+		    self.games()[i].seatChart(tmp);
+		}
+	    }
 	});
 
 	//Helper function for setting game full status
@@ -377,7 +410,7 @@ function CinchViewModel() {
 	    //Remove room from games list
 	    var i;
 	    var games = self.games();
-console.log('roomGone!', roomNum);//
+
 	    for (i = 0; i < games.length; i++) {
 		if (games[i].number == roomNum) {
 		    games.splice(i, 1); // Remove element i from array
@@ -385,18 +418,6 @@ console.log('roomGone!', roomNum);//
 		}
 	    }
 	});
-
-	//TODO: when client seat selection is re-enabled, move this into that
-        addSocketHandler('ackSeat', function(msg) {
-            self.myPlayerNum(msg);
-        });
-
-        //TODO: replace with seatChart
-        addSocketHandler('userInSeat', function(msg) {
-            var clientPNum = CinchApp.serverToClientPNum(msg.actor);
-
-            self.players()[clientPNum].name(msg.name);
-        });
 
         // Game message handlers
         addSocketHandler('startData', function(msg) {
