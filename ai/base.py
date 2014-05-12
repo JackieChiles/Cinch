@@ -77,6 +77,7 @@ class AIBase(object):
 
         # Enter room and take a seat
         self.join(targetRoom, targetSeat)
+        self.pNum = targetSeat # This assumption may have to change later
 
         # Prepare game logic variables
         self.hand = []

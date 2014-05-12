@@ -104,6 +104,7 @@ class Room(object):
         initData = self.game.start_game(sock['/cinch'].getUsernamesInRoom(self))
         
         # Send initial game data to players
+        log.debug("Sending initial game data in room %s", self.num)
         for msg in initData:
             # msg['tgt'] is a list. for this msg, it's one-element
             tgt = msg.pop('tgt')[0]
