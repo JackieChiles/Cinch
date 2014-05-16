@@ -242,6 +242,28 @@ function CinchViewModel() {
     //Moves user from a game room to the lobby
     self.exitToLobby = function() {
 	self.socket.emit('exit', '');
+
+	//Clean up from last game
+	self.dealerServer(null);
+	self.trump(null);
+	self.gameScores([0, 0]);
+	self.gameMode(null);
+	self.chats([]);
+	self.encodedCards([]);
+	self.resetBids();
+
+	var i;
+	var p;
+	for (i = 1; i < 4; i++) { // Don't want to reset own name so skip 0
+	    p = self.players()[i];
+	    p.name('-');
+	    p.numCardsInHand(0);
+	}
+
+	//Clear board
+	self.cardImagesInPlay = [];
+	context.clearRect(0, 0, CinchApp.playSurfaceWidth, CinchApp.playSurfaceHeight);
+
 	self.activeView(CinchApp.views.lobby);
     };
 
