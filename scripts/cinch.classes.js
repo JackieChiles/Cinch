@@ -83,11 +83,17 @@ function Card(encodedCard) {
     self.play = function(player) {
         var cardImage = new Image();
 
-        cardImage.src = self.imagePath;
-        
         cardImage.onload = function() {
             CinchApp.viewModel.cardImagesInPlay[player] = new CardAnimation(cardImage, player);
         };
+
+	cardImage.onerror = function() {
+	    CinchApp.viewModel.chats.push(new VisibleMessage('Player '+player+' played '+self.decoded+' but the image failed to load.', 'Error', CinchApp.messageTypes.error));
+	    cardImage.src = null;
+	    CinchApp.viewModel.cardImagesInPlay[player] = new CardAnimation(cardImage, player); //Go ahead and animate a nothing card to let the game advance
+	};
+
+        cardImage.src = self.imagePath;
     };
     
     self.submit = function() {

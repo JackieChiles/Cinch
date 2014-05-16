@@ -262,7 +262,11 @@ function CinchViewModel() {
 
 	//Clear board
 	self.cardImagesInPlay = [];
-	context.clearRect(0, 0, CinchApp.playSurfaceWidth, CinchApp.playSurfaceHeight);
+	try {
+	    context.clearRect(0, 0, CinchApp.playSurfaceWidth, CinchApp.playSurfaceHeight);
+	} catch (err) {
+	    ;
+	}
 
 	self.activeView(CinchApp.views.lobby);
     };
