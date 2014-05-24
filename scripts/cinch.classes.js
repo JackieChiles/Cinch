@@ -8,39 +8,63 @@ function Game(gameMsg) {
     self.number = gameMsg.num;
     self.isFull = ko.observable(gameMsg.isFull);
     self.seatChart = ko.observableArray(gameMsg.seatChart);
+    self.seats = ko.computed(function() {
+        var seats = {};
+        var players = CinchApp.players;
 
-    self.preJoin = function() {
-	CinchApp.viewModel.selectedRoom(self.number);
-	CinchApp.viewModel.activeView(CinchApp.views.seatSelect);
+        [players.north, players.south, players.east, players.west].forEach(function(pNum) {
+            var seatChartName = null;
+
+            //Extract the name from the seat chart if someone is there
+            self.seatChart().forEach(function(chartItem) {
+                chartItem[1] === pNum && (seatChartName = chartItem[0]);
+            });
+
+            //Create an seat object in place (could move to a class if needed elsewhere)
+            seats[pNum] = {
+                available: seatChartName === null,
+                displayText: seatChartName === null ? '<Available>' : seatChartName,
+                join: function() {
+                    self.join(pNum);
+                }
+            };
+        });
+
+        return seats;
+    });
+
+    self.select = function() {
+        CinchApp.viewModel.selectedRoom(self);
+        CinchApp.viewModel.activeView(CinchApp.views.seatSelect);
     };
 
     // Only called when joining existing game, not ICW new
     self.join = function(seatNum) {
         CinchApp.socket.emit('join', self.number, seatNum, function(msg) {
-	        CinchApp.viewModel.curRoom(msg.roomNum);
-                CinchApp.viewModel.activeView(CinchApp.views.game);
-		if (msg.roomNum != 0) {
-		    console.log('seatChart: ', msg.seatChart);///reminder to implement seatChart
-		    CinchApp.socket.$events.users(msg.users);
-		    CinchApp.socket.$events.seatChart(msg.seatChart);
+            CinchApp.viewModel.curRoom(msg.roomNum);
+            CinchApp.viewModel.activeView(CinchApp.views.game);
 
-		    CinchApp.viewModel.myPlayerNum(msg.mySeat);
-		}
-	});
+            if (msg.roomNum != 0) {
+                CinchApp.socket.$events.users(msg.users);
+                CinchApp.socket.$events.seatChart(msg.seatChart);
+
+                CinchApp.viewModel.myPlayerNum(msg.mySeat);
+            }
+        });
     };
 
     self.getUserlist = function() {
-	// Gets unordered list of users in the room
-	var users = [];
-	var i;
-	var seatChart = self.seatChart();
+        // Gets unordered list of users in the room
+        var users = [];
+        var i;
+        var seatChart = self.seatChart();
 
-	for (i = 0; i < seatChart.length; i++) {
-	    users.push(seatChart[i][0]);
-	}
-	return users;
+        for (i = 0; i < seatChart.length; i++) {
+            users.push(seatChart[i][0]);
+        }
+
+        return users;
     };
-
 }
 
 function Player(name, number) {
@@ -87,11 +111,11 @@ function Card(encodedCard) {
             CinchApp.viewModel.cardImagesInPlay[player] = new CardAnimation(cardImage, player);
         };
 
-	cardImage.onerror = function() {
-	    CinchApp.viewModel.chats.push(new VisibleMessage('Player '+player+' played '+self.decoded+' but the image failed to load.', 'Error', CinchApp.messageTypes.error));
-	    cardImage.src = null;
-	    CinchApp.viewModel.cardImagesInPlay[player] = new CardAnimation(cardImage, player); //Go ahead and animate a nothing card to let the game advance
-	};
+    cardImage.onerror = function() {
+        CinchApp.viewModel.chats.push(new VisibleMessage('Player '+player+' played '+self.decoded+' but the image failed to load.', 'Error', CinchApp.messageTypes.error));
+        cardImage.src = null;
+        CinchApp.viewModel.cardImagesInPlay[player] = new CardAnimation(cardImage, player); //Go ahead and animate a nothing card to let the game advance
+    };
 
         cardImage.src = self.imagePath;
     };

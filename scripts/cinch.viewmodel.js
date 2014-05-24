@@ -148,79 +148,8 @@ function CinchViewModel() {
     self.chosenAi[CinchApp.players.north] = ko.observable();
     self.chosenAi[CinchApp.players.east] = ko.observable();
 
-    //Seat selection elements
+    //Seat selection
     self.selectedRoom = ko.observable();
-    self.getUserInSeat = function(gameNum, seatNum) {
-	if (gameNum < 1) { return false; } //When no game is selected, gameNum = -1
-
-	var i;
-	var j;
-	var seats;
-	var games = self.games();
-	for (i = 0; i < games.length; i++) {
-	    if (games[i].number == gameNum) {
-		seats = games[i].seatChart();
-		for (j = 0; j < seats.length; j++) {
-		    if (seats[j][1] == seatNum) {
-			return seats[j][0];
-		    }
-		}
-		break
-	    }
-	}
-	return false;
-    };
-
-    self.prepSeatSelector = function(element, user) {
-	var disabledVal;
-
-	if (user === false) {
-	    //No one in this seat, so make available
-	    disabledVal = false;
-	    user = "<Available>";
-	} else {
-	    //Seat taken, so show username and make unavailable
-	    disabledVal = true;
-	}
-
-	element.disabled = disabledVal;
-	return user;
-    };
-
-    self.northSeatSelector = ko.computed(function() {
-	var element = $("#north-seat-selector")[0];
-	var user = self.getUserInSeat(self.selectedRoom(), 2);
-	return self.prepSeatSelector(element, user);
-    });
-
-    self.southSeatSelector = ko.computed(function() {
-	var element = $("#south-seat-selector")[0];
-	var user = self.getUserInSeat(self.selectedRoom(), 0);
-	return self.prepSeatSelector(element, user);
-    });
-
-    self.eastSeatSelector = ko.computed(function() {
-	var element = $("#east-seat-selector")[0];
-	var user = self.getUserInSeat(self.selectedRoom(), 3);
-	return self.prepSeatSelector(element, user);
-    });
-
-    self.westSeatSelector = ko.computed(function() {
-	var element = $("#west-seat-selector")[0];
-	var user = self.getUserInSeat(self.selectedRoom(), 1);
-	return self.prepSeatSelector(element, user);
-    });
-
-    self.joinSelectedGame = function(seatNum) {
-	var i;
-	var selectedGameNum = self.selectedRoom();
-
-	for (i = 0; i < self.games().length; i++) {
-	    if (self.games()[i].number == selectedGameNum) {
-		self.games()[i].join(seatNum);
-	    }
-	}
-    };
 
     //Functions
 
@@ -358,7 +287,7 @@ function CinchViewModel() {
         var socket = self.socket;
 
         //Adds action to queue with console message: unlockBoard() must be added within handler()
-	//TODO Note: this isn't compatible with events that are sent multiple parameters.
+        //TODO Note: this isn't compatible with events that are sent multiple parameters.
         function addSocketAction(id, msg, handler) {
             self.addAction(function() {
                 console.log('Running socket response for "' + id + '": ', msg);
@@ -439,26 +368,27 @@ function CinchViewModel() {
 
         socket.on('enter', function(user, room, seat) {
             //Add the new user to the collection and announce if in game view
-	    self.users.push(user);
-	    self.activeView() === CinchApp.views.game && self.announceUser(user);
-	    console.log('enter: ', user, room, seat);
+	        self.users.push(user);
+	        self.activeView() === CinchApp.views.game && self.announceUser(user);
+	        console.log('enter: ', user, room, seat);
 
-	    //Update the Lobby Game objects with new players
-	    var i;
-	    var tmp;
-	    var games = self.games();
-	    for (i = 0; i < games.length; i++) {
-		if (games[i].number == room) {
-		    tmp = games[i].seatChart();
-		    tmp.push([user, seat]);
-		    self.games()[i].seatChart(tmp);
-		}
-	    }
+	        //Update the Lobby Game objects with new players
+	        var i;
+	        var tmp;
+	        var games = self.games();
 
-	    //Update in-game view
-	    if (self.activeView() === CinchApp.views.game) {
-		socket.$events.seatChart(tmp);
-	    }
+	        for (i = 0; i < games.length; i++) {
+		        if (games[i].number == room) {
+		            tmp = games[i].seatChart();
+		            tmp.push([user, seat]);
+		            self.games()[i].seatChart(tmp);
+		        }
+	        }
+
+	        //Update in-game view
+	        if (self.activeView() === CinchApp.views.game) {
+		        socket.$events.seatChart(tmp);
+	        }
         });
 
 	socket.on('exit', function(user, room, seat) {

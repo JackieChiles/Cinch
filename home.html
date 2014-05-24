@@ -39,7 +39,7 @@
 
             <div data-bind="foreach: games">
                 <div class="title-value-container game">
-                    <button data-bind="click: preJoin, disable: isFull">
+                    <button data-bind="click: select, disable: isFull">
                         Join Game <span data-bind="text: name"></span>
 			<span data-bind="text: isFull() ? ' (Room Full)' : ''"></span>
 			<span data-bind="text: ': ' + getUserlist()"></span>
@@ -56,35 +56,27 @@
 		</button>
             </div>
 
-            <div>
-              <div class="seat-list north title-value-container">
+            <div data-bind="with: selectedRoom">
+              <div class="seat-list north title-value-container" data-bind="with: seats()[CinchApp.players.north]">
                 <div class="small-title white-border">North</div>
-		<button class="seat-selector" id="north-seat-selector"
-			data-bind="text: northSeatSelector,
-				   click: joinSelectedGame.bind($data, 2)"></button>
+		        <button class="seat-selector" data-bind="text: displayText, enable: available, click: join"></button>
               </div>
 
               <div class="east-west-seat-container">
-                <div class="seat-list east-west with-south title-value-container">
+                <div class="seat-list east-west with-south title-value-container" data-bind="with: seats()[CinchApp.players.west]">
                   <div class="small-title white-border">West</div>
-		  <button class="seat-selector" id="west-seat-selector" 
-			  data-bind="text: westSeatSelector,
-				     click: joinSelectedGame.bind($data, 1)"></button>
+		          <button class="seat-selector" data-bind="text: displayText, enable: available, click: join"></button>
                 </div>
 
-                <div class="seat-list east-west with-south title-value-container">
+                <div class="seat-list east-west with-south title-value-container" data-bind="with: seats()[CinchApp.players.east]">
                   <div class="small-title white-border">East</div>
-		  <button class="seat-selector" id="east-seat-selector"
-			  data-bind="text: eastSeatSelector,
-				     click: joinSelectedGame.bind($data, 3)"></button>
+		          <button class="seat-selector" data-bind="text: displayText, enable: available, click: join"></button>
                 </div>
               </div>
 
-              <div class="seat-list south title-value-container">
+              <div class="seat-list south title-value-container" data-bind="with: seats()[CinchApp.players.south]">
                 <div class="small-title white-border">South</div>
-		<button class="seat-selector" id="south-seat-selector"
-			data-bind="text: southSeatSelector,
-				   click: joinSelectedGame.bind($data, 0)"></button>
+		        <button class="seat-selector" data-bind="text: displayText, enable: available, click: join"></button>
               </div>
             </div>
 
