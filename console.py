@@ -74,7 +74,7 @@ class RoomView(gamestate.GameState):
         cs.update_dash('taker', '')
         cs.update_dash('trump', None)
         cs.update_dash('scores', None)
-
+        cs.update_dash('room', 0) # __del__ implies return to lobby
 
     #-------------------------#
     # Gamestate Update Method #
@@ -238,11 +238,11 @@ class Namespace(BaseNamespace):
         # Clear any game/room data when moving from room to room.
         self.rv = RoomView(0) # Set up a RoomView to hold game info.
         if args[0]['seatChart'] == 'lobby':
-            log.info('You are in the lobby.')
+            cs.update_dash('room', 0)
             del self.rv
         else:
             self.rv.room = args[0]['roomNum']
-            log.info('You are in room ' +str(self.rv.room)+'.') #TODO-dashboard
+            cs.update_dash('room', self.rv.room)
             for player in args[0]['seatChart']:
                 # SeatCharts are lists of (username, seat) pairs.
                 if int(player[1]) == -1: # Username not in a seat...
@@ -277,6 +277,8 @@ class Namespace(BaseNamespace):
 
     def on_connect(self):
         log.info('[Connected]')
+        # New users are added to the lobby.
+        cs.update_dash('room', 0)
 
     def on_disconnect(self, *args):
         self.rv = None # Erase current game data - no re-joins allowed yet.

@@ -99,8 +99,6 @@ class CinchScreen():
         self.table = curses.newwin(tbl['h'], tbl['w'], tbl['y'], tbl['x'])
         self.table.leaveok(False)
         self.table.border()
-        self.table.move(1,8)
-        self.table.addstr("PLAY  AREA")
 
         # Draw table graphic:
         self.table.move(4,9)
@@ -291,6 +289,7 @@ class CinchScreen():
         'scores'  |   A 2-tuple with Us/Them scores or None.
         'trump'   |   A suit symbol or None.
         'dealer'  |   <not implemented yet>
+        'room'    |   An integer room number.
         '''
 
         try:
@@ -354,6 +353,23 @@ class CinchScreen():
                     card = '  '
                 self.table.move(*self.TBL_CARDS[apparent_seat])
                 self.table.addstr(card)
+                self.table.refresh()
+
+            elif msg_type is 'room':
+                try:
+                    room_num = int(args[0])
+                    if room_num < 0:
+                        raise TypeError
+                except TypeError:
+                    log.exception("Room number argument %s not +int!", args[0])
+                    room_num = 999999
+
+                if room_num is 0:
+                    room_str = "LOBBY   "
+                else:
+                    room_str = "ROOM " + str(room_num) + "       "
+                self.table.move(1,1)
+                self.table.addstr(room_str)
                 self.table.refresh()
 
             #----< Info Window Updates >----#
