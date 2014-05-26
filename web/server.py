@@ -52,13 +52,14 @@ from threading import Timer
 
 import logging
 log = logging.getLogger(__name__)
-# TODO make use of logging in code
 
 from core.game import Game, NUM_PLAYERS
 
 # Constants
 LOBBY = 0
 MAX_ROOM_SIZE = NUM_PLAYERS
+
+CINCH_NS = '/cinch' # Namespace for Cinch
 
 
 class Room(object):
@@ -105,7 +106,7 @@ class Room(object):
                 try:
                     seats.remove(sock.session['seat'])
                 except:
-                    print "%d not in available seats" % sock.session['seat']
+                    log.debug("%d not in available seats" % sock.session['seat'])
         
         return seats
     
@@ -115,7 +116,7 @@ class Room(object):
 
         # Prevent game from restarting if a full room empties and refills
         if self.started:
-            sock['/cinch'].emit_to_room('chat', ['System',
+            sock[CINCH_NS].emit_to_room('chat', ['System',
                 "This game already started, so I won't start a new one."])
             return
 
@@ -123,24 +124,23 @@ class Room(object):
         if len(self.getAvailableSeats()) > 0:
             # Something has gone wrong
             log.error("bad seating error in startGame()")
-            sock['/cinch'].emit_to_room('err', 'Problem starting game')
+            sock[CINCH_NS].emit_to_room('err', 'Problem starting game')
             return
 
         #Send out the final seat chart
-        sock['/cinch'].emit_to_room('seatChart', sock['/cinch'].getSeatingChart(sock['/cinch'].session['room']))
+        sock[CINCH_NS].emit_to_room('seatChart', sock[CINCH_NS].getSeatingChart(sock[CINCH_NS].session['room']))
 
         self.game = Game()
-        initData = self.game.start_game(sock['/cinch'].getUsernamesInRoom(self))
+        initData = self.game.start_game(sock[CINCH_NS].getUsernamesInRoom(self))
         
         # Send initial game data to players
         log.debug("Sending initial game data in room %s", self.num)
+
+        target_sock_map = {s.session['seat']: s[CINCH_NS]
+                           for s in self.users}
+
         for msg in initData:
-            # msg['tgt'] is a list. for this msg, it's one-element
-            tgt = msg.pop('tgt')[0]
-            for sock in self.users:
-                if sock.session['seat'] == tgt:
-                    sock['/cinch'].emit('startData', msg)
-                    break
+            target_sock_map[msg['tgt'][0]].emit('startData', msg)
 
         self.started = True
 
@@ -431,14 +431,14 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         if 'seat' in self.session:
             pNum = self.session['seat']
         else:
-            #Handle clients playing while not seated.
+            # Handle clients playing while not seated.
             self.emit('err', 'No seat assigned; playing not allowed.')
             log.warning('Non-seated client "%s" sent play %s',
                         self.session['nickname'], play)
             return
 
         res = g.handle_card_played(pNum, int(play))
-        #False on bad play, None for inactive player
+        # False on bad play, None for inactive player
 
         if res is False:
             log.debug("on_play: illegal play attempted in seat " + str(pNum))
@@ -446,13 +446,14 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         elif res is None:
             self.emit('err', "It's not your turn")
         else:
-            # TODO implement better way of sending private messages
-            if len(res) > 1: # Multiple messages == distinct messages
+            # Multiple messages == distinct messages; happens at end of hand
+            if len(res) > 1:
+                target_sock_map = {s.session['seat']: s[CINCH_NS]
+                                   for s in self.session['room'].users}
+
                 for msg in res:
-                    tgt = msg['tgt'][0] # Assuming one target per message here
-                    for sock in self.session['room'].users:
-                        if sock.session['seat'] == tgt:
-                            sock['/cinch'].emit('play', [msg])
+                    target_sock_map[msg['tgt'][0]].emit('play', [msg])
+
             else:
                 self.emit_to_room('play', res)
                                   
@@ -571,20 +572,20 @@ class Server(object):
 
         if path.startswith("socket.io"):
             # Client should socket connect on 'http://whatever:port/cinch'
-            socketio_manage(environ, {'/cinch': GameNamespace}, self.request)
+            socketio_manage(environ, {CINCH_NS: GameNamespace}, self.request)
         else:
-            print "not found ", path
+            log.error("not found " + path)
 
 
 def runServer():
     """Start socketio server on ports specified below."""
-    print 'Listening on port 8088 and on port 10843 (flash policy server)'
+    log.info('Listening on port 8088 and on port 10843 (flash policy server)')
     
     try:
         SocketIOServer(('0.0.0.0', 8088), Server(),
             resource="socket.io", policy_server=True,
             policy_listener=('0.0.0.0', 10843)).serve_forever()
     except KeyboardInterrupt:
-        print 'Server halted with keyboard interrupt'
+        log.info('Server halted with keyboard interrupt')
     except Exception, e:
         raise e
