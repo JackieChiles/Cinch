@@ -115,7 +115,7 @@ class AIBase(object):
     def on_game_action(self, *args):
         """Combination handler for bid and play."""
         try:
-            msg = args[0][0] # Should yield a dict
+            msg = args[0] # Should yield a dict
         except Exception as e:
             print 'on_game_action: ', args
 

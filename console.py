@@ -229,7 +229,7 @@ class Namespace(BaseNamespace):
 
     def ackCreate(self, room_num):
         log.info('Room '+str(room_num)+' created.')
-        self.emit('join', room_num, 0, self.ackJoin) ##TODO seatnum
+        self.emit('join', room_num, 0, self.ackJoin)
 
     def ackJoin(self, *args):
         if len(args) == 0: # Room choice was invalid

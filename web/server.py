@@ -140,7 +140,7 @@ class Room(object):
                            for s in self.users}
 
         for msg in initData:
-            target_sock_map[msg['tgt'][0]].emit('startData', msg)
+            target_sock_map[msg['tgt']].emit('startData', msg)
 
         self.started = True
 
@@ -368,9 +368,12 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         
         The nickname cannot be changed while the user is in a room other than
         the lobby. This is to protect the integrity of any game logging done.
+
+        FUTURE: Prevent multiple users from having same nickname. Will need to show
+        error message to client on username entry screen.
         
         """
-        if self.session['room'].num != LOBBY:  # if room is not Lobby
+        if self.session['room'].num != LOBBY:
             self.emit('err', 'You cannot change names while in a game')
             return (None,)
         else:
@@ -409,7 +412,7 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         if 'seat' in self.session:
             pNum = self.session['seat']
         else:
-            #Handle clients bidding while not seated.            
+            # Handle clients bidding while not seated.            
             self.emit('err', 'No seat assigned; bidding not allowed.')
             log.warning('Non-seated client "%s" sent bid %s',
                         self.session['nickname'], bid)
@@ -447,12 +450,12 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
             self.emit('err', "It's not your turn")
         else:
             # Multiple messages == distinct messages; happens at end of hand
-            if len(res) > 1:
+            if type(res) == list:
                 target_sock_map = {s.session['seat']: s[CINCH_NS]
                                    for s in self.session['room'].users}
 
                 for msg in res:
-                    target_sock_map[msg['tgt'][0]].emit('play', [msg])
+                    target_sock_map[msg['tgt']].emit('play', msg)
 
             else:
                 self.emit_to_room('play', res)

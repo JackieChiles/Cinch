@@ -161,8 +161,9 @@ function CinchViewModel() {
 	    return;
 	}
         self.username() && self.socket.emit('nickname', self.username(), function(msg) {
-            //TODO: wait for confirmation before changing username on client
-	    console.log('new nickname = ', msg);
+	    if (msg !== null) {
+		console.log('new nickname = ', msg);
+	    }
 	});
         self.activeView(CinchApp.views.lobby);
     };
@@ -325,7 +326,6 @@ function CinchViewModel() {
         addSocketHandler('chat', function(msg) {
             var listElement = document.getElementById('output-list');
 
-            //TODO: change this to be an object property instead of array element
             self.chats.push(new VisibleMessage(msg[1], msg[0]));
 
             //Scroll chat pane to bottom
@@ -452,7 +452,7 @@ function CinchViewModel() {
 
         addSocketHandler('bid', function(msg) {
             var app = CinchApp;
-            var msg = msg[0]; //TODO: Why??
+            var msg = msg;
 
             app.isNullOrUndefined(msg.dlr)      || self.dealerServer(msg.dlr);
             app.isNullOrUndefined(msg.actor)    || self.players()[CinchApp.serverToClientPNum(msg.actor)].currentBidValue(msg.bid);
@@ -462,7 +462,7 @@ function CinchViewModel() {
 
         socket.on('play', function(msg) {
             var app = CinchApp;
-            var msg = msg[0]; //TODO: Why??
+            var msg = msg;
 
             //First, set trump and dealer
             addSocketActionDefaultUnlock('play (trp, dlr)', msg, function(msg) {

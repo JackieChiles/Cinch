@@ -383,7 +383,7 @@ class Game:
                         for player in self.players:
                             output[player.pNum]['addC'] = [card.code for card
                                                            in player.hand]
-                            output[player.pNum]['tgt'] = [player.pNum]
+                            output[player.pNum]['tgt'] = player.pNum
             
         elif status in ['bid', 'eob']:
             message['bid'] = data
@@ -400,17 +400,17 @@ class Game:
             for player in self.players:
                 output[player.pNum]['addC'] = [card.code for card
                                                in player.hand]
-                output[player.pNum]['tgt'] = [player.pNum]        
+                output[player.pNum]['tgt'] = player.pNum
             
         # Note: New hands are handled differently from all others because they
         # are the only ones dealing with private information. If status is
         # 'eoh'/'sog', output will be a length-4 list containing 4 dicts with
         # 'tgt' containing an integer, and 'addC' containing the new hands. If
-        # not, output will be a length-1 list containing 1 dict with 'tgt' con
-        # taining a length-4 list. (With 4 meaning NUM_PLAYERS, of course.)
+        # not, output will be a dict with 'tgt' containing a length-4 list.
+        # (With 4 meaning NUM_PLAYERS, of course.)
         if status not in ['eoh', 'sog']:
             message['tgt'] = [i for i in range(NUM_PLAYERS)]
-            output = [message]
+            output = message
             self.gs.events.append({'hand_num':self.gs.hand_number,
                                    'timestamp':datetime.utcnow().isoformat(),
                                    'output':str(output)})
