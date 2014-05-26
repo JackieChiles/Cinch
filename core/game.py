@@ -281,13 +281,7 @@ class Game:
         # Check for end of hand and handle, otherwise return.
         #----------------------------------------------------
         
-        # TODO: This is error checking to verify that all players have equal hand
-        # sizes. Later, we can just check players[0].hand for cards.
-        cards_left = 0
-        for player in self.players:
-            cards_left += len(player.hand)
-        if cards_left % NUM_PLAYERS != 0:
-            raise RuntimeError("Cards in hand not even.")
+        cards_left = len(self.players[0].hand)
         if cards_left != 0:
             # More tricks to play
             return self.publish('eot', player_num, card)
@@ -306,15 +300,16 @@ class Game:
         
         if self.gs.hand_number == MAX_HANDS:
             victor = True
-        
+
         # This block breaks if there are more than two teams.        
         if victor:
             if self.gs.scores[self.gs.declarer % TEAM_SIZE] >= WINNING_SCORE:
                 self.gs.winner = self.gs.declarer % TEAM_SIZE
-            elif self.gs.scores[(self.gs.declarer + 1)% TEAM_SIZE] >= WINNING_SCORE:
+            elif self.gs.scores[(self.gs.declarer + 1) % TEAM_SIZE] >= WINNING_SCORE:
                 self.gs.winner = (self.gs.declarer + 1) % TEAM_SIZE
             else:
                 pass # Don't need to set winner if we reached on MAX_HANDS.
+
             return self.publish('eog', player_num, card)
                 
         # If no victor, set up for next hand.
