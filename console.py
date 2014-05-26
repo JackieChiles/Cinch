@@ -151,11 +151,43 @@ class RoomView(gamestate.GameState):
                 self.hand.append(cards.Card(card_code))
             cs.update_dash('hand', [str(card) for card in self.hand])
         if 'sco' in msg:
+            # Update dash with scores.
             self.scores = msg['sco']
             us_score = str(self.scores[self.seat % 2])
             them_score = str(self.scores[(self.seat + 1) % 2])
             log.debug('Scores: You %s, them %s', us_score, them_score)
             cs.update_dash('scores', (us_score, them_score))
+
+            # Scoring only happens at end of hand, so write a hand summary.
+            mp_lookup = {'h':'high', 'l':'low', 'j':'jack', 'g':'game'}
+            mp_summary = [[], []]
+            for i in range(len(mp_summary)):
+                for x in str(msg['mp'][self.seat % 2 + i]):
+                    # Should place 'our' info in [0] and 'theirs' in [1]
+                    mp_summary[i].append(mp_lookup[x])
+
+            log.info('┌──────────────┐')
+            log.info('│ Hand Summary │')
+            log.info('└──────────────┘')
+
+            # Format somewhat grammatically.
+            what_was_taken = ['We took', 'They took']
+            for i in range(2):
+                if len(mp_summary[i]) is 0:
+                    what_was_taken[i] += ' nothing.'
+                elif len(mp_summary[i]) is 1:
+                    what_was_taken[i] += ' ' + mp_summary[i][0] + '.'
+                elif len(mp_summary[i]) is 2:
+                    what_was_taken[i] += ' ' + mp_summary[i][0] + ' and ' + mp_summary[i][1] + '.'
+                elif len(mp_summary[i]) is 3:
+                    what_was_taken[i] += ' ' + mp_summary[i][0] + ', ' + mp_summary[i][1] + ', and ' + mp_summary[i][2] + '.'
+                elif len(mp_summary[i]) is 4:
+                    what_was_taken[i] += ' high, low, jack & game!'
+
+            for x in what_was_taken:
+                log.info(x)
+            log.info('We had %s game points to their %s.',
+                     msg['gp'][self.seat % 2], msg['gp'][self.seat % 2 + 1])
 
         if self.active_player == self.seat:
             if self.game_mode == 2:
