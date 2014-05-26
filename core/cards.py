@@ -51,6 +51,9 @@ else: # Unicode is awesome
 NUM_RANKS = 13
 NUM_SUITS = 4
 
+STACK_DECK = False
+DECK_SEED  = 0 # Used for deck stacking
+
 
 class Card:
     """
@@ -99,22 +102,21 @@ class Deck(list):
     Define Deck object (extending list built-in) and class methods for
     creating and manipulating Deck.
     """
-    def __init__(self, seed=None):
+    def __init__(self):
         """
         Create deck of cards. Iterate through (rank,suit) pairs, creating
         a new Card object for each and adding to internal list.
-        
-        seed (float) - number between 0 and 1, used for stacking the deck
+
         """
         for r in RANKS_BY_NUM:
             for s in SUITS_BY_NUM:
                 self.append(Card(r, s))
         
         # Shuffle deck, stacking if needed
-        if 'stack_seed' in globals():
+        if STACK_DECK:
             def f():
                 # random.shuffle needs a zero-arg function to get a seed number
-                return stack_seed
+                return DECK_SEED
             shuffle(self, f)
         else:
             shuffle(self)

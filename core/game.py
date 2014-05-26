@@ -27,8 +27,6 @@ DB_PATH = 'db/cinch.db'
 MAX_HANDS = 16 # Not part of game rules; intended to prevent AI problems.
                # Can be modified later if actual gameplay is trending longer.
 
-DECK_SEED = 0.1 # Used for deck stacking
-
 # Bid constants
 BID = common.enum(PASS=0, CINCH=5)
 
@@ -46,14 +44,9 @@ class Game:
         deck (object): Deck object containing Card objects
         
     """
-    def __init__(self, stack_deck = False):
+    def __init__(self):
         self.players = []
         self.gs = None
-
-        if stack_deck:
-            cards.stack_seed = DECK_SEED
-            log.warning("ALERT: Deck stacking enabled!\n")
-
         self.deck = cards.Deck()
 
     def __repr__(self):

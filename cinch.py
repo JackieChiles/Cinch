@@ -18,6 +18,8 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--quick", help="make game go quicker", action="store_true")
+    parser.add_argument("--stack", help="stack deck using given RNG seed",
+                        type=float)
     args = parser.parse_args()
 
     if args.quick:
@@ -26,6 +28,13 @@ if __name__ == "__main__":
         import core.game
         core.game.STARTING_HAND_SIZE = 2
         core.game.MAX_HANDS = 1
+
+    if args.stack:
+        logging.info("Deck stacking on for all games (seed = {0})".format(
+            args.stack))
+        import core.cards
+        core.cards.STACK_DECK = True
+        core.cards.DECK_SEED = args.stack
 
     # Start AI manager
     manager = threading.Thread(target=AIManager)
