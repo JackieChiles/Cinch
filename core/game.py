@@ -1,9 +1,6 @@
 #!/usr/bin/python3
 """
 Game object for managing game properties, players, and game states.
-
-TODO: pickling game for later recovery
-
 """
 import string
 import random
@@ -30,6 +27,8 @@ DB_PATH = 'db/cinch.db'
 MAX_HANDS = 16 # Not part of game rules; intended to prevent AI problems.
                # Can be modified later if actual gameplay is trending longer.
 
+DECK_SEED = 0.1 # Used for deck stacking
+
 # Bid constants
 BID = common.enum(PASS=0, CINCH=5)
 
@@ -47,18 +46,15 @@ class Game:
         deck (object): Deck object containing Card objects
         
     """
-    def __init__(self, stack_deck = False, deck_seed = 0.1):
-        self.id = 0     #TODO: have external counter for this
+    def __init__(self, stack_deck = False):
         self.players = []
         self.gs = None
-        self.stack_deck = stack_deck
-        self.deck_seed = deck_seed
 
-        if stack_deck: #TODO: clean this up - WET code (handle_card_played)
-            self.deck = cards.Deck(deck_seed)
+        if stack_deck:
+            cards.stack_seed = DECK_SEED
             log.warning("ALERT: Deck stacking enabled!\n")
-        else:
-            self.deck = cards.Deck()
+
+        self.deck = cards.Deck()
 
     def __repr__(self):
         """Return descriptive string when asked to print object."""
@@ -166,9 +162,6 @@ class Game:
                        action['timestamp'], action['output']))
         
         # Commit the change, close db, return.
-        #TODO: In the future, consider adding more try statements and error-
-        # catching code that at least saves the server from hanging if there
-        # is a db problem.
         conn.commit()
         c.close()
         return None        
@@ -318,10 +311,7 @@ class Game:
         gs.team_stacks = [[] for _ in range(NUM_TEAMS)]
         gs.dealer = gs.next_player(gs.dealer)
         gs.declarer = gs.dealer
-        if self.stack_deck: #TODO: WET code (__init__()) - clean up later
-            self.deck = cards.Deck(deck_seed)
-        else:
-            self.deck = cards.Deck()
+        self.deck = cards.Deck()
         self.deal_hand()
         gs.active_player = gs.next_player(gs.dealer)
         gs.high_bid = 0
@@ -439,7 +429,6 @@ class Game:
             self.dbupdate()
         
         return output
-
 
     def start_game(self, plr_arg = ["Test0", "Test1", "Test2", "Test3"]):
         """Start a new game, deal first hands, and send msgs.

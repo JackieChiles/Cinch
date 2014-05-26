@@ -45,9 +45,7 @@ function Game(gameMsg) {
             CinchApp.viewModel.activeView(CinchApp.views.game);
 
             if (msg.roomNum != 0) {
-                CinchApp.socket.$events.users(msg.users);
                 CinchApp.socket.$events.seatChart(msg.seatChart);
-
                 CinchApp.viewModel.myPlayerNum(msg.mySeat);
             }
         });

@@ -2,15 +2,40 @@
 """Web server component for Cinch.
 
 Classes:
+
 Room -- Container for users and a Cinch game
 GameNamespace -- Socket.io namespace for all comms
 Server -- Manager for Socket.io connections
 
 Methods:
+
 runServer -- starts Socket.io server
 
+(Room)
+isFull
+getAvailableSeats
+startGame
+
+(GameNamespace)
+recv_connect
+recv_disconnect
+on_test
+on_chat
+on_createRoom
+on_exit
+on_join
+on_aiList
+on_aiListData
+on_summonAI
+on_bid
+on_play
+emit_to_room
+emit_to_room_not_me
+emit_to_another_room
+getUsernamesInRoom
+getSeatingChart
+
 Implements a Socket.io server and handles all client-server message routing.
-Replaces legacy modules ClientManager and GameRouter.
 
 """
 # Applies gevent magic to standard sockets
@@ -49,6 +74,7 @@ class Room(object):
         self.num = roomNum   # room descriptor
         self.game = None     # game object
         self.users = []      # user sockets in room
+        self.started = False # flag if a game has been started in this room
     
     def __str__(self):
         """Return a label for the room, with special handling for the Lobby."""
@@ -68,7 +94,6 @@ class Room(object):
     
     def getAvailableSeats(self):
         """Returns list of unoccupied seat numbers in range(0, MAX_ROOM_SIZE)."""
-        # TODO consider changing from base-0 to base-1 for pNums
         seats = list(range(0, MAX_ROOM_SIZE))
 
         # Seats in Lobby can hold any number of people
@@ -86,6 +111,14 @@ class Room(object):
     
     def startGame(self):
         """Perform final player checks and start game."""       
+        sock = self.users[0] # Need to get reference to the socket namespace
+
+        # Prevent game from restarting if a full room empties and refills
+        if self.started:
+            sock['/cinch'].emit_to_room('chat', ['System',
+                "This game already started, so I won't start a new one."])
+            return
+
         # Ensure all seats filled
         if len(self.getAvailableSeats()) > 0:
             # Something has gone wrong
@@ -93,13 +126,9 @@ class Room(object):
             sock['/cinch'].emit_to_room('err', 'Problem starting game')
             return
 
-        else:
-            sock = self.users[0] # Need to get reference to the socket namespace
-
         #Send out the final seat chart
         sock['/cinch'].emit_to_room('seatChart', sock['/cinch'].getSeatingChart(sock['/cinch'].session['room']))
 
-        #TODO FIXME if players leave then rejoin, a new game is started.
         self.game = Game()
         initData = self.game.start_game(sock['/cinch'].getUsernamesInRoom(self))
         
@@ -113,6 +142,8 @@ class Room(object):
                     sock['/cinch'].emit('startData', msg)
                     break
 
+        self.started = True
+
 
 class GameNamespace(BaseNamespace, BroadcastMixin):
 
@@ -120,15 +151,12 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
     
     Extends socketio.namespace.BaseNamespace and socketio.mixins.BroadcastMixin.
     
-    TODO add public method list to docstring
-
     """
     
     # Unhandled exceptions caused by client input won't kill the server as a whole,
     # but will kill that connection. A page refresh seems to be required.
     
-    # TODO change this to recv_connect()
-    def __init__(self, *args, **kwargs):
+    def recv_connect(self):
         """Initialize connection for a client to this namespace.
         
         This gets called when the client first connects (as long as this
@@ -137,7 +165,6 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         of available rooms.
         
         """
-        super(GameNamespace, self).__init__(*args, **kwargs)
         self.session['nickname'] = 'NewUser'
         
         self.on_join(LOBBY, 0) # Join lobby
@@ -183,8 +210,6 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         
         args -- {seat: ai_model_id, seat2: ...}
         
-        TODO: need to accept request for own seat number
-        
         """
         # 'rooms' is list of Room objects
         roomNum = self.request['curMaxRoomNum'] + 1
@@ -213,8 +238,8 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
     
     def on_exit(self, _):
         """Leave room and return to lobby, while announcing to rest of room."""
-        retVal =  ({'seatChart': 'lobby'},) # TODO send list of ppl in lobby
         curRoom = self.session['room']
+        retVal =  ({'seatChart': self.getSeatingChart(curRoom)},)
 
         if self.socket not in curRoom.users:
             # This user is no longer in this room, so do nothing
@@ -327,15 +352,10 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
                     t = Timer(0.5, room.startGame)
                     t.start()
 
-                if roomNum == 0:
-                    seatChart = "lobby"
-                else:
-                    seatChart = self.getSeatingChart(room)
+                seatChart = self.getSeatingChart(room)
 
-                # TODO make client handle seatChart; may then remove 'users'
-                users = self.getUsernamesInRoom(room) ###
                 return ({'roomNum': roomNum, 'seatChart': seatChart, 
-                         'users': users, 'mySeat': seatNum},)
+                         'mySeat': seatNum},)
 
         except IndexError:
             self.emit('err', "Room %s does not exist" % roomNum)

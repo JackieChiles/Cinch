@@ -34,7 +34,7 @@ SUITS_BY_NUM = {CLUBS:'Clubs', DIAMONDS:'Diamonds', HEARTS:'Hearts',
 
 # Code to support deprecated/legacy development platforms:
 # Same code supports deprecated/legacy developers:
-#TODO make unicode work in console
+# Unicode working in Linux console dependent on console setup, not Cinch code.
 
 if os_name == 'nt':
     SUITS_SHORT = {0:'C', 1:'D', 2:'H', 3:'S'}
@@ -111,10 +111,10 @@ class Deck(list):
                 self.append(Card(r, s))
         
         # Shuffle deck, stacking if needed
-        if seed:
+        if 'stack_seed' in globals():
             def f():
                 # random.shuffle needs a zero-arg function to get a seed number
-                return seed
+                return stack_seed
             shuffle(self, f)
         else:
             shuffle(self)

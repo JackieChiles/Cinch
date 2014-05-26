@@ -14,7 +14,6 @@ function CinchViewModel() {
     self.curRoom = ko.observable();
     self.activeView = ko.observable();
     self.games = ko.observableArray([]);
-    self.users = ko.observableArray([]);
     self.players = ko.observableArray(ko.utils.arrayMap([
             CinchApp.players.south,
             CinchApp.players.west,
@@ -228,9 +227,8 @@ function CinchViewModel() {
 		self.curRoom(msg.roomNum);
                 self.activeView(CinchApp.views.game);
 		if (msg.roomNum != 0) {
-		    console.log('seatChart: ', msg.seatChart);///TODO use only seatChart
+		    console.log('seatChart: ', msg.seatChart);
 		    self.socket.$events.seatChart(msg.seatChart);
-		    self.socket.$events.users(msg.users);
 
 		    self.myPlayerNum(msg.mySeat);
 		}
@@ -342,19 +340,6 @@ function CinchViewModel() {
             self.games.push(new Game(msg));
         });
 
-        addSocketHandler('users', function(msg) {
-            var i = 0;
-
-            self.users(msg);
-
-            //Announce users already in-game
-            if(self.activeView() === CinchApp.views.game) {
-                for(i = 0; i < msg.length; i++) {
-                    self.announceUser(msg[i]);
-                }
-            }
-        });
-
         addSocketHandler('seatChart', function(msg) {
             var i = 0;
             var clientPNum = 0;
@@ -367,28 +352,27 @@ function CinchViewModel() {
         });
 
         socket.on('enter', function(user, room, seat) {
-            //Add the new user to the collection and announce if in game view
-	        self.users.push(user);
-	        self.activeView() === CinchApp.views.game && self.announceUser(user);
-	        console.log('enter: ', user, room, seat);
+            //Announce user if in game view
+	    self.activeView() === CinchApp.views.game && self.announceUser(user);
+	    console.log('enter: ', user, room, seat);
 
-	        //Update the Lobby Game objects with new players
-	        var i;
-	        var tmp;
-	        var games = self.games();
+	    //Update the Lobby Game objects with new players
+	    var i;
+	    var tmp;
+	    var games = self.games();
 
-	        for (i = 0; i < games.length; i++) {
-		        if (games[i].number == room) {
-		            tmp = games[i].seatChart();
-		            tmp.push([user, seat]);
-		            self.games()[i].seatChart(tmp);
-		        }
-	        }
+	    for (i = 0; i < games.length; i++) {
+		if (games[i].number == room) {
+		    tmp = games[i].seatChart();
+		    tmp.push([user, seat]);
+		    self.games()[i].seatChart(tmp);
+		}
+	    }
 
-	        //Update in-game view
-	        if (self.activeView() === CinchApp.views.game) {
-		        socket.$events.seatChart(tmp);
-	        }
+	    //Update in-game view
+	    if (self.activeView() === CinchApp.views.game) {
+		socket.$events.seatChart(tmp);
+	    }
         });
 
 	socket.on('exit', function(user, room, seat) {

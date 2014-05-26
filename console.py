@@ -237,7 +237,7 @@ class Namespace(BaseNamespace):
 
         # Clear any game/room data when moving from room to room.
         self.rv = RoomView(0) # Set up a RoomView to hold game info.
-        if args[0]['seatChart'] == 'lobby':
+        if not 'roomNum' in args[0]: # Joined lobby
             cs.update_dash('room', 0)
             del self.rv
         else:
@@ -322,9 +322,6 @@ class Namespace(BaseNamespace):
         # Final seat chart is sent as list of len-2 lists [u'nick', seat_num]
         for entry in chart:
             self.rv.update_table(entry[0], entry[1])
-
-    def on_users(self, users):
-        log.info('In the room: '+', '.join([str(x) for x in users]))
 
     #--------------------------------#
     # Callback Handler - for testing #
