@@ -187,7 +187,7 @@ class RoomView(gamestate.GameState):
             for x in what_was_taken:
                 log.info(x)
             log.info('We had %s game points to their %s.',
-                     msg['gp'][self.seat % 2], msg['gp'][self.seat % 2 + 1])
+                     msg['gp'][self.seat % 2], msg['gp'][(self.seat + 1) % 2])
 
         if self.active_player == self.seat:
             if self.game_mode == 2:
