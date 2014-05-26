@@ -162,7 +162,7 @@ class RoomView(gamestate.GameState):
             mp_lookup = {'h':'high', 'l':'low', 'j':'jack', 'g':'game'}
             mp_summary = [[], []]
             for i in range(len(mp_summary)):
-                for x in str(msg['mp'][self.seat % 2 + i]):
+                for x in str(msg['mp'][(self.seat + i) % 2]):
                     # Should place 'our' info in [0] and 'theirs' in [1]
                     mp_summary[i].append(mp_lookup[x])
 
@@ -288,12 +288,9 @@ class Namespace(BaseNamespace):
 
     def on_enter(self, nickname, room, seat):
         log.info(nickname+' has entered the room.')
-
-        if nickname == self.nickname:
-            pass # Would duplicate message from on_ackSeat; TODO removed ackSeat
-        else:
-            log.info(nickname + ' is now sitting in seat ' +
-                                str(seat) + '.')
+        log.info(nickname + ' is now sitting in seat ' +
+                 str(seat) + '.')
+        if hasattr(self, 'rv'):
             self.rv.update_table(nickname, seat)
 
     def on_err(self, *args):
@@ -304,7 +301,8 @@ class Namespace(BaseNamespace):
 
     def on_exit(self, exiter, room, seat):
         log.info(str(exiter) + ' has left the room.')
-        # TODO update dashboard
+        if hasattr(self, 'rv'):
+            self.rv.update_table(exiter, seat, 'remove')
 
     def on_play(self, msg):
         self.rv.modify(msg)
