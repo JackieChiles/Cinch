@@ -341,16 +341,28 @@ function CinchViewModel() {
         });
 
         addSocketHandler('seatChart', function(msg) {
-            var i = 0;
-            var clientPNum = 0;
+            var i = 0, j = 0;
+            var players = self.players();
             var player;
+            var playerInChart = false;
 
             //msg is an array of 2-element arrays... index 0 username, index 1 seat
-            for(i = 0; i < msg.length; i++) {
-                clientPNum = CinchApp.serverToClientPNum(msg[i][1]);
-                player = self.players()[clientPNum];
-                player.name(msg[i][0]);
-                player.empty(false);
+            for(i = 0; i < players.length; i++) {
+                player = players[i];
+                playerInChart = false;
+
+                for(j = 0; j < msg.length; j++) {
+                    if(i == CinchApp.serverToClientPNum(msg[j][1])) {
+                        player.name(msg[j][0]);
+                        player.empty(false);
+                        playerInChart = true;
+
+                        break;
+                    }
+                }
+
+                //If player was not found in the chart, the seat is now empty
+                playerInChart || player.empty(true);
             }
         });
 

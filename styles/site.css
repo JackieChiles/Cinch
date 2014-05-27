@@ -267,7 +267,7 @@ input.username {
 
 .active-border {
     border:3px solid blue!important;
-    opacity:1!important;
+    opacity:1;
 }
 
 .active-border.ab-top {
@@ -292,7 +292,7 @@ input.username {
 }
 
 .empty-seat {
-    opacity:0.5;
+    opacity:0.5!important;
 }
 
 .middle-row {
