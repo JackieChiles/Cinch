@@ -230,8 +230,8 @@
             <div id="game-content">
                 <div id="left-content">
                     <div data-bind="with: players()[CinchApp.players.north]" class="other-player partner no-mobile">
-                        <div data-bind="css: { 'active-border' : active }" class="ab-left ab-top ab-z">
-                            <div>
+                        <div data-bind="css: { 'active-border' : active, 'empty-seat' : empty }" class="ab-left ab-top ab-z">
+                            <div data-bind="visible: !empty()">
                                 <div data-bind="text: numCardsInHand" class="card-counter vert"></div>
                                 <div>
                                     <div class="small-title">Bid</div>
@@ -242,12 +242,15 @@
                                     <div data-bind="text: name" class="value-white-bg"></div>
                                 </div>
                             </div>
+                            <div data-bind="visible: empty">
+                                Empty seat
+                            </div>
                         </div>
                     </div>
                     
                     <div data-bind="with: players()[CinchApp.players.west]" class="other-player middle-row opponent no-mobile">
-                        <div data-bind="css: { 'active-border' : active }" class="ab-left ab-top ab-z">
-                            <div>
+                        <div data-bind="css: { 'active-border' : active, 'empty-seat' : empty }" class="ab-left ab-top ab-z">
+                            <div data-bind="visible: !empty()">
                                 <div data-bind="text: numCardsInHand" class="card-counter horiz"></div>
                                 <div>
                                     <div class="small-title">Bid</div>
@@ -258,6 +261,9 @@
                                     <div data-bind="text: name" class="value-white-bg"></div>
                                 </div>
                             </div>
+                            <div data-bind="visible: empty">
+                                Empty seat
+                            </div>
                         </div>
                     </div>
                     
@@ -266,11 +272,9 @@
                     </div>
                         
                     <div data-bind="with: players()[CinchApp.players.east]" class="other-player middle-row opponent no-mobile">
-                        <div data-bind="css: { 'active-border' : active }" class="ab-left ab-top ab-z">
-                            <div>
-                                <div>
-                                    <div data-bind="text: numCardsInHand" class="card-counter horiz"></div>
-                                </div>
+                        <div data-bind="css: { 'active-border' : active, 'empty-seat' : empty }" class="ab-left ab-top ab-z">
+                            <div data-bind="visible: !empty()">
+                                <div data-bind="text: numCardsInHand" class="card-counter horiz"></div>
                                 <div>
                                     <div class="small-title">Bid</div>
                                     <div data-bind="text: currentBidName" class="value-white-bg"></div>
@@ -279,6 +283,9 @@
                                     <div class="small-title">Name</div>
                                     <div data-bind="text: name" class="value-white-bg"></div>
                                 </div>
+                            </div>
+                            <div data-bind="visible: empty">
+                                Empty seat
                             </div>
                         </div>
                     </div>

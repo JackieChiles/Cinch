@@ -71,6 +71,7 @@ function Player(name, number) {
     self.name = ko.observable(name);
     self.number = number;
     self.active = ko.observable(false);
+    self.empty = ko.observable(true);
     self.numCardsInHand = ko.observable(0);
     self.currentBidValue = ko.observable(null);
     self.currentBidName = ko.computed(function() {

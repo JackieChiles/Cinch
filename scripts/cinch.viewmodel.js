@@ -343,11 +343,14 @@ function CinchViewModel() {
         addSocketHandler('seatChart', function(msg) {
             var i = 0;
             var clientPNum = 0;
+            var player;
 
             //msg is an array of 2-element arrays... index 0 username, index 1 seat
             for(i = 0; i < msg.length; i++) {
                 clientPNum = CinchApp.serverToClientPNum(msg[i][1]);
-                self.players()[clientPNum].name(msg[i][0]);
+                player = self.players()[clientPNum];
+                player.name(msg[i][0]);
+                player.empty(false);
             }
         });
 

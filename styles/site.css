@@ -291,6 +291,10 @@ input.username {
     z-index:5;
 }
 
+.empty-seat {
+    opacity:0.5;
+}
+
 .middle-row {
     float:left;
 }
