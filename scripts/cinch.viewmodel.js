@@ -272,11 +272,8 @@ function CinchViewModel() {
     };
 
     self.handEndContinue = function() {
-    self.curRoom(self.curRoom() + " - Game Over");
-    self.activeView(CinchApp.views.game);
-        //var views = CinchApp.views;
-
-        //self.activeView(self.isGameOver() ? views.home : views.game);
+	self.curRoom(self.isGameOver() ? self.curRoom() + " - Game Over" : self.curRoom());
+	self.activeView(CinchApp.views.game);
     };
 
     self.resetBids = function() {
