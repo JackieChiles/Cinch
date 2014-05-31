@@ -155,49 +155,52 @@ function CinchViewModel() {
     //When the user chooses to enter the lobby to select a game,
     //submit nickname request and switch to lobby view
     self.enterLobby = function() {
-	// Require a non-empty username
-	if (self.username().length < 1) {
-	    alert("A username is required.");
-	    return;
-	}
+        // Require a non-empty username
+        if (self.username().length < 1) {
+            alert("A username is required.");
+            return;
+        }
+
         self.username() && self.socket.emit('nickname', self.username(), function(msg) {
-	    if (msg !== null) {
-		console.log('new nickname = ', msg);
-	    }
-	});
+            if (msg !== null) {
+                console.log('new nickname = ', msg);
+            }
+        });
+
         self.activeView(CinchApp.views.lobby);
     };
 
     //Moves user from a game room to the lobby
     self.exitToLobby = function() {
-	self.socket.emit('exit', '');
+        self.socket.emit('exit', '');
 
-	//Clean up from last game
-	self.dealerServer(null);
-	self.trump(null);
-	self.gameScores([0, 0]);
-	self.gameMode(null);
-	self.chats([]);
-	self.encodedCards([]);
-	self.resetBids();
+        //Clean up from last game
+        self.dealerServer(null);
+        self.trump(null);
+        self.gameScores([0, 0]);
+        self.gameMode(null);
+        self.chats([]);
+        self.encodedCards([]);
+        self.resetBids();
 
-	var i;
-	var p;
-	for (i = 1; i < 4; i++) { // Don't want to reset own name so skip 0
-	    p = self.players()[i];
-	    p.name('-');
-	    p.numCardsInHand(0);
-	}
+        var i;
+        var p;
 
-	//Clear board
-	self.cardImagesInPlay = [];
-	try {
-	    context.clearRect(0, 0, CinchApp.playSurfaceWidth, CinchApp.playSurfaceHeight);
-	} catch (err) {
-	    ;
-	}
+        for (i = 1; i < 4; i++) { // Don't want to reset own name so skip 0
+            p = self.players()[i];
+            p.name('-');
+            p.numCardsInHand(0);
+        }
 
-	self.activeView(CinchApp.views.lobby);
+        //Clear board
+        self.cardImagesInPlay = [];
+        try {
+            context.clearRect(0, 0, CinchApp.playSurfaceWidth, CinchApp.playSurfaceHeight);
+        } catch (err) {
+            ;
+        }
+
+        self.activeView(CinchApp.views.lobby);
     };
 
     self.enterAi = function() {
@@ -211,7 +214,7 @@ function CinchViewModel() {
         var aiSelection = {};
         var ai = {};
         var chosenAi = self.chosenAi;
-	var seatNum = 0; // Room creator will always be first seat
+        var seatNum = 0; // Room creator will always be first seat
 
         self.username() && self.socket.emit('nickname', self.username());
         
@@ -224,18 +227,17 @@ function CinchViewModel() {
 
         //The format for aiSelection is { seatNumber:aiAgentId }
         self.socket.emit('createRoom', aiSelection, function(roomNum) {
-	    self.socket.emit('join', roomNum, seatNum, function(msg) {
-		self.curRoom(msg.roomNum);
+            self.socket.emit('join', roomNum, seatNum, function(msg) {
+                self.curRoom(msg.roomNum);
                 self.activeView(CinchApp.views.game);
-		if (msg.roomNum != 0) {
-		    console.log('seatChart: ', msg.seatChart);
-		    self.socket.$events.seatChart(msg.seatChart);
 
-		    self.myPlayerNum(msg.mySeat);
-		}
-
-	    });
-	});
+                if (msg.roomNum != 0) {
+                    console.log('seatChart: ', msg.seatChart);
+                    self.socket.$events.seatChart(msg.seatChart);
+                    self.myPlayerNum(msg.mySeat);
+                }
+            });
+        });
     };
 
     self.submitChat = function() {
@@ -266,8 +268,8 @@ function CinchViewModel() {
     };
 
     self.handEndContinue = function() {
-	self.curRoom(self.curRoom() + " - Game Over");
-	self.activeView(CinchApp.views.game);
+    self.curRoom(self.curRoom() + " - Game Over");
+    self.activeView(CinchApp.views.game);
         //var views = CinchApp.views;
 
         //self.activeView(self.isGameOver() ? views.home : views.game);
@@ -368,92 +370,93 @@ function CinchViewModel() {
 
         socket.on('enter', function(user, room, seat) {
             //Announce user if in game view
-	    self.activeView() === CinchApp.views.game && self.announceUser(user);
-	    console.log('enter: ', user, room, seat);
+            self.activeView() === CinchApp.views.game && self.announceUser(user);
+            console.log('enter: ', user, room, seat);
 
-	    //Update the Lobby Game objects with new players
-	    var i;
-	    var tmp;
-	    var games = self.games();
+            //Update the Lobby Game objects with new players
+            var i;
+            var tmp;
+            var games = self.games();
 
-	    for (i = 0; i < games.length; i++) {
-		if (games[i].number == room) {
-		    tmp = games[i].seatChart();
-		    tmp.push([user, seat]);
-		    self.games()[i].seatChart(tmp);
-		}
-	    }
+            for (i = 0; i < games.length; i++) {
+                if (games[i].number == room) {
+                    tmp = games[i].seatChart();
+                    tmp.push([user, seat]);
+                    self.games()[i].seatChart(tmp);
+                }
+            }
 
-	    //Update in-game view
-	    if (self.activeView() === CinchApp.views.game) {
-		socket.$events.seatChart(tmp);
-	    }
+            //Update in-game view
+            if (self.activeView() === CinchApp.views.game) {
+                socket.$events.seatChart(tmp);
+            }
         });
 
-	socket.on('exit', function(user, room, seat) {
-	    //Notify client that someone has left
-	    self.chats.push(new VisibleMessage(['User', user, 'has departed.'].join(' '), 'System'));
-	    console.log('exit: ', user, room, seat);
+    socket.on('exit', function(user, room, seat) {
+        //Notify client that someone has left
+        self.chats.push(new VisibleMessage(['User', user, 'has departed.'].join(' '), 'System'));
+        console.log('exit: ', user, room, seat);
 
-	    //Update the Lobby Game objects
-	    var i, j;
-	    var tmp;
-	    var games = self.games();
-	    for (i = 0; i < games.length; i++) {
-		if (games[i].number == room) {
-		    tmp = games[i].seatChart();
-		    for (j = 0; j < tmp.length; j++) {
-			if (tmp[j][0] == user && tmp[j][1] == seat) {
-			    break;
-			}
-		    }
-		    tmp.splice(j, 1);
-		    self.games()[i].seatChart(tmp);
-		}
-	    }
+        //Update the Lobby Game objects
+        var i, j;
+        var tmp;
+        var games = self.games();
+        for (i = 0; i < games.length; i++) {
+            if (games[i].number == room) {
+                tmp = games[i].seatChart();
+                for (j = 0; j < tmp.length; j++) {
+                    if (tmp[j][0] == user && tmp[j][1] == seat) {
+                        break;
+                    }
+                }
 
-	    //Update in-game view
-	    if (self.activeView() === CinchApp.views.game) {
-		socket.$events.seatChart(tmp);
-	    }
-	});
+                tmp.splice(j, 1);
+                self.games()[i].seatChart(tmp);
+            }
+        }
 
-	//Helper function for setting game full status
-	function setRoomFullStatus(status, roomNum) {
-	    var i;
-	    var games = self.games();
+        //Update in-game view
+        if (self.activeView() === CinchApp.views.game) {
+            socket.$events.seatChart(tmp);
+        }
+    });
 
-	    for (i = 0; i < games.length; i++) {
-		if (games[i].number == roomNum) {
-		    games[i].isFull(status);
-		    self.games(games); // Update class-level observable
-		    break;
-		}
-	    }
-	}
+    //Helper function for setting game full status
+    function setRoomFullStatus(status, roomNum) {
+        var i;
+        var games = self.games();
 
-        addSocketHandler('roomFull', function(roomNum) {
-	    //Disallow joining of full rooms from the Lobby
-	    setRoomFullStatus(true, roomNum);
-	});
+        for (i = 0; i < games.length; i++) {
+            if (games[i].number == roomNum) {
+                games[i].isFull(status);
+                self.games(games); // Update class-level observable
+                break;
+            }
+        }
+    }
 
-	addSocketHandler('roomNotFull', function(roomNum) {
-	    //Re-allow joining of previously full room
-	    setRoomFullStatus(false, roomNum);
-	});
+    addSocketHandler('roomFull', function(roomNum) {
+        //Disallow joining of full rooms from the Lobby
+        setRoomFullStatus(true, roomNum);
+    });
 
-	addSocketHandler('roomGone', function(roomNum) {
-	    //Remove room from games list
-	    var i;
-	    var games = self.games();
+    addSocketHandler('roomNotFull', function(roomNum) {
+        //Re-allow joining of previously full room
+        setRoomFullStatus(false, roomNum);
+    });
 
-	    for (i = 0; i < games.length; i++) {
-		if (games[i].number == roomNum) {
-		    games.splice(i, 1); // Remove element i from array
-		    self.games(games); // Update observable array
-		}
-	    }
-	});
+    addSocketHandler('roomGone', function(roomNum) {
+        //Remove room from games list
+        var i;
+        var games = self.games();
+
+        for (i = 0; i < games.length; i++) {
+            if (games[i].number == roomNum) {
+                games.splice(i, 1); // Remove element i from array
+                self.games(games); // Update observable array
+            }
+        }
+    });
 
         // Game message handlers
         addSocketHandler('startData', function(msg) {
