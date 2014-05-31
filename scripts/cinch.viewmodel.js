@@ -172,35 +172,39 @@ function CinchViewModel() {
 
     //Moves user from a game room to the lobby
     self.exitToLobby = function() {
-        self.socket.emit('exit', '');
+        var navigateAwayMessage = self.navigateAwayMessage();
 
-        //Clean up from last game
-        self.dealerServer(null);
-        self.trump(null);
-        self.gameScores([0, 0]);
-        self.gameMode(null);
-        self.chats([]);
-        self.encodedCards([]);
-        self.resetBids();
+        if(!navigateAwayMessage || (navigateAwayMessage && confirm(navigateAwayMessage))) {
+            self.socket.emit('exit', '');
 
-        var i;
-        var p;
+            //Clean up from last game
+            self.dealerServer(null);
+            self.trump(null);
+            self.gameScores([0, 0]);
+            self.gameMode(null);
+            self.chats([]);
+            self.encodedCards([]);
+            self.resetBids();
 
-        for (i = 1; i < 4; i++) { // Don't want to reset own name so skip 0
-            p = self.players()[i];
-            p.name('-');
-            p.numCardsInHand(0);
+            var i;
+            var p;
+
+            for (i = 1; i < 4; i++) { // Don't want to reset own name so skip 0
+                p = self.players()[i];
+                p.name('-');
+                p.numCardsInHand(0);
+            }
+
+            //Clear board
+            self.cardImagesInPlay = [];
+            try {
+                context.clearRect(0, 0, CinchApp.playSurfaceWidth, CinchApp.playSurfaceHeight);
+            } catch (err) {
+                ;
+            }
+
+            self.activeView(CinchApp.views.lobby);
         }
-
-        //Clear board
-        self.cardImagesInPlay = [];
-        try {
-            context.clearRect(0, 0, CinchApp.playSurfaceWidth, CinchApp.playSurfaceHeight);
-        } catch (err) {
-            ;
-        }
-
-        self.activeView(CinchApp.views.lobby);
     };
 
     self.enterAi = function() {
@@ -555,6 +559,13 @@ function CinchViewModel() {
     //Print a message to the chat window to announce the arrival of a user
     self.announceUser = function(username) {
         username && self.chats.push(new VisibleMessage(['User', username, 'is now in the game.'].join(' '), 'System'));
+    };
+
+    self.navigateAwayMessage = function() {
+        var view = self.activeView();
+        var views = CinchApp.views;
+
+        return view === views.game || view === views.handEnd ? 'Leaving the page will end the current game for you.' : null;
     };
 
     //Subscriptions

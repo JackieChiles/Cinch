@@ -5,10 +5,8 @@ CinchApp.viewModel = new CinchViewModel();
 $(function () {
     var socket = CinchApp.socket;
 
-    // Exit page cleanly
-    $(window).bind("beforeunload", function() {
-        socket.disconnect();
-    });
+    //Add warning when navigating away from game
+    window.onbeforeunload = CinchApp.viewModel.navigateAwayMessage;
 
     //Apply Knockout bindings
     ko.applyBindings(CinchApp.viewModel);
