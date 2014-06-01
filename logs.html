@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Cinch Game Logs</title>
+        
+        <link rel="stylesheet" href="styles/site.css" />
+        
+        <script type="text/javascript" src="scripts/jquery.min.js"></script>
+        <script type="text/javascript" src="scripts/knockout-2.1.0beta.js"></script>
+        <script type="text/javascript" src="scripts/socket.io.min.js"></script>
+
+        <script type="text/javascript" src="scripts/server.config.js"></script>
+    </head>
+    
+    <body>
+
+      <div id="log-list" class="cinch-view">
+	<p>Select an item below to view a game log. This list does not update automatically as games finish,
+	  so you'll need to refresh the page to stay up-to-date.</p>
+
+	<div data-bind="foreach: logList">
+	  <a href="#" data-bind="click: CinchLogApp.viewModel.showGameLog.bind($data, id)"><span data-bind="text: name"></span></a><br />
+	</div>
+
+	<p>FUTURE: add way to sort/filter game log list</p>
+      </div><!-- /log-list -->
+
+      <div id="log-view" class="cinch-view">
+	<button data-bind="click: showLogList">Back to List</button>
+
+	<p>game log will be displayed in here</p>
+
+	<div data-bind="text: gameLog"></div>
+      </div><!-- /log-view -->
+
+      <h3><a href="home.html">Return to Cinch</a></h3>
+
+      <script type="text/javascript" src="scripts/cinch.logs.js"></script>
+
+    </body>
+</html>

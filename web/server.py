@@ -466,6 +466,24 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
 
             else:
                 self.emit_to_room('play', res)
+
+    # --------------------
+    # Game log methods
+    # --------------------
+
+    def on_game_log(self, gameId):
+        """Retrieve game log for game with id=gameId. TODO decide to format here or on client.
+
+        """
+        return ("GAME LOG",)
+
+    def on_log_list(self):
+        """Retrieve list of available game logs.
+
+        Each list item is a dict with keys (name, id).
+
+        """
+        return ([{'name':1, 'id':1},{'name':2, 'id':2},{'name':3, 'id':3}],)
                                   
     # --------------------
     # Helper methods
