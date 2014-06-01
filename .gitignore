@@ -6,4 +6,7 @@ driver.py
 reset.sh
 server-reset.php
 *.pyc
-cherries
+db/*.table
+db/sql.log
+db/storage.sqlite
+

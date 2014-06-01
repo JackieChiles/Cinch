@@ -9,6 +9,7 @@ import logging.config
 import threading
 import argparse
 
+import common
 import web.server
 from ai.manager import AIManager
 

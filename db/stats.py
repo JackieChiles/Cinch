@@ -13,10 +13,13 @@ import sqlite3
 import logging      #Will leave the logging facilities here alone.
 import ast
 
+from common import db
+
 DB_PATH = 'db/cinch.db'
 LOG_FILE = 'db/stats.log'
 LOGGING_LEVEL = logging.DEBUG
 NUM_PLAYERS = 4
+
 
 def process(gid, hNum):
 
@@ -26,7 +29,7 @@ def process(gid, hNum):
     # Open the database.
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-  
+
     # Verify that the destination tables exist. If they don't, add them.
     try:
         c.execute('''select * from hands where hand_id=-1''')
