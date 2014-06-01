@@ -5,18 +5,20 @@ Game object for managing game properties, players, and game states.
 import string
 import random
 import sqlite3
-from datetime import datetime, tzinfo
+from datetime import datetime
 
 import logging
 log = logging.getLogger(__name__)
 
 import common
+from common import db
 from core.player import Player
 import core.cards as cards
 from core.gamestate import GameState
 import db.stats as stats    
 
-#Constants and global variables
+
+# Constants and global variables
 WINNING_SCORE = 11
 STARTING_HAND_SIZE = 9
 NUM_TEAMS = 2
@@ -111,7 +113,7 @@ class Game:
 
     def dbupdate(self):
         """Write a completed gamestate to the sqlite database."""
-        
+
         # Open the database and make a new game.
         conn = sqlite3.connect(DB_PATH, check_same_thread = False)
         c = conn.cursor()
