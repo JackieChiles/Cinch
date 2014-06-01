@@ -2,9 +2,8 @@
 # -*- coding: utf-8 -*-
 
 """
-### Edited to remove support for a lot of those databases that we'd never use,
-### doctests, and some other stuff to trim down the module.
-### Go find the original if you want it all.
+### Trimmed file down to remove adapters we definitely won't use, etc.
+###
 
 | This file is part of the web2py Web Framework
 | Copyrighted by Massimo Di Pierro <mdipierro@cs.depaul.edu>
@@ -175,6 +174,13 @@ DRIVERS = []
 
 try:
     from new import classobj
+    from google.appengine.ext import db as gae
+    from google.appengine.ext import ndb
+    from google.appengine.api import namespace_manager, rdbms
+    from google.appengine.api.datastore_types import Key  ### for belongs on ID
+    from google.appengine.ext.db.polymodel import PolyModel
+    from google.appengine.ext.ndb.polymodel import PolyModel as NDBPolyModel
+    DRIVERS.append('google')
 except ImportError:
     pass
 
@@ -219,6 +225,121 @@ if not 'google' in DRIVERS:
     except ImportError:
         LOGGER.debug("no driver mysql.connector")
 
+    try:
+        import psycopg2
+        from psycopg2.extensions import adapt as psycopg2_adapt
+        DRIVERS.append('PostgreSQL(psycopg2)')
+    except ImportError:
+        LOGGER.debug('no PostgreSQL driver psycopg2')
+
+    try:
+        # first try contrib driver, then from site-packages (if installed)
+        try:
+            import gluon.contrib.pg8000.dbapi as pg8000
+        except ImportError:
+            import pg8000.dbapi as pg8000
+        DRIVERS.append('PostgreSQL(pg8000)')
+    except ImportError:
+        LOGGER.debug('no PostgreSQL driver pg8000')
+
+    try:
+        import cx_Oracle
+        DRIVERS.append('Oracle(cx_Oracle)')
+    except ImportError:
+        LOGGER.debug('no Oracle driver cx_Oracle')
+
+    try:
+        try:
+            import pyodbc
+        except ImportError:
+            try:
+                import gluon.contrib.pypyodbc as pyodbc
+            except Exception, e:
+                raise ImportError(str(e))
+        DRIVERS.append('MSSQL(pyodbc)')
+        DRIVERS.append('DB2(pyodbc)')
+        DRIVERS.append('Teradata(pyodbc)')
+        DRIVERS.append('Ingres(pyodbc)')
+    except ImportError:
+        LOGGER.debug('no MSSQL/DB2/Teradata/Ingres driver pyodbc')
+
+    try:
+        import Sybase
+        DRIVERS.append('Sybase(Sybase)')
+    except ImportError:
+        LOGGER.debug('no Sybase driver')
+
+    try:
+        import kinterbasdb
+        DRIVERS.append('Interbase(kinterbasdb)')
+        DRIVERS.append('Firebird(kinterbasdb)')
+    except ImportError:
+        LOGGER.debug('no Firebird/Interbase driver kinterbasdb')
+
+    try:
+        import fdb
+        DRIVERS.append('Firebird(fdb)')
+    except ImportError:
+        LOGGER.debug('no Firebird driver fdb')
+
+    try:
+        import firebirdsql
+        DRIVERS.append('Firebird(firebirdsql)')
+    except ImportError:
+        LOGGER.debug('no Firebird driver firebirdsql')
+
+    try:
+        import informixdb
+        DRIVERS.append('Informix(informixdb)')
+        LOGGER.warning('Informix support is experimental')
+    except ImportError:
+        LOGGER.debug('no Informix driver informixdb')
+
+    try:
+        import sapdb
+        DRIVERS.append('SQL(sapdb)')
+        LOGGER.warning('SAPDB support is experimental')
+    except ImportError:
+        LOGGER.debug('no SAP driver sapdb')
+
+    try:
+        import cubriddb
+        DRIVERS.append('Cubrid(cubriddb)')
+        LOGGER.warning('Cubrid support is experimental')
+    except ImportError:
+        LOGGER.debug('no Cubrid driver cubriddb')
+
+    try:
+        from com.ziclix.python.sql import zxJDBC
+        import java.sql
+        # Try sqlite jdbc driver from http://www.zentus.com/sqlitejdbc/
+        from org.sqlite import JDBC # required by java.sql; ensure we have it
+        zxJDBC_sqlite = java.sql.DriverManager
+        DRIVERS.append('PostgreSQL(zxJDBC)')
+        DRIVERS.append('SQLite(zxJDBC)')
+        LOGGER.warning('zxJDBC support is experimental')
+        is_jdbc = True
+    except ImportError:
+        LOGGER.debug('no SQLite/PostgreSQL driver zxJDBC')
+        is_jdbc = False
+
+    try:
+        import couchdb
+        DRIVERS.append('CouchDB(couchdb)')
+    except ImportError:
+        LOGGER.debug('no Couchdb driver couchdb')
+
+    try:
+        import pymongo
+        DRIVERS.append('MongoDB(pymongo)')
+    except:
+        LOGGER.debug('no MongoDB driver pymongo')
+
+    try:
+        import imaplib
+        DRIVERS.append('IMAP(imaplib)')
+    except:
+        LOGGER.debug('no IMAP driver imaplib')
 
 PLURALIZE_RULES = [(re.compile('child$'), re.compile('child$'), 'children'),
                    (re.compile('oot$'), re.compile('oot$'), 'eet'),
@@ -268,7 +389,6 @@ def quote_keyword(a, keyword='timestamp'):
     regex = re.compile('\.keyword(?=\w)')
     a = regex.sub('."%s"' % keyword, a)
     return a
-
 
 ###################################################################################
 # class that handles connection pooling (all adapters are derived from this one)
@@ -2289,9 +2409,38 @@ class MySQLAdapter(BaseAdapter):
         self.execute('select last_insert_id();')
         return int(self.cursor.fetchone()[0])
 
+INGRES_SEQNAME='ii***lineitemsequence'  # NOTE invalid database object name
+                                        # (ANSI-SQL wants this form of name
+                                        # to be a delimited identifier)
+
+class UseDatabaseStoredFile:
+
+    def file_exists(self, filename):
+        return DatabaseStoredFile.exists(self.db, filename)
+
+    def file_open(self, filename, mode='rb', lock=True):
+        return DatabaseStoredFile(self.db, filename, mode)
+
+    def file_close(self, fileobj):
+        fileobj.close_connection()
+
+    def file_delete(self, filename):
+        query = "DELETE FROM web2py_filesystem WHERE path='%s'" % filename
+        self.db.executesql(query)
+        self.db.commit()
+
+class GAEF(object):
+    def __init__(self, name, op, value, apply):
+        self.name=name=='id' and '__key__' or name
+        self.op=op
+        self.value=value
+        self.apply=apply
+    def __repr__(self):
+        return '(%s %s %s:%s)' % (self.name, self.op, repr(self.value), type(self.value))
 
 def uuid2int(uuidv):
     return uuid.UUID(uuidv).int
+
 
 def int2uuid(n):
     return str(uuid.UUID(int=n))
@@ -2310,6 +2459,7 @@ def cleanup(text):
 ########################################################################
 
 ADAPTERS = {'sqlite': SQLiteAdapter,
+            'sqlite:memory': SQLiteAdapter,
             'mysql': MySQLAdapter
             }
 
@@ -6379,26 +6529,3 @@ class Rows(object):
     # for consistent naming yet backwards compatible
     as_csv = __str__
     json = as_json
-
-################################################################################
-# Geodal utils
-################################################################################
-
-def geoPoint(x, y):
-    return "POINT (%f %f)" % (x, y)
-
-
-def geoLine(*line):
-    return "LINESTRING (%s)" % ','.join("%f %f" % item for item in line)
-
-
-def geoPolygon(*line):
-    return "POLYGON ((%s))" % ','.join("%f %f" % item for item in line)
-
-################################################################################
-# run tests
-################################################################################
-
-if __name__ == '__main__':
-    import doctest
-    doctest.testmod()
