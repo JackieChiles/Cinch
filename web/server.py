@@ -168,11 +168,8 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         self.session['nickname'] = 'NewUser'
         
         self.on_join(LOBBY, 0) # Join lobby
-        roomList = [{'name': str(x), 'num':x.num, 'isFull': x.isFull(), 
-                     'seatChart': self.getSeatingChart(x)}
-                    for x in self.request['rooms']]
-        del roomList[0] # Don't send lobby
-        self.emit('rooms', roomList)
+
+        self.on_room_list()
 
     def recv_disconnect(self):
         """Close the socket connection when the client requests a disconnect."""
@@ -189,6 +186,15 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
     # --------------------
     # Room & chat management methods
     # --------------------
+
+    def on_room_list(self):
+        """Transmit list of available rooms and their occupants for use in lobby."""
+        roomList = [{'name': str(x), 'num':x.num, 'isFull': x.isFull(), 
+                     'seatChart': self.getSeatingChart(x)}
+                    for x in self.request['rooms']]
+        del roomList[0] # Don't send lobby ###  May want to remove line when lobby chat implemented
+
+        self.emit('rooms', roomList) # Not using callback as to support recv_connect
     
     def on_chat(self, message):
         """Transmit chat message to room, including nickname of sender.

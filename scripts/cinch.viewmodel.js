@@ -177,6 +177,8 @@ function CinchViewModel() {
         if(!navigateAwayMessage || (navigateAwayMessage && confirm(navigateAwayMessage))) {
             self.socket.emit('exit', '');
 
+	    self.socket.emit('room_list'); //Update room list in Lobby
+
             //Clean up from last game
             self.dealerServer(null);
             self.trump(null);
@@ -316,6 +318,7 @@ function CinchViewModel() {
         //Set up socket listeners
         addSocketHandler('rooms', function(msg) {
             var i = 0;
+	    self.games([]); //Clear existing list
 
             for(i = 0; i < msg.length; i++) {
                 self.games.push(new Game(msg[i]));
