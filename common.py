@@ -12,20 +12,23 @@ db = DAL('sqlite://storage.sqlite',folder='db')
 
 # Database table definitions -- defined here rather than in the relevant
 # modules to allow for reference fields without worrying about the import sequence.
-db.define_table('Games',
+db.define_table(
+    'Games',
     Field('Timestamp', 'string', default=datetime.utcnow().isoformat()),
     Field('PlayerName0', 'string', required=True),
     Field('PlayerName1', 'string', required=True),
     Field('PlayerName2', 'string', required=True),
     Field('PlayerName3', 'string', required=True),
 )
-db.define_table('Events',
+db.define_table(
+    'Events',
     Field('game_id', 'reference Games', required=True),
     Field('HandNumber', 'integer', required=True),
-    Field('Timestamp', 'string', default=datetime.utcnow().isoformat()),
+    Field('Timestamp', 'string', required=True),
     Field('EventString', 'text', required=True)
 )
-db.define_table('hands',
+db.define_table(
+    'hands',
     Field('game_id', 'reference Games', required=True),
     Field('dealer', 'integer'),
     Field('declarer', 'integer'),
@@ -33,7 +36,8 @@ db.define_table('hands',
     Field('high_bid', 'integer'),
     Field('hand_number', 'integer')
 )
-db.define_table('actions',
+db.define_table(
+    'actions',
     Field('game_id', 'reference Games', required=True),
     Field('hand_id', 'reference hands', required=True),
     Field('pnum', 'integer', required=True),

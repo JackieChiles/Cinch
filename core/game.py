@@ -4,7 +4,6 @@ Game object for managing game properties, players, and game states.
 """
 import string
 import random
-import sqlite3
 from datetime import datetime
 
 import logging
@@ -25,7 +24,6 @@ NUM_TEAMS = 2
 TEAM_SIZE = 2
 NUM_PLAYERS = NUM_TEAMS * TEAM_SIZE
 GAME_MODE = common.enum(PLAY=1, BID=2)
-DB_PATH = 'db/cinch.db'
 MAX_HANDS = 16 # Not part of game rules; intended to prevent AI problems.
                # Can be modified later if actual gameplay is trending longer.
 
@@ -113,53 +111,31 @@ class Game:
 
     def dbupdate(self):
         """Write a completed gamestate to the sqlite database."""
+        log.debug("Trying to add a row for the new game.")
 
-        # Open the database and make a new game.
-        conn = sqlite3.connect(DB_PATH, check_same_thread = False)
-        c = conn.cursor()
-        try:
-            log.debug("Trying to add a row for the new game.")
-            c.execute("INSERT INTO Games VALUES (NULL,?,?,?,?,?)",
-                      (datetime.utcnow().isoformat(),
-                       self.players[0].name, self.players[1].name,
-                       self.players[2].name, self.players[3].name))
-        except sqlite3.OperationalError:
-            # Initialize the runtime database tables for new/clean servers.
-            log.debug("Trying to initialize games table.")
-            c.execute("""CREATE TABLE Games (game_id INTEGER PRIMARY KEY,
-                         Timestamp text NOT NULL,
-                         PlayerName0 text NOT NULL,
-                         PlayerName1 text NOT NULL,
-                         PlayerName2 text NOT NULL,
-                         PlayerName3 text NOT NULL)""")
-            c.execute("""CREATE TABLE Events (event_id INTEGER PRIMARY KEY,
-                         game_id INTEGER NOT NULL,
-                         HandNumber INTEGER NOT NULL,
-                         Timestamp text NOT NULL,
-                         EventString text NOT NULL)""")
-            c.execute("INSERT INTO Games VALUES (NULL,?,?,?,?,?)",
-                      (datetime.utcnow().isoformat(),
-                       self.players[0].name, self.players[1].name,
-                       self.players[2].name, self.players[3].name))
-        
         # Get the automatic game ID to use in the Events table in place of the
         # random engine-generated game ID.
-        c.execute("SELECT last_insert_rowid()")
-        autogen_game_id = c.fetchone()[0] # Unpack len-1 tuple to get int
+        autogen_game_id = db.Games.insert(
+            PlayerName0=self.players[0].name,
+            PlayerName1=self.players[1].name,
+            PlayerName2=self.players[2].name,
+            PlayerName3=self.players[3].name
+        )
         log.debug("Grabbed a game_id from the database.")
 
         # Write everything from Events to the database.
         log.info("Writing game data for local game %s, db game %s.",
                   self.gs.game_id, autogen_game_id)
+
         for action in self.gs.events:
-            c.execute("INSERT INTO Events VALUES (NULL,?,?,?,?)",
-                      (autogen_game_id, action['hand_num'],
-                       action['timestamp'], action['output']))
-        
-        # Commit the change, close db, return.
-        conn.commit()
-        c.close()
-        return None        
+            db.Events.insert(
+                game_id=autogen_game_id,
+                HandNumber=action['hand_num'],
+                Timestamp=action['timestamp'],
+                EventString=action['output']
+            )
+
+        db.commit()
 
     def deal_hand(self):
         """Deal new hand to each player and set card ownership."""
