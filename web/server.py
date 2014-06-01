@@ -21,6 +21,7 @@ recv_connect
 recv_disconnect
 on_test
 on_chat
+on_room_list
 on_createRoom
 on_exit
 on_join
