@@ -10,7 +10,7 @@ from datetime import datetime, tzinfo
 import logging
 log = logging.getLogger(__name__)
 
-import core.common as common
+import common
 from core.player import Player
 import core.cards as cards
 from core.gamestate import GameState

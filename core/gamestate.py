@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-import core.common as common
+import common
 import core.cards as cards
 
 import logging
