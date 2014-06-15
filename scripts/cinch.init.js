@@ -35,4 +35,7 @@ $(function () {
 
     //Set the width and height of the play surface canvas
     $('#play-surface').attr('width', CinchApp.playSurfaceWidth).attr('height', CinchApp.playSurfaceHeight);
+
+    //Focus on username entry field
+    $('#username-input').focus();
 });
