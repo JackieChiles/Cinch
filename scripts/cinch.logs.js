@@ -2,7 +2,7 @@
 
 var CinchLogApp = {
     viewModel: null,
-    socket: io.connect(host_path),
+    socket: io.connect(location.protocol+'//'+location.hostname+":8088/cinch"),
 
     views: {
         home: 'log-list',
