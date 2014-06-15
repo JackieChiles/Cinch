@@ -130,7 +130,7 @@ class RoomView(gamestate.GameState):
                 self.cards_in_play = []
                 sleep(0.3)
         if 'trp' in msg:
-            cs.update_dash('trump', cards.SUITS_SHORT[msg['trp']])
+            cs.update_dash('trump', cards.SUITS_MAP[msg['trp']][0])
         if 'mode' in msg: # Must be processed before 'bid' due to dashboard.
             self.game_mode = msg['mode']
             if self.game_mode == game.GAME_MODE.BID:
@@ -469,7 +469,7 @@ def console(window, host='localhost', port=8088):
                     try:
                         # Strict NS-style shorthand for now
                         #TODO develop better UI later
-                        ivRANKS_SHORT = {v: k for k, v in cards.RANKS_SHORT.items()}
+                        ivRANKS_SHORT = {x[1][0]:x[0] for x in cards.RANKS_MAP.items()}
                         ivSUITS_SHORT = {'C':0, 'D':1, 'H':2, 'S':3}
                         p_card = cards.Card(ivRANKS_SHORT[cmd['play'].upper()[0]],
                                             ivSUITS_SHORT[cmd['play'].upper()[1]])
