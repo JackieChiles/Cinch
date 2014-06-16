@@ -606,13 +606,11 @@ class Server(object):
 
 def runServer():
     """Start socketio server on ports specified below."""
-    log.info('Listening on port {0} and on port 10843 (flash policy server)'.format(
-        SOCKETIO_PORT))
+    log.info('Listening on port {0} for socketIO'.format(SOCKETIO_PORT))
     
     try:
         SocketIOServer(('0.0.0.0', SOCKETIO_PORT), Server(),
-            resource="socket.io", policy_server=True,
-            policy_listener=('0.0.0.0', 10843)).serve_forever()
+            resource="socket.io", policy_server=False).serve_forever()
     except KeyboardInterrupt:
         log.info('Server halted with keyboard interrupt')
     except Exception, e:
