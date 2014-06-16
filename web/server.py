@@ -128,7 +128,9 @@ class Room(object):
             return
 
         #Send out the final seat chart
-        sock[SOCKETIO_NS].emit_to_room('seatChart', sock[SOCKETIO_NS].getSeatingChart(sock[SOCKETIO_NS].session['room']))
+        sock[SOCKETIO_NS].emit_to_room(
+            'seatChart', 
+            sock[SOCKETIO_NS].getSeatingChart(sock[SOCKETIO_NS].session['room']))
 
         self.game = Game()
         initData = self.game.start_game(sock[SOCKETIO_NS].getUsernamesInRoom(self))
@@ -152,10 +154,7 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
     Extends socketio.namespace.BaseNamespace and socketio.mixins.BroadcastMixin.
     
     """
-    
-    # Unhandled exceptions caused by client input won't kill the server as a whole,
-    # but will kill that connection. A page refresh seems to be required.
-    
+
     def recv_connect(self):
         """Initialize connection for a client to this namespace.
         
@@ -427,7 +426,8 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         res = g.handle_bid(pNum, int(bid))
         
         if res is False:
-            self.emit('err', 'Bad bid') #False on bad bid, None for inactive player
+            self.emit('err', 'Bad bid')
+            # False on bad bid, None for inactive player
         elif res is None:
             self.emit('err', "It's not your turn")
         else:

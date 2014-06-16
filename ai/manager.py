@@ -7,7 +7,15 @@
 
 Method reference:
 
-...
+import_module
+get_ai_models
+set_ai_ident
+
+AIManager:
+setupSocket
+on_getAIList
+on_summonAI
+get_ai_summary
 
 """
 from socketIO_client import SocketIO, BaseNamespace
@@ -32,17 +40,17 @@ MODELS_FILE = "available_models.txt"
 def import_module(module_name):
     """Import module from file and return module object.
     Copied (mostly) from docs.python.org.
-    
+
     module_name (string) -- the name of the module (filename minus extention)
 
     """
     # In case something with module name is in global NS, remove it
     if module_name in sys.modules:
         del sys.modules[module_name]
-    
+
     # Locate module within MY_PATH
     fp, pathname, desc = imp.find_module(module_name, [MY_PATH,])
-    
+
     try:
         # Load it as though we had called 'import foo'
         return imp.load_module(module_name, fp, pathname, desc)
@@ -60,12 +68,12 @@ def get_ai_models():
     aiFiles = filter(lambda x: len(x) > 0, lines) # Remove blank lines
 
     # Import each file into a module
-    filenameToModuleName = lambda f: os.path.splitext(f)[0]    
+    filenameToModuleName = lambda f: os.path.splitext(f)[0]
     moduleNames = map(filenameToModuleName, aiFiles) # Prepare module names
     aiModules = map(import_module, moduleNames) # Load modules
-    
+
     map(set_ai_ident, aiModules) # Set identity of each AI class
-    
+
     # Produce log messages
     map(log.info, map(
         lambda x: "AI Agent {0} imported.".format(x), moduleNames))
@@ -104,8 +112,8 @@ class AIManager:
         self.socket.wait() # Blocks
 
     def setupSocket(self):
-        # The AIMgr thread is started before the main server due to reasons. 
-        # Pause a moment to let the main server come up before the Manager 
+        # The AIMgr thread is started before the main server due to reasons.
+        # Pause a moment to let the main server come up before the Manager
         # connects.
         sleep(1)
 
