@@ -21,15 +21,12 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),"..")))
 import time, random
 
 import core.cards as cards
+from common import SOCKETIO_PORT, SOCKETIO_NS
+
 
 import logging
 log = logging.getLogger(__name__)
 
-# Server's socketIO port number (not HTTP)
-PORT = 8088
-
-# Namespace path as set by server
-NS = '/cinch'
 
 # Hardcoded values to increase performance in decoding cards
 NUM_TEAMS = 2
@@ -142,8 +139,8 @@ class AIBase(object):
             self.bid()
 
     def setupSocket(self):
-        self.socket = SocketIO('localhost', PORT)
-        self.ns = self.socket.define(BaseNamespace, NS)
+        self.socket = SocketIO('127.0.0.1', SOCKETIO_PORT)
+        self.ns = self.socket.define(BaseNamespace, SOCKETIO_NS)
 
         # Attach socketIO event handlers 
         self.ns.on('bid',       self.on_game_action)

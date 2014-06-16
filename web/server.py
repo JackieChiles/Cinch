@@ -55,12 +55,11 @@ import logging
 log = logging.getLogger(__name__)
 
 from core.game import Game, NUM_PLAYERS
+from common import SOCKETIO_PORT, SOCKETIO_NS
 
 # Constants
 LOBBY = 0
 MAX_ROOM_SIZE = NUM_PLAYERS
-
-CINCH_NS = '/cinch' # Namespace for Cinch
 
 
 class Room(object):
@@ -117,7 +116,7 @@ class Room(object):
 
         # Prevent game from restarting if a full room empties and refills
         if self.started:
-            sock[CINCH_NS].emit_to_room('chat', ['System',
+            sock[SOCKETIO_NS].emit_to_room('chat', ['System',
                 "This game already started, so I won't start a new one."])
             return
 
@@ -125,19 +124,19 @@ class Room(object):
         if len(self.getAvailableSeats()) > 0:
             # Something has gone wrong
             log.error("bad seating error in startGame()")
-            sock[CINCH_NS].emit_to_room('err', 'Problem starting game')
+            sock[SOCKETIO_NS].emit_to_room('err', 'Problem starting game')
             return
 
         #Send out the final seat chart
-        sock[CINCH_NS].emit_to_room('seatChart', sock[CINCH_NS].getSeatingChart(sock[CINCH_NS].session['room']))
+        sock[SOCKETIO_NS].emit_to_room('seatChart', sock[SOCKETIO_NS].getSeatingChart(sock[SOCKETIO_NS].session['room']))
 
         self.game = Game()
-        initData = self.game.start_game(sock[CINCH_NS].getUsernamesInRoom(self))
+        initData = self.game.start_game(sock[SOCKETIO_NS].getUsernamesInRoom(self))
         
         # Send initial game data to players
         log.debug("Sending initial game data in room %s", self.num)
 
-        target_sock_map = {s.session['seat']: s[CINCH_NS]
+        target_sock_map = {s.session['seat']: s[SOCKETIO_NS]
                            for s in self.users}
 
         for msg in initData:
@@ -458,7 +457,7 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         else:
             # Multiple messages == distinct messages; happens at end of hand
             if type(res) == list:
-                target_sock_map = {s.session['seat']: s[CINCH_NS]
+                target_sock_map = {s.session['seat']: s[SOCKETIO_NS]
                                    for s in self.session['room'].users}
 
                 for msg in res:
@@ -592,7 +591,7 @@ class Server(object):
     """Manages namespaces and connections while holding server-global info."""
 
     # Server-global dict object available to every connection
-    request = {'rooms':[Room(LOBBY)], 'curMaxRoomNum': LOBBY, 'aiInfo':dict() } # Room 0:Lobby
+    request = {'rooms':[Room(LOBBY)], 'curMaxRoomNum': LOBBY, 'aiInfo':dict()}
     
     def __call__(self, environ, start_response):
         """Delegate incoming message to appropriate namespace."""
@@ -600,17 +599,18 @@ class Server(object):
 
         if path.startswith("socket.io"):
             # Client should socket connect on 'http://whatever:port/cinch'
-            socketio_manage(environ, {CINCH_NS: GameNamespace}, self.request)
+            socketio_manage(environ, {SOCKETIO_NS: GameNamespace}, self.request)
         else:
             log.error("not found " + path)
 
 
 def runServer():
     """Start socketio server on ports specified below."""
-    log.info('Listening on port 8088 and on port 10843 (flash policy server)')
+    log.info('Listening on port {0} and on port 10843 (flash policy server)'.format(
+        SOCKETIO_PORT))
     
     try:
-        SocketIOServer(('0.0.0.0', 8088), Server(),
+        SocketIOServer(('0.0.0.0', SOCKETIO_PORT), Server(),
             resource="socket.io", policy_server=True,
             policy_listener=('0.0.0.0', 10843)).serve_forever()
     except KeyboardInterrupt:

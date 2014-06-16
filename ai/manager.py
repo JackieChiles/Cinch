@@ -23,10 +23,7 @@ from time import sleep
 import logging
 log = logging.getLogger(__name__)
 
-# Server's socketIO port number (not HTTP)
-PORT = 8088
-
-NS = '/cinch'
+from common import SOCKETIO_PORT, SOCKETIO_NS
 
 MY_PATH = os.path.abspath(os.path.dirname(__file__))
 MODELS_FILE = "available_models.txt"
@@ -96,22 +93,24 @@ class AIManager:
     """Management entity for AI agents."""
 
     def __init__(self):
-        self.ai_classes = get_ai_models()
+        self.aiClasses = get_ai_models()
         self.aiSummary = self.get_ai_summary()
 
         self.setupSocket()
 
-        log.info("AI Management Agency open")
+        log.info("AI Management Agency open, hosting {0} agents".format(
+            len(self.aiClasses)))
 
         self.socket.wait() # Blocks
 
     def setupSocket(self):
-        # The AIMgr thread is started before the main server due to reasons. Pause
-        # a moment to let the main server come up before the Manager connects.
+        # The AIMgr thread is started before the main server due to reasons. 
+        # Pause a moment to let the main server come up before the Manager 
+        # connects.
         sleep(1)
 
-        self.socket = SocketIO('localhost', PORT)
-        self.ns = self.socket.define(BaseNamespace, NS)
+        self.socket = SocketIO('127.0.0.1', SOCKETIO_PORT)
+        self.ns = self.socket.define(BaseNamespace, SOCKETIO_NS)
 
         # Attach socketIO event handlers
         self.ns.on('getAIList', self.on_getAIList)
@@ -137,7 +136,7 @@ class AIManager:
 
         # FUTURE: If performance is poor, rework to use sub/multiprocessing
         # instead of threading for AI agents.
-        agent = threading.Thread(target=self.ai_classes[modelID-1],
+        agent = threading.Thread(target=self.aiClasses[modelID-1],
                                  args=(roomNum, seat))
         agent.daemon = True
         agent.start()
@@ -156,7 +155,7 @@ class AIManager:
         temp = {}
         i = 1 # Used for AI ID #
 
-        for ai_class in self.ai_classes:
+        for ai_class in self.aiClasses:
             identity = ai_class.identity
             temp = {'id': i,
                     'auth': identity['author'],

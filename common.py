@@ -5,6 +5,10 @@
 from datetime import datetime
 
 
+SOCKETIO_PORT = 8088
+SOCKETIO_NS = '/cinch'
+
+
 # Construct sqlite database
 from db.dal import DAL, Field
 
