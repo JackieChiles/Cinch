@@ -16,6 +16,7 @@ import os
 import imp # Import module functionality
 import sys
 import threading
+import string
 
 from time import sleep
 
@@ -52,36 +53,27 @@ def import_module(module_name):
         if fp:  fp.close()
 
 def get_ai_models():
-    """Load AI classes into namespace based on contents of available AI file."""
+    """Load AI classes into namespace using contents of available AI file."""
     # Open and parse models file
     log.info("Reading {0} for AI models...".format(MODELS_FILE))
-    fin = open(os.path.join(MY_PATH, MODELS_FILE))
-    
-    ai_files = []
-    line = fin.readline()
-    while line:
-        if line != '\n': # Ignore blank lines
-            ai_files.append(line.strip()) # Remove trailing newline
-        line = fin.readline()
-    
-    fin.close()
-    
+    with open(os.path.join(MY_PATH, MODELS_FILE)) as fin:
+        lines = fin.readlines()
+
+    lines = map(string.strip, lines)  # Remove newline characters
+    aiFiles = filter(lambda x: len(x) > 0, lines) # Remove blank lines
+
     # Import each file into a module
-    ai_modules = []
-    for filename in ai_files:
-        split_ext = os.path.splitext(filename)            
-        module_name = os.path.basename(split_ext[0])
-        
-        mod = import_module(module_name) # Create new module object
-        ai_modules.append(mod)
-        
-        set_ai_ident(mod)  # Set identity of each AI class
-        
-        log.info("AI Agent {0} imported.".format(module_name))
- 
-    log.info("All available AI models imported.") 
+    filenameToModuleName = lambda f: os.path.splitext(f)[0]    
+    moduleNames = map(filenameToModuleName, aiFiles) # Prepare module names
+    aiModules = map(import_module, moduleNames) # Load modules
     
-    return list(map(lambda m: getattr(m, m.AI_CLASS), ai_modules))
+    map(set_ai_ident, aiModules) # Set identity of each AI class
+    
+    # Produce log messages
+    map(log.info, map(
+        lambda x: "AI Agent {0} imported.".format(x), moduleNames))
+
+    return list(map(lambda m: getattr(m, m.AI_CLASS), aiModules))
 
 def set_ai_ident(mod):
     """Set a self.identity for the AI class within the specified module.
