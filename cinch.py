@@ -1,8 +1,7 @@
 #!/usr/bin/python2
-"""
-Game engine.
+"""Game engine."""
 
-"""
+
 import logging
 import logging.config
 
@@ -18,14 +17,15 @@ if __name__ == "__main__":
     logging.config.fileConfig('logging.config')
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--quick", help="make game go quicker", action="store_true")
+    parser.add_argument("--quick", help="make game go quicker",
+                        action="store_true")
     parser.add_argument("--stack", help="stack deck using given RNG seed",
                         type=float)
     args = parser.parse_args()
 
     if args.quick:
         logging.info("Quick game mode enabled")
-        # Preempt web.server's import of core.game to make changes
+        # These changes will be seen by web.server
         import core.game
         core.game.STARTING_HAND_SIZE = 2
         core.game.MAX_HANDS = 1
@@ -44,6 +44,6 @@ if __name__ == "__main__":
 
     # Start server
     web.server.runServer() # Blocks
-    
+
     # Begin cleanup
     logging.info("Cleaning up...")

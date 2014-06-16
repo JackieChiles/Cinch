@@ -1,7 +1,5 @@
-#!/usr/bin/python3
-"""
-Game object for managing game properties, players, and game states.
-"""
+#!/usr/bin/python2
+"""Game object for managing game properties, players, and game states."""
 import string
 import random
 from datetime import datetime
@@ -14,7 +12,7 @@ from common import db
 from core.player import Player
 import core.cards as cards
 from core.gamestate import GameState
-import db.stats as stats    
+import db.stats as stats
 
 
 # Constants and global variables
@@ -32,8 +30,8 @@ BID = common.enum(PASS=0, CINCH=5)
 
 
 class Game:
-    """
-    Define object for Game object with instance variables:
+    """Define object for Game object with instance variables:
+
         stack_deck (bool): fixed hands for testing purposes.
         deck_seed (float)[0..1]: used to seed if stack_deck is True
         id (integer): unique id for game object
@@ -42,7 +40,7 @@ class Game:
         teams (dict): player id : local player num pairings (?)
         gs (object): current game state
         deck (object): Deck object containing Card objects
-        
+
     """
     def __init__(self):
         self.players = []
@@ -55,9 +53,10 @@ class Game:
             ", ".join(str(plr.name) for plr in self.players))
 
     def check_bid_legality(self, player, bid):
-        """Check a proposed bid for legality against the current gs. Assumes
-        that player is indeed the active player. Returns a string indicating
-        the bid type, or False if illegal bid.
+        """Check a proposed bid for legality against the current gs.
+
+        Assumes that player is indeed the active player. Returns a string
+        indicating the bid type, or False if illegal bid.
 
         player (Player): player object of player making bid (replace w/ pNum?)
         bid (int): integer [0-5] value of bid; BID.PASS=0, BID.CINCH=5
@@ -80,6 +79,7 @@ class Game:
 
     def check_play_legality(self, player, card_num):
         """Check a proposed play for legality against the current gs.
+
         Assumes that player is indeed the active player. Returns boolean.
 
         player (Player): player object of player playing a play
@@ -106,7 +106,7 @@ class Game:
         for each_card in player.hand:
             if each_card.suit is self.gs.cards_in_play[0].suit:
                 return False # Could have followed suit with a different card.
-        
+
         return True          # Couldn't follow suit, throwing off.
 
     def dbupdate(self):
@@ -142,17 +142,17 @@ class Game:
         for player in self.players:
             player.hand = sorted([self.deck.deal_one() for x in range
                           (STARTING_HAND_SIZE)], reverse = True)
-            
+
             for card in player.hand:
                 card.owner = player.pNum
 
     def generate_id(self, size=6):
         """Generate random character string of specified size.
-    
+
         Uses digits, upper- and lower-case letters.
-        
+
         """
-        chars=string.ascii_letters + string.digits
+        chars = string.ascii_letters + string.digits
         # There is a 1.38e-07% chance of identical game_ids with 3 games.
         # This chance rises to 1% when there are 6,599 simultaneous games.
         # While not a perfect solution, we like to live dangerously.
@@ -169,7 +169,7 @@ class Game:
         # Check that player_num is active player.
         #----------------------------------------
         if player_num is not self.gs.active_player:
-            log.warning("Non-active player attempted to bid.") # Debugging
+            log.warning("Non-active player attempted to bid.")
             return None # Ignore
         bid_status = self.check_bid_legality(self.players[player_num], bid)
         if bid_status is False:
@@ -183,24 +183,21 @@ class Game:
             self.gs.high_bid = bid
             self.gs.declarer = player_num
         elif bid_status is 'cntr':
-            self.gs.declarer = player_num # Set declarer; bid already cinch.
-            
+            self.gs.declarer = player_num # Set declarer; bid already Cinch.
+
         # Is bidding over? Either way, publish and return.
-        if self.gs.active_player == self.gs.dealer: #Dealer always last to bid
+        if self.gs.active_player == self.gs.dealer: # Dealer always bids last
             self.gs.active_player = self.gs.declarer
             self.gs.game_mode = GAME_MODE.PLAY
             return self.publish('eob', player_num, bid)
         else:
             self.gs.active_player = self.gs.next_player(self.gs.active_player)
             return self.publish('bid', player_num, bid)
-            
+
     def handle_card_played(self, player_num, card_num):
         """Invoke play processing logic on incoming play and send update to
         clients, or indicate illegal play to single player.
-        
-        Game router will ensure message follows Comm Structure contract, so
-        formatting data here IAW those guidelines is optional but a good idea.
-        
+
         player_num (int): local player number
         card_num (int): integer encoding of card being played by player
 
@@ -214,7 +211,7 @@ class Game:
         if not (self.check_play_legality(self.players[player_num], card_num)):
             return False # Not a legal play; return False
                          # Game router will chastise appropriately.
-                         
+
         # Remove card from player's hand and put into play.
         #--------------------------------------------------
         for card_pos, card in list(enumerate(self.players[player_num].hand)):
@@ -227,7 +224,7 @@ class Game:
                                                     self.gs.active_player)
                     return self.publish('trp', player_num, card)
                 break
-                
+
         # Check for end of trick and handle, otherwise return.
         #-----------------------------------------------------
         winning_card = self.gs.trick_winning_card()
@@ -238,18 +235,18 @@ class Game:
         else:
             trick_winner = winning_card.owner
             self.gs.active_player = trick_winner
-            self.gs.team_stacks[trick_winner 
+            self.gs.team_stacks[trick_winner
                                 % TEAM_SIZE] += self.gs.cards_in_play
             self.gs.cards_in_play = []
 
         # Check for end of hand and handle, otherwise return.
         #----------------------------------------------------
-        
+
         cards_left = len(self.players[0].hand)
         if cards_left != 0:
             # More tricks to play
             return self.publish('eot', player_num, card)
-            
+
         # Log hand results and check victory conditions.
         self.gs.score_hand()
         victor = False
@@ -257,15 +254,15 @@ class Game:
             if score >= WINNING_SCORE:
                 victor = True
                 break
-                
+
         # Also, if we've reached MAX_HANDS, end the game anyway.
         # message['win'] defaults to 0.5; client/database/stats should
         # interpret a game with a win value of 0.5 as a draw.
-        
+
         if self.gs.hand_number == MAX_HANDS:
             victor = True
 
-        # This block breaks if there are more than two teams.        
+        # This block breaks if there are more than two teams.
         if victor:
             if self.gs.scores[self.gs.declarer % TEAM_SIZE] >= WINNING_SCORE:
                 self.gs.winner = self.gs.declarer % TEAM_SIZE
@@ -275,7 +272,7 @@ class Game:
                 pass # Don't need to set winner if we reached on MAX_HANDS.
 
             return self.publish('eog', player_num, card)
-                
+
         # If no victor, set up for next hand.
         gs = self.gs # Operate on local variable for speed++
 
@@ -290,13 +287,14 @@ class Game:
         gs.trump = None
 
         self.gs = gs
-        
+
         return self.publish('eoh', player_num, card)
 
     def publish(self, status, pNum, data):
         """Translate game actions into messages for clients.
+
         Also write data to the appropriate game log file on the server.
-        
+
         status (str): 3-char code specifying the event type.
         Legal values:
             bid: 3/hand, normal bid.
@@ -312,28 +310,28 @@ class Game:
 
         """
         gs = self.gs # Make local copy for speed++; it's not edited in here.
-        
+
         # Initialize the output. Message always contains actvP, so do it here.
         message = {'actvP': gs.active_player}
         message['actor'] = pNum
-        
+
         if status in ['sog', 'eob', 'eoh']:
             # Handle switching game modes first.
             message['mode'] = gs.game_mode
-            
+
         if status in ['trp', 'crd', 'eot', 'eoh', 'eog']:
-        
+
             if status is 'trp':
                 message['trp'] = gs.trump
                 # Player declared Suit as trump.
-                      
+
             message['playC'] = data.code
             # Player played Card.
-            
+
             if status in ['eot', 'eoh', 'eog']:
                 message['remP'] = gs._t_w_card.owner
                 # Player won the trick with Card.
-                
+
                 if status in ['eoh', 'eog']:
                     message['mp'] = ['',]*NUM_TEAMS # Initialize
                     # We will end up with a list of NUM_TEAMS strings,
@@ -350,7 +348,7 @@ class Game:
                         pass
                     message['gp'] = gs._results['game_points']
                     message['sco'] = gs.scores
-                    
+
                     if status is 'eog':
                         message['win'] = gs.winner
 
@@ -362,13 +360,13 @@ class Game:
                             output[player.pNum]['addC'] = [card.code for card
                                                            in player.hand]
                             output[player.pNum]['tgt'] = player.pNum
-            
+
         elif status in ['bid', 'eob']:
             message['bid'] = data
 
         # Start of game is the same as end of hand except there are different
         # logging requirements, so there's a little bit of duplicated code.
-        # Update: Text logging has been deprecated; this duplicated code 
+        # Update: Text logging has been deprecated; this duplicated code
         # could be cleaned up or merged later, but it isn't hurting anything
         # for now.
         elif status is 'sog':
@@ -379,7 +377,7 @@ class Game:
                 output[player.pNum]['addC'] = [card.code for card
                                                in player.hand]
                 output[player.pNum]['tgt'] = player.pNum
-            
+
         # Note: New hands are handled differently from all others because they
         # are the only ones dealing with private information. If status is
         # 'eoh'/'sog', output will be a length-4 list containing 4 dicts with
@@ -395,15 +393,15 @@ class Game:
 
         if status in ['eoh', 'eog']:
             gs.hand_number += 1
-        
+
         if status in ['eog']:
             self.dbupdate()
-        
+
         return output
 
     def start_game(self, plr_arg = ["Test0", "Test1", "Test2", "Test3"]):
         """Start a new game, deal first hands, and send msgs.
-        
+
         plr_arg (dict): dict of player num, name pairs.
         """
         # Might as well error check this here. All games must have 4 players.
@@ -417,5 +415,5 @@ class Game:
         self.gs.active_player = self.gs.next_player(self.gs.dealer)
         self.gs.game_mode = GAME_MODE.BID
         self.gs.trump = None
-        
-        return self.publish('sog', None, None)        
+
+        return self.publish('sog', None, None)
