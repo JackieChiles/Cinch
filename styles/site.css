@@ -223,7 +223,7 @@ input.username {
     margin-left:5px;
 }
 
-#output-list {
+.output-list {
     background-color:#444444;
     border:1px solid #eeeeee;
     border-radius:5px;
@@ -234,7 +234,7 @@ input.username {
     padding:5px;
 }
 
-#output-list > div {
+.output-list > div {
     border-bottom: 1px solid #CCC;
     box-shadow: 0px 2px 0px #222;
     padding: 3px;

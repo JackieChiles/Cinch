@@ -331,12 +331,12 @@ function CinchViewModel() {
         });
 
         addSocketHandler('chat', function(msg) {
-            var listElement = document.getElementById('output-list');
-
             self.chats.push(new VisibleMessage(msg[1], msg[0]));
 
-            //Scroll chat pane to bottom
-            listElement.scrollTop = listElement.scrollHeight;
+            //Scroll chat panes to bottom
+            $('.output-list').forEach(function(element) {
+                element.scrollTop = element.scrollHeight;
+            });
         });
 
         addSocketHandler('err', function(msg) {

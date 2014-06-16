@@ -31,6 +31,8 @@
                 <h1>Join or Create a Game</h1>
             </div>
 
+            <div data-bind="template: { name: 'chat-pane-template', data: $root }"></div>
+
             <div class="title-value-container game newgame">
               <button data-bind="click: enterAi">Create New Game</button>
             </div>
@@ -190,6 +192,7 @@
             <div>
                 <button data-bind="click: handEndContinue">Continue</button>
             </div>
+            <div data-bind="template: { name: 'chat-pane-template', data: $root }"></div>
         </div><!-- /hand-end page -->
         
         <div id="game-page" class="cinch-view">
@@ -292,19 +295,7 @@
                     <div data-bind="visible: !isGameStarted()" class="waiting-message">
                         Waiting for other players <img src="images/loading.gif" class="value-white-bg" />
                     </div>
-                            
-                    <input data-bind="value: newChat, valueUpdate: 'afterkeydown'" id="text-to-insert" type="text" placeholder="Enter chat message" />
-                    <button data-bind="click: submitChat" id="submit-button">Submit Message</button>
-                    <div id="output-list">
-                        <div class="chat-title">Messages</div>
-
-                        <!-- ko foreach: chats -->
-                            <div data-bind="attr: { class: cssClass }">
-                                <strong data-bind="visible: name, text: name + ': '"></strong>
-                                <span data-bind="text: text" class="chat-message"></span>
-                            </div>
-                        <!-- /ko -->
-                    </div>
+                    <div data-bind="template: { name: 'chat-pane-template', data: $root }"></div>
                 </div>
             </div>
             <div data-bind="css: { 'active-border' : isActivePlayer() }" id="game-controls" class="ab-left ab-top ">
@@ -330,6 +321,20 @@
         </div>
 
         <script type="text/javascript" src="scripts/cinch.init.js"></script>
+        <script type="text/html" id="chat-pane-template">
+            <input data-bind="value: newChat, valueUpdate: 'afterkeydown'" id="text-to-insert" type="text" placeholder="Enter chat message" />
+            <button data-bind="click: submitChat" id="submit-button">Submit Message</button>
 
+            <div class="output-list">
+                <div class="chat-title">Messages</div>
+
+                <!-- ko foreach: chats -->
+                    <div data-bind="attr: { class: cssClass }">
+                        <strong data-bind="visible: name, text: name + ': '"></strong>
+                        <span data-bind="text: text" class="chat-message"></span>
+                    </div>
+                <!-- /ko -->
+            </div>
+        </script>
     </body>
 </html>
