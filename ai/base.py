@@ -266,7 +266,9 @@ class AIBase(object):
         self.ns.emit('chat', chat_msg)
 
     def send_play(self, card):
-        """Send proposed play to server. Handle error response.
+        """Send proposed play to server.
+        
+        If the AI sends an illegal play, there is no recovery.
 
         card (Card): card object, assumed to have been legality checked
 
@@ -307,15 +309,15 @@ class AIBase(object):
         if len(self.gs.cardsInPlay) == 0:
             return True # No restriction on what can be led
 
-        if card.suit is self.gs.trump:
+        if card.suit == self.gs.trump:
             return True # Trump is always OK
         else:
             led = self.gs.cardsInPlay[0].suit
-            if card.suit is led:
+            if card.suit == led:
                 return True # Followed suit
             else:
                 for c in self.hand:
-                    if led is c.suit:
+                    if led == c.suit:
                         return False # Could've followed suit but didn't
                         
                 return True # Throwing off

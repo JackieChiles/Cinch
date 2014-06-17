@@ -99,12 +99,12 @@ class Game:
             return False     # Can't play during bid phase.
         if len(self.gs.cards_in_play) == 0:
             return True      # No restrictions on what cards can be led.
-        if card.suit is self.gs.trump:
+        if card.suit == self.gs.trump:
             return True      # Trump is always OK
-        if card.suit is self.gs.cards_in_play[0].suit:
+        if card.suit == self.gs.cards_in_play[0].suit:
             return True      # Not trump, but followed suit.
         for each_card in player.hand:
-            if each_card.suit is self.gs.cards_in_play[0].suit:
+            if each_card.suit == self.gs.cards_in_play[0].suit:
                 return False # Could have followed suit with a different card.
 
         return True          # Couldn't follow suit, throwing off.
@@ -168,7 +168,7 @@ class Game:
         """
         # Check that player_num is active player.
         #----------------------------------------
-        if player_num is not self.gs.active_player:
+        if player_num != self.gs.active_player:
             log.warning("Non-active player attempted to bid.")
             return None # Ignore
         bid_status = self.check_bid_legality(self.players[player_num], bid)
@@ -177,12 +177,12 @@ class Game:
                          # Game router will chastise appropriately.
         # Legal bid was made; update game state and log/publish.
         #-------------------------------------------------------
-        elif bid_status is 'pass':
+        elif bid_status == 'pass':
             pass    # Couldn't resist.
-        elif bid_status is 'high':
+        elif bid_status == 'high':
             self.gs.high_bid = bid
             self.gs.declarer = player_num
-        elif bid_status is 'cntr':
+        elif bid_status == 'cntr':
             self.gs.declarer = player_num # Set declarer; bid already Cinch.
 
         # Is bidding over? Either way, publish and return.
@@ -204,7 +204,7 @@ class Game:
         """
         # Check that player_num is active player.
         #----------------------------------------
-        if player_num is not self.gs.active_player:
+        if player_num != self.gs.active_player:
             log.warning("Non-active player attempted to play a card.")
             return None # Ignore
 
@@ -321,7 +321,7 @@ class Game:
 
         if status in ['trp', 'crd', 'eot', 'eoh', 'eog']:
 
-            if status is 'trp':
+            if status == 'trp':
                 message['trp'] = gs.trump
                 # Player declared Suit as trump.
 
@@ -349,7 +349,7 @@ class Game:
                     message['gp'] = gs._results['game_points']
                     message['sco'] = gs.scores
 
-                    if status is 'eog':
+                    if status == 'eog':
                         message['win'] = gs.winner
 
                     else: # Status must be 'eoh': Set up for next hand.
@@ -369,7 +369,7 @@ class Game:
         # Update: Text logging has been deprecated; this duplicated code
         # could be cleaned up or merged later, but it isn't hurting anything
         # for now.
-        elif status is 'sog':
+        elif status == 'sog':
             message['dlr'] = gs.dealer
             # Player deals.
             output = [message.copy() for _ in range(NUM_PLAYERS)]
@@ -405,7 +405,7 @@ class Game:
         plr_arg (dict): dict of player num, name pairs.
         """
         # Might as well error check this here. All games must have 4 players.
-        if len(plr_arg) is not NUM_PLAYERS:
+        if len(plr_arg) != NUM_PLAYERS:
             log.exception("Tried to start a game with <{0} players."
                           "".format(NUM_PLAYERS))
 
