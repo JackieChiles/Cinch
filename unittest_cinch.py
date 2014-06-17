@@ -74,6 +74,53 @@ class SanityCheck(unittest.TestCase):
             c.rank, c.suit = cards.decode(integer)
             self.assertEqual(integer, c.encode())
 
+class AITests(unittest.TestCase):
+    def __init__(self, p):
+        unittest.TestCase.__init__(self, p)
+        
+        # Initialize an empty, unstarted AI object
+        from ai import base
+        self.ai = base.AIBase.__new__(base.AIBase)
+        
+        # Configure the AI for testing
+        self.ai.gs = base.GS()
+        self.ai.hand = list()
+        self.ai.resetGamestate()
+        self.pNum = None
+    
+    def testPlayLegality(self):
+        """ai base should properly evaluate play legality"""
+        # Configure a sample gamestate
+        from core.cards import Card
+        
+        func = self.ai.is_legal_play # Focus of this test
+        
+        # Starting hand for AI
+        self.ai.hand = [Card(2), Card(15)] # 3C, 3D
+        
+        # Ensure it is legal to play anything on an empty board
+        self.ai.gs.cardsInPlay = [] # Clear board
+        self.assertTrue(func(Card(1)))
+        
+        # Ensure it is legal to play trump
+        self.ai.gs.trump = 0 # Clubs
+        self.ai.gs.cardsInPlay = [Card(1)] # 2 Clubs        
+        self.assertTrue(func(Card(2))) # 3 Clubs
+        
+        # Ensure it is legal to follow suit (that isn't trump)
+        # 2D is led, we play 3D
+        self.ai.gs.cardsInPlay = [Card(14)] # 2D
+        self.assertTrue(func(Card(15))) # 3D
+        
+        # Ensure it is illegal to choose not to follow suit
+        # 2D was led, we play 3H (not in hand) but 3D (in hand) is legal
+        self.assertFalse(func(Card(28))) # 3H, could've played 3D
+        
+        # Ensure it is legal to throw off
+        # 2D was led, we only have AS
+        self.ai.hand = [Card(52)] # AS
+        self.assertTrue(func(Card(52)))
+        
 
 if __name__ == "__main__":
     unittest.main()
