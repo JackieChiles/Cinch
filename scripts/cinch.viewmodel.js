@@ -334,7 +334,7 @@ function CinchViewModel() {
             self.chats.push(new VisibleMessage(msg[1], msg[0]));
 
             //Scroll chat panes to bottom
-            $('.output-list').forEach(function(element) {
+            $('.output-list').each(function(element) {
                 element.scrollTop = element.scrollHeight;
             });
         });
