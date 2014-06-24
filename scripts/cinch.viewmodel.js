@@ -215,6 +215,17 @@ function CinchViewModel() {
         self.socket.emit('aiList', '');
     };
 
+    self.joinCallback = function(msg) {
+        self.curRoom(msg.roomNum);
+        self.activeView(CinchApp.views.game);
+        self.chats([]); //Clear any chats from before game start
+
+        if (msg.roomNum != 0) {
+            self.myPlayerNum(msg.mySeat);
+            self.socket.$events.seatChart(msg.seatChart);
+        }
+    };
+
     //When the user chooses to start a new game, request to create
     // a room and submit a nickname request
     self.startNew = function () {
@@ -234,16 +245,7 @@ function CinchViewModel() {
 
         //The format for aiSelection is { seatNumber:aiAgentId }
         self.socket.emit('createRoom', aiSelection, function(roomNum) {
-            self.socket.emit('join', roomNum, seatNum, function(msg) {
-                self.curRoom(msg.roomNum);
-                self.activeView(CinchApp.views.game);
-
-                if (msg.roomNum != 0) {
-                    console.log('seatChart: ', msg.seatChart);
-                    self.socket.$events.seatChart(msg.seatChart);
-                    self.myPlayerNum(msg.mySeat);
-                }
-            });
+            self.socket.emit('join', roomNum, seatNum, self.joinCallback);
         });
     };
 
@@ -275,8 +277,8 @@ function CinchViewModel() {
     };
 
     self.handEndContinue = function() {
-	self.curRoom(self.isGameOver() ? self.curRoom() + " - Game Over" : self.curRoom());
-	self.activeView(CinchApp.views.game);
+        self.curRoom(self.isGameOver() ? self.curRoom() + " - Game Over" : self.curRoom());
+        self.activeView(CinchApp.views.game);
     };
 
     self.resetBids = function() {
@@ -319,7 +321,8 @@ function CinchViewModel() {
         //Set up socket listeners
         addSocketHandler('rooms', function(msg) {
             var i = 0;
-	    self.games([]); //Clear existing list
+
+            self.games([]); //Clear existing list
 
             for(i = 0; i < msg.length; i++) {
                 self.games.push(new Game(msg[i]));
@@ -334,7 +337,7 @@ function CinchViewModel() {
             self.chats.push(new VisibleMessage(msg[1], msg[0]));
 
             //Scroll chat panes to bottom
-            $('.output-list').each(function(element) {
+            $('.output-list').each(function(index, element) {
                 element.scrollTop = element.scrollHeight;
             });
         });

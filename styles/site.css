@@ -71,6 +71,14 @@ button {
     margin-top: 2px;
 }
 
+.chat-pane {
+    width: 300px;
+}
+
+.chat-pane > * {
+    width: 100%;
+}
+
 /* Home page */
 #home-page {
     text-align:center;
@@ -100,6 +108,14 @@ input.username {
 .newgame button {
     background-color:dimgrey;
     color:whitesmoke;
+}
+
+.game-lobby-container {
+    display: inline-block;
+}
+
+.game-lobby-container.games-container {
+    vertical-align: top;
 }
 
 /* AI lobby */

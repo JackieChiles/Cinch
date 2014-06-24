@@ -31,21 +31,22 @@
                 <h1>Join or Create a Game</h1>
             </div>
 
-            <div data-bind="template: { name: 'chat-pane-template', data: $root }"></div>
-
-            <div class="title-value-container game newgame">
-              <button data-bind="click: enterAi">Create New Game</button>
-            </div>
-
-            <div data-bind="foreach: games">
-                <div class="title-value-container game">
-                    <button data-bind="click: select, disable: isFull">
-                        Join Game <span data-bind="text: name"></span>
-			<span data-bind="text: isFull() ? ' (Room Full)' : ''"></span>
-			<span data-bind="text: ': ' + getUserlist()"></span>
-                    </button>
+            <div class="game-lobby-container games-container">
+                <div class="title-value-container game newgame">
+                    <button data-bind="click: enterAi">Create New Game</button>
                 </div>
+                <!-- ko foreach: games -->
+                    <div class="title-value-container game">
+                        <button data-bind="click: select, disable: isFull">
+                            Join Game <span data-bind="text: name"></span>
+                            <span data-bind="text: isFull() ? ' (Room Full)' : ''"></span>
+                            <span data-bind="text: ': ' + getUserlist()"></span>
+                        </button>
+                    </div>
+                <!--/ko-->
             </div>
+
+            <div data-bind="template: { name: 'chat-pane-template', data: $root }" class="chat-pane game-lobby-container"></div>
         </div><!-- /game lobby page -->
 
         <div id="seat-select-page" class="cinch-view">
@@ -192,7 +193,7 @@
             <div>
                 <button data-bind="click: handEndContinue">Continue</button>
             </div>
-            <div data-bind="template: { name: 'chat-pane-template', data: $root }"></div>
+            <div data-bind="template: { name: 'chat-pane-template', data: $root }" class="chat-pane"></div>
         </div><!-- /hand-end page -->
         
         <div id="game-page" class="cinch-view">
@@ -295,7 +296,7 @@
                     <div data-bind="visible: !isGameStarted()" class="waiting-message">
                         Waiting for other players <img src="images/loading.gif" class="value-white-bg" />
                     </div>
-                    <div data-bind="template: { name: 'chat-pane-template', data: $root }"></div>
+                    <div data-bind="template: { name: 'chat-pane-template', data: $root }" class="chat-pane"></div>
                 </div>
             </div>
             <div data-bind="css: { 'active-border' : isActivePlayer() }" id="game-controls" class="ab-left ab-top ">

@@ -40,15 +40,7 @@ function Game(gameMsg) {
 
     // Only called when joining existing game, not ICW new
     self.join = function(seatNum) {
-        CinchApp.socket.emit('join', self.number, seatNum, function(msg) {
-            CinchApp.viewModel.curRoom(msg.roomNum);
-            CinchApp.viewModel.activeView(CinchApp.views.game);
-
-            if (msg.roomNum != 0) {
-                CinchApp.viewModel.myPlayerNum(msg.mySeat);
-                CinchApp.socket.$events.seatChart(msg.seatChart);
-            }
-        });
+        CinchApp.socket.emit('join', self.number, seatNum, CinchApp.viewModel.joinCallback);
     };
 
     self.getUserlist = function() {
