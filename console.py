@@ -281,17 +281,16 @@ class Namespace(BaseNamespace):
         cs.update_dash('room', 0)
 
     def on_disconnect(self, *args):
-        self.rv = None # Erase current game data - no re-joins allowed yet.
+        self.rv = None # Erase current game data.
         log.info('[Disconnected]')
         for x in args:
             log.info(str(x))
 
     def on_enter(self, nickname, room, seat):
-        log.info(nickname+' has entered the room.')
-        log.info(nickname + ' is now sitting in seat ' +
-                 str(seat) + '.')
         if hasattr(self, 'rv'):
             self.rv.update_table(nickname, seat)
+        else: # In the lobby
+            log.debug('on_enter fired for user joining lobby')
 
     def on_err(self, *args):
         resp_line = ''
@@ -300,7 +299,6 @@ class Namespace(BaseNamespace):
         log.info(resp_line)
 
     def on_exit(self, exiter, room, seat):
-        log.info(str(exiter) + ' has left the room.')
         if hasattr(self, 'rv'):
             self.rv.update_table(exiter, seat, 'remove')
 
@@ -308,7 +306,7 @@ class Namespace(BaseNamespace):
         self.rv.modify(msg)
         
     def on_roomFull(self, *args):
-        log.info('Room is full.')
+        log.debug('Room is full.')
 
     def on_rooms(self, room_list): #TODO Change to silent update & add command
         # room_list is a dict with items name and num
