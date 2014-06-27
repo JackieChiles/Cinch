@@ -9,7 +9,7 @@ from math import floor
 # Constants to use for card identification
 RANKS_MAP = {2: ('2', 'Two'),    3: ('3', 'Three'),   4: ('4', 'Four'),
              5: ('5', 'Five'),   6: ('6', 'Six'),     7: ('7', 'Seven'),
-             8: ('8', 'Eight'),  9: ('9', 'Nine'),    10: ('10', 'Ten'),
+             8: ('8', 'Eight'),  9: ('9', 'Nine'),    10: ('T', 'Ten'),
              11: ('J', 'Jack'),  12: ('Q', 'Queen'),  13: ('K', 'King'),
              14: ('A', 'Ace')}
 RANKS = RANKS_MAP.keys()
