@@ -18,10 +18,10 @@ $(function () {
     CinchApp.viewModel.setUpSocket();
         
     //Add a binding to the chat input to submit chats when enter is pressed
-    $('#text-to-insert').keypress(function(event) {
+    $('.chat-text').keypress(function(event) {
         if ( event.which == 13 ) {
            event.preventDefault();
-           $('#submit-button').click();
+           $(this).nextAll('.chat-submit-button:first').click();
         }
     });
 
