@@ -182,6 +182,7 @@ function CinchViewModel() {
             //Clean up from last game
             self.dealerServer(null);
             self.trump(null);
+	    self.matchPoints([]);
             self.gameScores([0, 0]);
             self.gameMode(null);
             self.chats([]);
