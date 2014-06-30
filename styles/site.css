@@ -83,6 +83,19 @@ button {
     text-align:left;
 }
 
+#browser-warning {
+    display: none;
+}
+
+#browser-warning, noscript {
+    background-color: #ffffff;
+    padding: 5px;
+}
+
+noscript {
+    font-size: 30px;
+}
+
 /* Home page */
 #home-page {
     text-align:center;

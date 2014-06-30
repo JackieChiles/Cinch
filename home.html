@@ -10,6 +10,7 @@
         <script type="text/javascript" src="scripts/jquery.min.js"></script>
         <script type="text/javascript" src="scripts/knockout-3.1.0.js"></script>
         <script type="text/javascript" src="scripts/socket.io.min.js"></script>
+        <script type="text/javascript" src="scripts/modernizr.custom.62139.js"></script>
 
         <script type="text/javascript" src="scripts/cinch.main.js"></script>
         <script type="text/javascript" src="scripts/cinch.classes.js"></script>
@@ -18,6 +19,18 @@
     </head>
     
     <body>
+        <noscript>You currently have JavaScript turned off. JavaScript is required to run Cinch.</noscript>
+        <div id="browser-warning">
+            <div>
+                <h2>Your browser is unsupported. Consider one of these:</h2>
+            </div>
+            <div>
+                <a href="http://www.mozilla.org/en-US/firefox/new/">Firefox</a>
+            </div>
+            <div>
+                <a href="https://www.google.com/intl/en-US/chrome/browser/">Chrome</a>
+            </div>        
+        </div>
         <div id="home-page" class="cinch-view">
             <span title="This is the name that will be displayed to other players." class="username-label">Username:</span>
             <input data-bind="value: username, valueUpdate: 'afterkeydown'" type="text" placeholder="Enter your username" class="username" id="username-input" />
