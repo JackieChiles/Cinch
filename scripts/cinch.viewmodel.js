@@ -102,7 +102,11 @@ function CinchViewModel() {
     self.winner = ko.observable(); //Integer, winning team. Will be 0 for players 0 and 2 and 1 for players 1 and 3.
     self.winnerName = ko.computed(function() {
         //Return name of the winning team
-        return self.teamNames()[self.winner()];
+	if (self.winner() == 0.5) {
+	    return 'Everybody';
+	} else {
+            return self.teamNames()[self.winner()];
+	}
     });
     self.isGameOver = ko.computed(function() {
         return typeof self.winner() !== 'undefined';
@@ -188,6 +192,7 @@ function CinchViewModel() {
             self.chats([]);
             self.encodedCards([]);
             self.resetBids();
+            self.winner(undefined);
 
             var i;
             var p;
@@ -651,6 +656,8 @@ function CinchViewModel() {
         }
     });
     self.winner.subscribe(function(newValue) {
-        self.activeView(CinchApp.views.handEnd);
+	if (typeof newValue !== 'undefined') {
+            self.activeView(CinchApp.views.handEnd);
+	}
     });
 }
