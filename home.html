@@ -345,7 +345,7 @@
                 <!-- ko foreach: chats -->
                     <div data-bind="attr: { class: cssClass }">
                         <strong data-bind="visible: name, text: name + ': '"></strong>
-                        <span data-bind="text: text" class="chat-message"></span>
+                        <span data-bind="linkifiedText: text" class="chat-message"></span>
                     </div>
                 <!-- /ko -->
             </div>

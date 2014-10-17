@@ -1,3 +1,29 @@
+//Custom Knockout binding handlers
+ko.bindingHandlers.linkifiedText = {
+    update: function(element, valueAccessor, allBindings) {
+        var text = ko.unwrap(valueAccessor());
+        var splitText = text.split(' ');
+        var i = 0;
+        var webUrlRegex = new RegExp("^(https?)://", "i");
+        var currentSegment;
+
+        for(i = 0; i < splitText.length; i++) {
+            currentSegment = splitText[i];
+
+            if(currentSegment.match(webUrlRegex)) {
+                //Replace web URLs with links
+                splitText[i] = '<a href="' + encodeURI(currentSegment) + '">' + encodeURI(currentSegment) + '</a>';
+            }
+            else {
+                //Encode the segment with HTML entities to prevent script injection
+                splitText[i] = $('<div/>').text(currentSegment).html();
+            }
+        }
+
+        $(element).append(splitText.join(' '));
+    }
+};
+
 //Knockout.js viewmodel
 function CinchViewModel() {
     var self = this;
