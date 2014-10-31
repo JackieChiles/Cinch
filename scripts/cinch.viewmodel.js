@@ -195,6 +195,7 @@ function CinchViewModel() {
             if (msg !== null) {
                 console.log('new nickname = ', msg);
             }
+            self.socket.emit('join', 0, 0);
         });
 
         self.activeView(CinchApp.views.lobby);
@@ -205,7 +206,7 @@ function CinchViewModel() {
         var navigateAwayMessage = self.navigateAwayMessage();
 
         if(!navigateAwayMessage || (navigateAwayMessage && confirm(navigateAwayMessage))) {
-            self.socket.emit('exit', '');
+            self.socket.emit('exit');
 
 	    self.socket.emit('room_list'); //Update room list in Lobby
 
@@ -243,7 +244,9 @@ function CinchViewModel() {
 
     self.enterAi = function() {
         self.activeView(CinchApp.views.ai);
-        self.socket.emit('aiList', '');
+        self.socket.emit('aiList', function(msg) {
+            self.ai(msg);
+        });
     };
 
     self.joinCallback = function(msg) {
@@ -358,10 +361,6 @@ function CinchViewModel() {
             for(i = 0; i < msg.length; i++) {
                 self.games.push(new Game(msg[i]));
             }
-        });
-
-        addSocketHandler('aiInfo', function(msg) {
-            self.ai(msg);
         });
 
         addSocketHandler('chat', function(msg) {
