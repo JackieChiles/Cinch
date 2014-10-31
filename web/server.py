@@ -150,14 +150,6 @@ class Room(object):
 
         return seatChart
 
-    def tryCleanup(self):
-        """Cleanup room if applicable.
-
-        TODO...this will remove the room from the lobby etc
-
-        """
-        log.error("tryCleanup not implemented")
-
     def startGame(self):
         """Perform final player checks and start game."""
         users = self.getUsers()
@@ -414,7 +406,11 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         self._leaveRoom()
 
         # If room is now empty, remove the room and notify clients.
-        curRoom.tryCleanup()
+        # NOTE: this doesn't affect the actual room object, only its
+        # availability to clients; this may be a memory leak. TODO investigate.
+        if len(curRoom.getUsers()) == 0 and curRoomNum != LOBBY:
+            self.request['rooms'].remove(curRoom)
+            self.broadcast_event('roomGone', curRoom.num)
 
         log.debug('%s left room %s; placing in lobby.',
                   self.session['nickname'], curRoomNum)

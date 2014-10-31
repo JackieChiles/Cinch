@@ -435,7 +435,15 @@ function CinchViewModel() {
 
     socket.on('exit', function(user, room, seat) {
         //Notify client that someone has left
-        self.chats.push(new VisibleMessage(['User', user, 'has departed.'].join(' '), 'System'));
+        if (!(self.activeView() === CinchApp.views.lobby && room != 0)) {
+            // Users in the lobby receive exit messages for all rooms in order
+            // to update the seating charts for available rooms. However, we
+            // should not display a "departed" message when a user leaves a
+            // game room and this client is in the lobby.
+            self.chats.push(new VisibleMessage(
+                ['User', user, 'has departed ',
+                 (room == 0 ? 'the Lobby.' : 'Room ' + room + '.')].join(' '), 'System'));
+        }
         console.log('exit: ', user, room, seat);
 
         //Update the Lobby Game objects
