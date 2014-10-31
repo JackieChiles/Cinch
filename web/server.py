@@ -96,6 +96,10 @@ class Room(object):
         else:
             return "Room %i" % self.num
 
+    def __del__(self):
+        """Safely delete the Room."""
+        log.debug("TODO: safely end game.")
+
     def getUsers(self):
         """Return list of sockets for clients in this room."""
         return [x for x in self.server.sockets.values()

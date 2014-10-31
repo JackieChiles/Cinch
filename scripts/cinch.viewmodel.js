@@ -411,7 +411,12 @@ function CinchViewModel() {
 
         socket.on('enter', function(user, room, seat) {
             //Announce user if in game view
-            self.activeView() === CinchApp.views.game && self.announceUser(user);
+            if (self.activeView() === CinchApp.views.lobby && room == 0) {
+                self.chats.push(new VisibleMessage(
+                    ['User', user, 'has entered the Lobby.'].join(' '), 'System'));
+            } else {
+                self.activeView() === CinchApp.views.game && self.announceUser(user);
+            }
             console.log('enter: ', user, room, seat);
 
             //Update the Lobby Game objects with new players
