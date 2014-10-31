@@ -53,8 +53,11 @@
                         <button data-bind="click: select, disable: isFull">
                             Join Game <span data-bind="text: name"></span>
                             <span data-bind="text: isFull() ? ' (Room Full)' : ''"></span>
-                            <span data-bind="text: ': ' + getUserlist()"></span>
                         </button>
+                        <div>Users currently in room:</div>
+                        <ul data-bind="foreach: playerNames">
+                            <li data-bind="text: $data"></li>
+                        </ul>
                     </div>
                 <!--/ko-->
             </div>
@@ -206,7 +209,7 @@
             <div>
                 <button data-bind="click: handEndContinue">Continue</button>
             </div>
-            <div data-bind="template: { name: 'chat-pane-template', data: $root }" class="chat-pane"></div>
+            <div data-bind="template: { name: 'chat-pane-template', data: $root }" class="chat-pane margin-center"></div>
         </div><!-- /hand-end page -->
         
         <div id="game-page" class="cinch-view">
@@ -238,7 +241,7 @@
                 <div class="col4">
                     <div>
                         <div class="small-title">Dealer</div>
-                        <div data-bind="text: dealerName" class="value-white-bg"></div>
+                        <div data-bind="text: dealerName, attr: { title: dealerName }" class="value-white-bg name-display-dealer"></div>
                     </div>
                 </div>
             </div><!-- /header -->
@@ -254,7 +257,7 @@
                                 </div>
                                 <div>
                                     <div class="small-title">Name</div>
-                                    <div data-bind="text: name" class="value-white-bg"></div>
+                                    <div data-bind="text: name, attr: { title: name }" class="value-white-bg name-display-north"></div>
                                 </div>
                             </div>
                             <div data-bind="visible: empty">
@@ -273,7 +276,7 @@
                                 </div>
                                 <div>
                                     <div class="small-title">Name</div>
-                                    <div data-bind="text: name" class="value-white-bg"></div>
+                                    <div data-bind="text: name, attr: { title: name }" class="value-white-bg name-display-east-west"></div>
                                 </div>
                             </div>
                             <div data-bind="visible: empty">
@@ -296,7 +299,7 @@
                                 </div>
                                 <div>
                                     <div class="small-title">Name</div>
-                                    <div data-bind="text: name" class="value-white-bg"></div>
+                                    <div data-bind="text: name, attr: { title: name }" class="value-white-bg name-display-east-west"></div>
                                 </div>
                             </div>
                             <div data-bind="visible: empty">

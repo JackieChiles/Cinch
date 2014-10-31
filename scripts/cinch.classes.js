@@ -33,18 +33,8 @@ function Game(gameMsg) {
         return seats;
     });
 
-    self.select = function() {
-        CinchApp.viewModel.selectedRoom(self);
-        CinchApp.viewModel.activeView(CinchApp.views.seatSelect);
-    };
-
-    // Only called when joining existing game, not ICW new
-    self.join = function(seatNum) {
-        CinchApp.socket.emit('join', self.number, seatNum, CinchApp.viewModel.joinCallback);
-    };
-
-    self.getUserlist = function() {
-        // Gets unordered list of users in the room
+    // Gets unordered list of users in the room
+    self.playerNames = ko.computed(function () {
         var users = [];
         var i;
         var seatChart = self.seatChart();
@@ -53,7 +43,17 @@ function Game(gameMsg) {
             users.push(seatChart[i][0]);
         }
 
-        return users;
+        return users; 
+    });
+
+    self.select = function() {
+        CinchApp.viewModel.selectedRoom(self);
+        CinchApp.viewModel.activeView(CinchApp.views.seatSelect);
+    };
+
+    // Only called when joining existing game, not ICW new
+    self.join = function(seatNum) {
+        CinchApp.socket.emit('join', self.number, seatNum, CinchApp.viewModel.joinCallback);
     };
 }
 

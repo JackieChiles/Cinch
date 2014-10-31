@@ -69,6 +69,27 @@ button {
     display: inline-block;
     font-weight:bold;
     margin-top: 2px;
+    overflow: hidden;
+}
+
+.value-white-bg:empty:after {
+    content: '\a0';
+}
+
+.value-white-bg.name-display-east-west {
+    max-width: 98%;
+    max-height: 80px;
+}
+
+.value-white-bg.name-display-north {
+    max-width: 135px;
+    max-height: 65px;
+}
+
+.value-white-bg.name-display-dealer {
+    max-width: 98%;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .chat-pane {
@@ -81,6 +102,10 @@ button {
 
 .chat-pane .output-list {
     text-align:left;
+}
+
+.margin-center {
+    margin: 0 auto;
 }
 
 #browser-warning {
@@ -369,6 +394,7 @@ input.username {
 
 .other-player.partner > div > div > div {
     display:inline-block;
+    vertical-align: top;
 }
 
 .other-player > div {
