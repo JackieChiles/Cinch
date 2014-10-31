@@ -195,6 +195,9 @@ function CinchViewModel() {
             if (msg !== null) {
                 console.log('new nickname = ', msg);
             }
+            // If we ever want to show the people in the lobby, will need to
+            // add a callback to this action. Otherwise, this user will not appear
+            // in the lobby their first time connecting.
             self.socket.emit('join', 0, 0);
         });
 

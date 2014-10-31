@@ -310,8 +310,9 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         # Tell others in room and lobby that someone has joined and sat down
         self.emit_to_room_not_me(
             'enter', self.session['nickname'], roomNum, seatNum)
-        self.emit_to_target_room(
-            LOBBY, 'enter', self.session['nickname'], roomNum, seatNum)
+        if roomNum != LOBBY:
+            self.emit_to_target_room(
+                LOBBY, 'enter', self.session['nickname'], roomNum, seatNum)
 
     def _leaveRoom(self):
         """Leave current room and announce departure to that room.
@@ -320,7 +321,7 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         functions to ensure that the client is moved to a room soonest.
 
         """
-        if self.session['roomNum']:
+        if self.session['roomNum'] is not None:
             self.emit_to_room_not_me(
                 'exit', self.session['nickname'], self.session['roomNum'],
                 self.session['seat'])
@@ -425,10 +426,16 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         # one who left
 
     def on_room_list(self):
-        """Transmit list of available rooms and their occupants."""
+        """Transmit list of available rooms and their occupants.
+
+        Exclude the Lobby, because we don't want it in the list of rooms
+        to be joined. Remove `if x.num != LOBBY` if you want the Lobby to be
+        included.
+
+        """
         roomList = [{'name': str(x), 'num': x.num, 'isFull': x.isFull(),
                      'seatChart': x.getSeatingChart()}
-                    for x in self.request['rooms']]
+                    for x in self.request['rooms'] if x.num != LOBBY]
 
         # Not using callback as to support recv_connect
         self.emit('rooms', roomList)
