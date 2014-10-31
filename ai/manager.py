@@ -121,15 +121,11 @@ class AIManager:
         self.ns = self.socket.define(BaseNamespace, SOCKETIO_NS)
 
         # Attach socketIO event handlers
-        self.ns.on('getAIList', self.on_getAIList)
         self.ns.on('summonAI', self.on_summonAI)
 
+        self.ns.emit('aiListData', self.aiSummary)
         self.ns.emit('nickname', 'AIManager')
         self.ns.emit('join', 0, 0) # Join lobby
-
-    def on_getAIList(self, *args):
-        """Provide AI identity information to game server."""
-        self.ns.emit('aiListData', self.aiSummary)
 
     def on_summonAI(self, *args):
         """Spawn AI agent for a game using threading.

@@ -195,6 +195,10 @@ function CinchViewModel() {
             if (msg !== null) {
                 console.log('new nickname = ', msg);
             }
+            // If we ever want to show the people in the lobby, will need to
+            // add a callback to this action. Otherwise, this user will not appear
+            // in the lobby their first time connecting.
+            self.socket.emit('join', 0, 0);
         });
 
         self.activeView(CinchApp.views.lobby);
@@ -205,7 +209,7 @@ function CinchViewModel() {
         var navigateAwayMessage = self.navigateAwayMessage();
 
         if(!navigateAwayMessage || (navigateAwayMessage && confirm(navigateAwayMessage))) {
-            self.socket.emit('exit', '');
+            self.socket.emit('exit');
 
 	    self.socket.emit('room_list'); //Update room list in Lobby
 
@@ -243,7 +247,9 @@ function CinchViewModel() {
 
     self.enterAi = function() {
         self.activeView(CinchApp.views.ai);
-        self.socket.emit('aiList', '');
+        self.socket.emit('aiList', function(msg) {
+            self.ai(msg);
+        });
     };
 
     self.joinCallback = function(msg) {
@@ -360,10 +366,6 @@ function CinchViewModel() {
             }
         });
 
-        addSocketHandler('aiInfo', function(msg) {
-            self.ai(msg);
-        });
-
         addSocketHandler('chat', function(msg) {
             self.chats.push(new VisibleMessage(msg[1], msg[0]));
 
@@ -409,7 +411,12 @@ function CinchViewModel() {
 
         socket.on('enter', function(user, room, seat) {
             //Announce user if in game view
-            self.activeView() === CinchApp.views.game && self.announceUser(user);
+            if (self.activeView() === CinchApp.views.lobby && room == 0) {
+                self.chats.push(new VisibleMessage(
+                    ['User', user, 'has entered the Lobby.'].join(' '), 'System'));
+            } else {
+                self.activeView() === CinchApp.views.game && self.announceUser(user);
+            }
             console.log('enter: ', user, room, seat);
 
             //Update the Lobby Game objects with new players
@@ -433,7 +440,15 @@ function CinchViewModel() {
 
     socket.on('exit', function(user, room, seat) {
         //Notify client that someone has left
-        self.chats.push(new VisibleMessage(['User', user, 'has departed.'].join(' '), 'System'));
+        if (!(self.activeView() === CinchApp.views.lobby && room != 0)) {
+            // Users in the lobby receive exit messages for all rooms in order
+            // to update the seating charts for available rooms. However, we
+            // should not display a "departed" message when a user leaves a
+            // game room and this client is in the lobby.
+            self.chats.push(new VisibleMessage(
+                ['User', user, 'has departed ',
+                 (room == 0 ? 'the Lobby.' : 'Room ' + room + '.')].join(' '), 'System'));
+        }
         console.log('exit: ', user, room, seat);
 
         //Update the Lobby Game objects

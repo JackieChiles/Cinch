@@ -262,7 +262,7 @@ class Namespace(BaseNamespace):
         log.info(resp_line)
         self.nickname = nickname
 
-    def on_aiInfo(self, bot_list):
+    def setAIInfo(self, bot_list):
         self.ai_list = bot_list # Refreshes ai_info but doesn't display.
         log.info('Updated AI agent list.')
 
@@ -418,8 +418,9 @@ def console(window, host='localhost', port=8088):
                     # Quickstart a 3-ai game.
                     ns.emit('createRoom', {1:1,2:1,3:1}, ns.ackCreate)
                 elif 'lobby' in cmd:
-                    ns.emit('exit', '', ns.ackJoin)
-                    # Need to listen for confirmation we're back in lobby...
+                    # It is assumed the move to the lobby is successful on the
+                    # server.
+                    ns.emit('exit')
                 elif 'join' in cmd:
                     try:
                         if hasattr(ns, 'rv'): # No RoomView = in lobby
@@ -440,7 +441,7 @@ def console(window, host='localhost', port=8088):
                         log.info('seat: currently in lobby')
                 elif 'ai' in cmd:
                     if cmd['ai'] == 'refresh':
-                        ns.emit('aiList', '')
+                        ns.emit('aiList', ns.setAIInfo)
                     elif cmd['ai'] == 'list':
                         cs.write("Available AI agents:")
                         for ai in ns.ai_list:
