@@ -31,7 +31,8 @@ COMMANDS = [ ['test', r'^$', '(null): test connection to server'],
               '0-5, c[inch], p[ass]: send bid to server'],
              ['play', r'^[2-9TtJjQqKkAa][CcDdHhSs]$', 'NS: play card'],
              ['hand', r'^$', '(null): display your current cards in hand'],
-             ['exit', r'^.*', 'unconditional quit']
+             ['exit', r'^.*', 'unconditional quit'],
+             ['kill', r'^[0-9]+$', 'N: kill room N']
            ]
 
 
@@ -262,6 +263,10 @@ class Namespace(BaseNamespace):
         log.info(resp_line)
         self.nickname = nickname
 
+    def ackKill(self, roomNum):
+        if roomNum is not None:
+            log.info('Room {0} killed. We mourn its passing.'.format(roomNum))
+
     def setAIInfo(self, bot_list):
         self.ai_list = bot_list # Refreshes ai_info but doesn't display.
         log.info('Updated AI agent list.')
@@ -486,7 +491,9 @@ def console(window, host='localhost', port=8088):
                         cs.update_dash('hand', [str(card) for card in ns.rv.hand])
                 elif 'exit' in cmd:
                     raise SystemExit
-    
+                elif 'kill' in cmd:
+                    ns.emit('killRoom', cmd['kill'], ns.ackKill)
+
         except KeyboardInterrupt:
             log.warning("C-c detected; exiting...")
         except SystemExit:

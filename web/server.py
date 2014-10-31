@@ -510,6 +510,22 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
             self.session['nickname'] = name
             return (name,)
 
+    def on_killRoom(self, roomNum):
+        """Evict all players from a room. Only works from localhost."""
+        local_hosts = set(['127.0.0.1', '::ffff:127.0.0.1', '::1'])
+        if self.environ['REMOTE_ADDR'] not in local_hosts:
+            log.warning('{0} tried to kill Room {1} and failed'.format(
+                self.environ['REMOTE_ADDR'], roomNum))
+            return
+
+        room = self.getRoomByNumber(int(roomNum))
+        if room:
+            for x in room.getUsers():
+                x[SOCKETIO_NS].on_exit()
+            return (roomNum, )
+        else:
+            return (None, )
+
     # --------------------
     # AI methods
     # --------------------
@@ -679,7 +695,6 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
             pkt['ack'] = 'data'
             pkt['id'] = msgid = self.socket._get_next_msgid()
             self.socket._save_ack_callback(msgid, callback)
-            print pkt###
 
         for sessid, socket in self.socket.server.sockets.iteritems():
             if socket.session['roomNum'] == roomNum:

@@ -212,6 +212,7 @@ class AIBase(object):
         seat -- (int) seat number
 
         """
+        # Rarely, ackJoin receives a null argument and halts the agent. BUG
         self.ns.emit('join', room, seat, self.ackJoin)
 
     def start(self):
@@ -223,7 +224,7 @@ class AIBase(object):
         # Adds random backoff before AI disconnects. This helps suppress the 
         # "SOCKET IS DEAD" exception caused by all agents quitting at once, which
         # causes a race condition when the server sends out the 'exit' events. This
-        # only servers to suppress an unhandled exception. A "Failed to write closing
+        # only serves to suppress an unhandled exception. A "Failed to write closing
         # frame" message still gets printed to the DEBUG handler, though.
         time.sleep(2*random.random())
         
