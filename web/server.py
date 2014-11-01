@@ -56,7 +56,7 @@ import logging
 log = logging.getLogger(__name__)
 
 from core.game import Game, NUM_PLAYERS
-from common import SOCKETIO_PORT, SOCKETIO_NS
+from common import SOCKETIO_PORT, SOCKETIO_NS, db
 
 # Constants
 LOBBY = 0
@@ -634,11 +634,7 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
     # --------------------
 
     def on_game_log(self, gameId):
-        """Retrieve game log for game with id=gameId.
-
-        TODO decide to format here or on client.
-
-        """
+        """Retrieve parsed game log for game with id=gameId."""
         return "GAME LOG"
 
     def on_log_list(self):
@@ -647,8 +643,17 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         Each list item is a dict with keys (name, id).
 
         """
-        return [{'name': 1, 'id': 1}, {'name': 2, 'id': 2},
-                {'name': 3, 'id': 3}]
+        logs = db(db.Games.id > 0).select().as_list()
+        return logs
+
+    def prepareGameLog(self, data):
+        """Convert raw data from database into something client-usable.
+
+        Args:
+          data (...):
+
+        """
+        pass
 
     # --------------------
     # Helper methods

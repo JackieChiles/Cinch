@@ -1,13 +1,9 @@
 //JS for Cinch Game Logs page
 
-var CinchLogApp = {
-    viewModel: null,
-    socket: io.connect(location.protocol+'//'+location.hostname+":8088/cinch"),
-
-    views: {
-        home: 'log-list',
-	game: 'log-view'
-    }
+var CinchLogApp = CinchApp;
+CinchLogApp.views = {
+    home: 'log-list',
+    game: 'log-view'
 };
 
 
@@ -19,8 +15,14 @@ function CinchLogViewModel() {
 
     self.logList = ko.observableArray([]);
     self.gameLog = ko.observable();
-
+    self.selectedGame = ko.observable();
     self.activeView = ko.observable();
+
+    self.logList.subscribe(function() {
+        ko.utils.arrayForEach(self.logList(), function(item) {
+            item.Timestamp = new Date(item.Timestamp);
+        });
+    });
 
     //Retrieve list of available game logs
     self.getLogList = function() {
@@ -35,6 +37,7 @@ function CinchLogViewModel() {
 	self.socket.emit('game_log', game_id, function(msg) {
 	    console.log('game_log=', msg);
 	    self.gameLog(msg);
+            self.selectedGame(game_id);
 	});
     };
 
@@ -42,8 +45,8 @@ function CinchLogViewModel() {
 	self.activeView(CinchLogApp.views.home);
     };
     self.showGameLog = function(id) {
-	//self.getGameLog(id);
-	console.log('gonna get log for ', id);
+	self.getGameLog(id);
+	console.log('fetching game log for ', id);
 	self.activeView(CinchLogApp.views.game);
     }
 
@@ -63,10 +66,10 @@ function CinchLogViewModel() {
         var fadeIn = function() {
             jqElement.fadeIn(duration);
         };
-        
+
         otherViews = $('.' + viewClass + ':not(#' + newValue + ')');
         numOtherViews = otherViews.size();
-        
+
         if(numOtherViews < 1) {
             fadeIn();
         }
@@ -83,18 +86,23 @@ function CinchLogViewModel() {
             });
         }
     });
-
 }
 
 
 //Code ran on page load
-CinchLogApp.viewModel = new CinchLogViewModel();
+CinchApp.viewModel = new CinchLogViewModel();
 
 $(function () {
+    if ( Modernizr.websockets) {
+        var socket = CinchApp.socket;
 
-    ko.applyBindings(CinchLogApp.viewModel);
+        //Apply Knockout bindings
+        ko.applyBindings(CinchApp.viewModel);
 
-    CinchLogApp.viewModel.getLogList();
-    CinchLogApp.viewModel.activeView(CinchLogApp.views.home);
-
+        CinchLogApp.viewModel.getLogList();
+        CinchLogApp.viewModel.activeView(CinchLogApp.views.home);
+    }
+    else {
+        $('#browser-warning').fadeIn();
+    }
 });

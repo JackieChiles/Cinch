@@ -2,31 +2,56 @@
 <html>
     <head>
         <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>Cinch Game Logs</title>
-        
-        <link rel="stylesheet" href="styles/site.css" />
-        
-        <script type="text/javascript" src="scripts/jquery.min.js"></script>
-        <script type="text/javascript" src="scripts/knockout-2.1.0beta.js"></script>
-        <script type="text/javascript" src="scripts/socket.io.min.js"></script>
 
-        <script type="text/javascript" src="scripts/server.config.js"></script>
+        <link rel="stylesheet" href="styles/site.css" />
+
+        <script type="text/javascript" src="scripts/jquery.min.js"></script>
+        <script type="text/javascript" src="scripts/knockout-3.1.0.js"></script>
+        <script type="text/javascript" src="scripts/socket.io.min.js"></script>
+        <script type="text/javascript" src="scripts/modernizr.custom.62139.js"></script>
+
+        <script type="text/javascript" src="scripts/cinch.main.js"></script>
+        <script type="text/javascript" src="scripts/cinch.logs.js"></script>
     </head>
-    
+
     <body>
+        <noscript>You currently have JavaScript turned off. JavaScript is required to run Cinch.</noscript>
+        <div id="browser-warning">
+            <div>
+                <h2>Your browser is unsupported. Consider one of these:</h2>
+            </div>
+            <div>
+                <a href="http://www.mozilla.org/en-US/firefox/new/">Firefox</a>
+            </div>
+            <div>
+                <a href="https://www.google.com/intl/en-US/chrome/browser/">Chrome</a>
+            </div>
+        </div>
 
       <div id="log-list" class="cinch-view">
+        <div class="header">
+          <h1>Select Game Log</h1>
+        </div>
 	<p>Select an item below to view a game log. This list does not update automatically as games finish,
 	  so you'll need to refresh the page to stay up-to-date.</p>
 
 	<div data-bind="foreach: logList">
-	  <a href="#" data-bind="click: CinchLogApp.viewModel.showGameLog.bind($data, id)"><span data-bind="text: name"></span></a><br />
+	  <div class="log-game-list">
+            <button data-bind="click: $root.showGameLog.bind($data, id)">
+              <span data-bind="text: '#' + id + '. ' + PlayerName0 + '/' + PlayerName2 + ' vs. ' + PlayerName1 + '/' + PlayerName3"></span> -
+              - <span class="list-timestamp" data-bind="text: Timestamp"></span>
+            </button>
+          </div>
 	</div>
 
-	<p>FUTURE: add way to sort/filter game log list</p>
       </div><!-- /log-list -->
 
       <div id="log-view" class="cinch-view">
+        <div class="header">
+          <h1>Game Log for Game #<span data-bind="text: selectedGame"></span></h1>
+        </div>
 	<button data-bind="click: showLogList">Back to List</button>
 
 	<p>game log will be displayed in here</p>
@@ -35,8 +60,6 @@
       </div><!-- /log-view -->
 
       <h3><a href="home.html">Return to Cinch</a></h3>
-
-      <script type="text/javascript" src="scripts/cinch.logs.js"></script>
 
     </body>
 </html>
