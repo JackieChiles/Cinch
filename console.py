@@ -21,6 +21,8 @@ COMMANDS = [ ['test', r'^$', '(null): test connection to server'],
              ['room', r'^([0-3]:\d+\s+){0,3}([0-3]:\d+)?$',
               '[<seat>:<ai_id> x0-4]: spawn new room [with opt. ai seating]'],
              ['aig', r'^$', '(null): quickstart ai game for testing'],
+             ['aig4', r'^([0-9]+\s){3}([0-9]+)$',
+              'A B C D: quickstart 4x ai game for testing; A-D are ai numbers'],
              ['lobby', r'^$', '(null): leave current room and join lobby'],
              ['join', r'^[0-9]+\s+[0-3]+$', 'N M: join room N seat M'],
              ['help', r'^$|^-v$', '[-v]: list registered commands [-v w/regex]'],
@@ -267,6 +269,9 @@ class Namespace(BaseNamespace):
         if roomNum is not None:
             log.info('Room {0} killed. We mourn its passing.'.format(roomNum))
 
+    def ack_aig4(self, roomNum):
+        log.info('AI-only game started in room {0}'.format(roomNum))
+
     def setAIInfo(self, bot_list):
         self.ai_list = bot_list # Refreshes ai_info but doesn't display.
         log.info('Updated AI agent list.')
@@ -422,6 +427,9 @@ def console(window, host='localhost', port=8088):
                 elif 'aig' in cmd:
                     # Quickstart a 3-ai game.
                     ns.emit('createRoom', {1:1,2:1,3:1}, ns.ackCreate)
+                elif 'aig4' in cmd:
+                    # Start a 4-ai game.
+                    ns.emit('aiOnlyGame', cmd['aig4'].split(' '), ns.ack_aig4)
                 elif 'lobby' in cmd:
                     # It is assumed the move to the lobby is successful on the
                     # server.

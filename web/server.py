@@ -480,8 +480,8 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         # Summon AI players
         try:
             for seat in args.keys():
-                self.emit_to_room(
-                    'summonAI', {roomNum: (int(seat), int(args[seat]))})
+                self.emit_to_target_room(
+                    LOBBY, 'summonAI', {roomNum: (int(seat), int(args[seat]))})
         except AttributeError:
             pass  # No args given
 
@@ -512,14 +512,22 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
             self.session['nickname'] = name
             return name
 
+    def localhost_only(func):
+        """Decoration function for limiting access to localhost."""
+        def _localhost_only(self, *args, **kwargs):
+            local_hosts = set(['127.0.0.1', '::ffff:127.0.0.1', '::1'])
+            if self.environ['REMOTE_ADDR'] not in local_hosts:
+                log.warning('Remote address {0} tried to call local-only '
+                            'method {1}'.format(self.environ['REMOTE_ADDR'],
+                                                str(func)))
+                return
+            else:
+                return func(self, *args, **kwargs)
+        return _localhost_only
+
+    @localhost_only
     def on_killRoom(self, roomNum):
         """Evict all players from a room. Only works from localhost."""
-        local_hosts = set(['127.0.0.1', '::ffff:127.0.0.1', '::1'])
-        if self.environ['REMOTE_ADDR'] not in local_hosts:
-            log.warning('{0} tried to kill Room {1} and failed'.format(
-                self.environ['REMOTE_ADDR'], roomNum))
-            return
-
         room = self.getRoomByNumber(int(roomNum))
         if room:
             for x in room.getUsers():
@@ -540,9 +548,25 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         """Receive AI identity information from AI manager."""
         self.request['aiInfo'] = data
 
-    def on_summonAI(self, *args):
+    def on_summonAI(self, model, roomNum, seat):
         """Human client has requested an AI agent for a game room."""
-        log.debug("AI model {0} summoned".format(args[0]['id']))
+        log.debug("AI model {0} summoned for Room {1} Seat {2}".format(
+            model, roomNum, seat))
+        self.emit_to_target_room(LOBBY, 'summonAI', {roomNum: (seat, model)})
+
+    @localhost_only
+    def on_aiOnlyGame(self, seatMap):
+        """Run AI-only game (4x AI).
+
+        Args:
+          seatMap (list): A list of the AI agent models for each game seat.
+            The indexes of the model numbers match the seat numbers.
+
+        """
+        seatMap = map(int, seatMap)
+        seats = map(unicode, range(len(seatMap)))
+        args = dict(zip(seats, seatMap))
+        return self.on_createRoom(args)
 
     # --------------------
     # Game methods
