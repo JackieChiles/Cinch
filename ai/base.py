@@ -212,7 +212,6 @@ class AIBase(object):
         seat -- (int) seat number
 
         """
-        # Rarely, ackJoin receives a null argument and halts the agent. BUG
         self.ns.emit('join', room, seat, self.ackJoin)
 
     def start(self):

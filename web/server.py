@@ -227,7 +227,7 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
     def on_test(self, *args):
         # Dummy command to get the console __init__ to fire.
         log.info('Console connected.')
-        return ['ok']
+        return 'ok'
 
     # --------------------
     # Room & chat management methods
@@ -343,13 +343,15 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
 
         if room.isFull():
             self.emit('err', 'That room is full')
-            return []
+            return
         else:
             try:
                 self.moveToRoom(roomNum=roomNum, seat=seatNum)
             except Exception as e:
-                self.emit('err', e.message)
-                return []
+                log.debug('err in on_join({1}, {2}): {0}'.format(
+                    repr(e), roomNum, seatNum))
+                self.emit('err', repr(e))
+                return
 
             # If the room is now full, begin the game.
             if room.isFull():
@@ -364,8 +366,8 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
 
             log.debug('%s joined room %s.', self.session['nickname'], roomNum)
 
-            return ({'roomNum': roomNum, 'seatChart': room.getSeatingChart(),
-                     'mySeat': seatNum},)
+            return dict(roomNum=roomNum, seatChart=room.getSeatingChart(),
+                        mySeat=seatNum)
 
     def on_exit(self):
         """Handle socket request to leave current room.
@@ -483,7 +485,7 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         except AttributeError:
             pass  # No args given
 
-        return (roomNum, )  # Tells user to join room
+        return roomNum  # Tells user to join room
 
         # FUTURE add way to system to add AIs after creating room; useful for
         # filling a room that won't fill. Would be separate command from
@@ -504,11 +506,11 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         """
         if self.session['roomNum'] > LOBBY:
             self.emit('err', 'You cannot change names while in a game')
-            return (None,)
+            return None
         else:
             # set nickname for user
             self.session['nickname'] = name
-            return (name,)
+            return name
 
     def on_killRoom(self, roomNum):
         """Evict all players from a room. Only works from localhost."""
@@ -522,9 +524,9 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         if room:
             for x in room.getUsers():
                 x[SOCKETIO_NS].on_exit()
-            return (roomNum, )
+            return roomNum
         else:
-            return (None, )
+            return None
 
     # --------------------
     # AI methods
@@ -532,7 +534,7 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
 
     def on_aiList(self):
         """Provide client with list of available AIs and their information."""
-        return [self.request['aiInfo'], ]
+        return self.request['aiInfo']
 
     def on_aiListData(self, data):
         """Receive AI identity information from AI manager."""
@@ -613,7 +615,7 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         TODO decide to format here or on client.
 
         """
-        return ("GAME LOG",)
+        return "GAME LOG"
 
     def on_log_list(self):
         """Retrieve list of available game logs.
@@ -621,8 +623,8 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         Each list item is a dict with keys (name, id).
 
         """
-        return ([{'name': 1, 'id': 1}, {'name': 2, 'id': 2},
-                 {'name': 3, 'id': 3}],)
+        return [{'name': 1, 'id': 1}, {'name': 2, 'id': 2},
+                {'name': 3, 'id': 3}]
 
     # --------------------
     # Helper methods
@@ -668,7 +670,8 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
             self.socket._save_ack_callback(msgid, callback)
 
         for sessid, socket in self.socket.server.sockets.iteritems():
-            if socket.session['roomNum'] == roomNum:
+            if ('roomNum' in socket.session and
+               socket.session['roomNum'] == roomNum):
                 if socket is self.socket:
                     continue
                 else:
@@ -697,7 +700,8 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
             self.socket._save_ack_callback(msgid, callback)
 
         for sessid, socket in self.socket.server.sockets.iteritems():
-            if socket.session['roomNum'] == roomNum:
+            if ('roomNum' in socket.session and
+               socket.session['roomNum'] == roomNum):
                 socket.send_packet(pkt)
 
     def getRoomByNumber(self, roomNum):
