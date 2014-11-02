@@ -433,9 +433,6 @@ class Game:
         pNum (int): The target player number.
         name (str): The player's nickname.
         """
-        # TODO: May want to log this occurrance to the database. A change
-        # of nickname doesn't currently fall under the things we log, though,
-        # and incorporating the change into game log playback would be hard.
         self.players[pNum].name = name
 
         message = dict(
@@ -445,5 +442,12 @@ class Game:
             dlr=self.gs.dealer,
             mode=self.gs.game_mode,
             tgt=pNum,
-            handSizes=[len(x.hand) for x in self.players])
+            resumeData=dict(
+                handSizes=[len(x.hand) for x in self.players],
+                trp=self.gs.trump,
+                sco=self.gs.scores,
+                highBid=self.gs.high_bid,
+                declarer=self.gs.declarer,
+                cip=[(c.code, c.owner) for c in self.gs.cards_in_play])
+            )
         return message
