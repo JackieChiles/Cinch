@@ -18,7 +18,7 @@ db = DAL('sqlite://storage.sqlite',folder='db')
 # modules to allow for reference fields without worrying about the import sequence.
 db.define_table(
     'Games',
-    Field('Timestamp', 'string', default=datetime.utcnow().isoformat()),
+    Field('Timestamp', 'string', required=True),
     Field('PlayerName0', 'string', required=True),
     Field('PlayerName1', 'string', required=True),
     Field('PlayerName2', 'string', required=True),

@@ -114,8 +114,10 @@ class Game:
         log.debug("Trying to add a row for the new game.")
 
         # Get the automatic game ID to use in the Events table in place of the
-        # random engine-generated game ID.
+        # random engine-generated game ID. The game timestamp is that of the
+        # first game event.
         autogen_game_id = db.Games.insert(
+            Timestamp=self.gs.events[0]['timestamp'],
             PlayerName0=self.players[0].name,
             PlayerName1=self.players[1].name,
             PlayerName2=self.players[2].name,
@@ -387,6 +389,13 @@ class Game:
         if status not in ['eoh', 'sog']:
             message['tgt'] = [i for i in range(NUM_PLAYERS)]
             output = message
+
+        if status in ['eoh', 'sog']:
+            for x in output:  # output is a list
+                self.gs.events.append({'hand_num':self.gs.hand_number,
+                                       'timestamp':datetime.utcnow().isoformat(),
+                                       'output':str(x)})
+        else:
             self.gs.events.append({'hand_num':self.gs.hand_number,
                                    'timestamp':datetime.utcnow().isoformat(),
                                    'output':str(output)})

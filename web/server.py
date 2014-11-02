@@ -55,6 +55,7 @@ from threading import Timer
 import logging
 log = logging.getLogger(__name__)
 
+from db import parseLog
 from core.game import Game, NUM_PLAYERS
 from common import SOCKETIO_PORT, SOCKETIO_NS, db
 
@@ -635,7 +636,9 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
 
     def on_game_log(self, gameId):
         """Retrieve parsed game log for game with id=gameId."""
-        return "GAME LOG"
+        gameData = db(db.Games.id == gameId).select().first()
+        events = db(db.Events.game_id == gameId).select()
+        return parseLog.prepare(gameData, events)
 
     def on_log_list(self):
         """Retrieve list of available game logs.
@@ -645,15 +648,6 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         """
         logs = db(db.Games.id > 0).select().as_list()
         return logs
-
-    def prepareGameLog(self, data):
-        """Convert raw data from database into something client-usable.
-
-        Args:
-          data (...):
-
-        """
-        pass
 
     # --------------------
     # Helper methods

@@ -1,0 +1,17 @@
+#playersTbl {
+    border-collapse: collapse;
+    text-align: center;
+}
+td {
+    padding: 6px;
+}
+.teamAtd {
+    background-color: #e00;
+}
+.teamBtd {
+    background-color: #00e;
+}
+
+.bold {
+    font-weight: bold;
+}
