@@ -29,10 +29,13 @@ CinchApp.animator = {
         }))
         .then(function() {
             setTimeout(function() {
-                $cardsInPlay.remove();
+                CinchApp.animator.boardReset($cardsInPlay);
                 CinchApp.viewModel.unlockBoard();
             }, 500);
         });
+    },
+    boardReset: function($images) {
+        ($images || $('#play-surface img')).remove();
     }
 };
 

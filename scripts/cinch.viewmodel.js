@@ -214,7 +214,7 @@ function CinchViewModel() {
             //Clean up from last game
             self.dealerServer(null);
             self.trump(null);
-	    self.matchPoints([]);
+            self.matchPoints([]);
             self.gameScores([0, 0]);
             self.gameMode(null);
             self.chats([]);
@@ -232,7 +232,7 @@ function CinchViewModel() {
             }
 
             //Clear board
-            //TODO: call new animation board clearing
+            CinchApp.animator.boardReset();
 
             self.activeView(CinchApp.views.lobby);
         }
