@@ -37,6 +37,10 @@ def prepare(gameData, events):
     # Only storing __dict__ to give greenlet something JSON-serializable
     hands = map(lambda x: Hand(*x).__dict__, eventsByHand.items())
 
+    gameData.winner = filter(
+        lambda x: 'win' in x.Event, events)[0].Event['win']
+    gameData.finalScores = hands[-1]['totalPoints']
+
     return dict(gameData=gameData.as_dict(), hands=hands)
 
 
@@ -119,19 +123,22 @@ class Hand(object):
 
         leader = winner = 0
         values = [0] * PLAYER_COUNT
+        first = True
         for i in range(len(plays)):
             e = plays[i].Event
             values[e['actor']] = e['playC']
 
-            if sum(values) == 0:
+            if first:
                 leader = e['actor']
+                first = False
 
             elif 'remP' in e:
                 winner = e['remP']
                 self.tricks.append(dict(values=values, leader=leader,
                                         winner=winner))
-                values = [0] * PLAYER_COUNT
                 leader = winner = 0
+                values = [0] * PLAYER_COUNT
+                first = True
 
     def setScores(self, row):
         """Set score-related attributes for the Hand.

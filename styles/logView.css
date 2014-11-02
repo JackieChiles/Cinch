@@ -15,3 +15,23 @@ td {
 .bold {
     font-weight: bold;
 }
+
+
+.hand {
+    border: 1px solid #aaa;
+    -webkit-border-radius: 15px;
+    -moz-border-radius: 15px;
+    -ms-border-radius: 15px;
+    -o-border-radius: 15px;
+    border-radius: 15px;
+    -webkit-box-shadow: rgba(0, 0, 0, 0.2) 2px 2px 2px;
+    -moz-box-shadow: rgba(0, 0, 0, 0.2) 2px 2px 2px;
+    box-shadow: rgba(0, 0, 0, 0.2) 3px 3px 8px;
+}
+.handTable {
+
+}
+
+.winner {
+    background-color: green;
+}

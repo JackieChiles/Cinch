@@ -14,7 +14,8 @@ function CinchLogViewModel() {
     self.socket = CinchLogApp.socket;
 
     self.logList = ko.observableArray([]);
-    self.gameLog = ko.observable();
+    self.gameData = ko.observable();
+    self.hands = ko.observableArray();
     self.selectedGame = ko.observable();
     self.activeView = ko.observable();
 
@@ -36,7 +37,8 @@ function CinchLogViewModel() {
     self.getGameLog = function(game_id) {
 	self.socket.emit('game_log', game_id, function(msg) {
 	    console.log('game_log=', msg);
-	    self.gameLog(msg);
+            self.gameData(msg.gameData);
+            self.hands(msg.hands);
             self.selectedGame(game_id);
 	});
     };
