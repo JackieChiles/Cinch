@@ -9,6 +9,8 @@ CinchApp.animator = {
     playSurfaceHeight: 245,
     cardImageWidth: 72,
     cardImageHeight: 96,
+
+    //Animates a card played to the position of the given player
     play: function(imagePath, position, doAnimate) {
         var $img = $('<img src="' + imagePath + '" class="card-image" />');
 
@@ -35,6 +37,8 @@ CinchApp.animator = {
             CinchApp.viewModel.unlockBoard();
         }
     },
+
+    //Animates the clearing of the board at trick's end
     boardClear: function(position, doAnimate) {
         var i = 0;
         var images = CinchApp.animator.images;
@@ -68,6 +72,8 @@ CinchApp.animator = {
             reset();
         }
     },
+
+    //Clears all card images from the board
     boardReset: function() {
         var i = 0;
         var images = CinchApp.animator.images;
