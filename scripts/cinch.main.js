@@ -4,12 +4,6 @@ var CinchApp = {
     socket: io.connect(location.protocol+'//'+location.hostname+":8088/cinch"),
     
     //Constants
-    playSurfaceWidth: 290,
-    playSurfaceHeight: 245,
-    cardImageWidth: 72,
-    cardImageHeight: 96,
-    boardClearDelay: 1300,
-    cardEdgeOffset: 5,
     numPlayers: 4,
     numTeams: 2,
     views: {

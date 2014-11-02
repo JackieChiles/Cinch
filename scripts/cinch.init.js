@@ -3,7 +3,7 @@
 CinchApp.viewModel = new CinchViewModel();
 
 $(function () {
-    if(Modernizr.canvas && Modernizr.canvastext && Modernizr.websockets) {
+    if(Modernizr.websockets) {
         var socket = CinchApp.socket;
 
         //Add warning when navigating away from game
@@ -33,9 +33,6 @@ $(function () {
                $('#enter-lobby-btn').click();
             }
         });
-
-        //Set the width and height of the play surface canvas
-        $('#play-surface').attr('width', CinchApp.playSurfaceWidth).attr('height', CinchApp.playSurfaceHeight);
 
         //Focus on username entry field
         $('#username-input').focus();

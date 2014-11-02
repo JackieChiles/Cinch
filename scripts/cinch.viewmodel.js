@@ -114,8 +114,6 @@ function CinchViewModel() {
             return new Card(cardCode);
         });
     });
-    self.cardImagesInPlay = [];
-    self.animationQueue = [];
     self.isBoardLocked = ko.observable(false);
     self.teamNames = ko.computed(function() {
         var names = [];
@@ -234,12 +232,7 @@ function CinchViewModel() {
             }
 
             //Clear board
-            self.cardImagesInPlay = [];
-            try {
-                context.clearRect(0, 0, CinchApp.playSurfaceWidth, CinchApp.playSurfaceHeight);
-            } catch (err) {
-                ;
-            }
+            //TODO: call new animation board clearing
 
             self.activeView(CinchApp.views.lobby);
         }
@@ -301,8 +294,6 @@ function CinchViewModel() {
     self.playCard = function(cardNum, playerNum) {
         var cardToPlay = new Card(cardNum);
         var cardsInPlayerHand;
-        
-        cardToPlay.play(playerNum);
 
         if(playerNum === CinchApp.players.south) { //Client player
             self.encodedCards.remove(cardNum);
@@ -311,6 +302,8 @@ function CinchViewModel() {
             cardsInPlayerHand = self.players()[playerNum].numCardsInHand;
             cardsInPlayerHand(cardsInPlayerHand() - 1);
         }
+        
+        cardToPlay.play(playerNum);
     };
 
     self.handEndContinue = function() {
@@ -543,7 +536,7 @@ function CinchViewModel() {
             });
 
             //Next show the card being played
-            app.isNullOrUndefined(msg.actor) || addSocketAction('play (actor)', msg, function(msg) {
+            app.isNullOrUndefined(msg.actor) || addSocketAction('play (playC)', msg, function(msg) {
                 self.playCard(msg.playC, CinchApp.serverToClientPNum(msg.actor));
             });
             
@@ -554,7 +547,7 @@ function CinchViewModel() {
 
             //After animations execute, handle other items
             //Includes game mode, which triggers showing of hand-end screen so it must be after animations
-            addSocketActionDefaultUnlock('play (trp, dlr)', msg, function(msg) {
+            addSocketActionDefaultUnlock('play (sco, mp, gp, win, mode, msg, actvP)', msg, function(msg) {
                 msg.sco                             && self.gameScores(msg.sco);
                 msg.mp                              && self.matchPoints(msg.mp);
                 msg.gp                              && self.gamePoints(msg.gp);
@@ -602,8 +595,8 @@ function CinchViewModel() {
 
         //Wait a bit so the ending play can be seen
         setTimeout(function () {
-            finishClearingBoard();
-        }, CinchApp.boardClearDelay);
+            CinchApp.animator.boardClear(self.trickWinner());
+        }, CinchApp.animator.boardClearDelay);
     };
 
     //Print a message to the chat window to announce the arrival of a user
