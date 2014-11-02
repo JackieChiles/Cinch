@@ -1,44 +1,31 @@
 #!/usr/bin/python2
-"""Web server component for Cinch.
 
-Classes:
+"""SocketIO server for Cinch.
 
-Room -- Container for users and a Cinch game
-GameNamespace -- Socket.io namespace for all comms
-Server -- Manager for Socket.io connections
+This handles all game communications via a socketio interface. Both web clients
+and local entities (AIs, command console) connect through this interface. The
+server sends and receives socketio events and routes traffic to game rooms
+and clients as needed.
 
-Methods:
+This does not serve static files like web pages and JS files. Cinch must be
+hosted with a traditional web server (e.g. Apache).
 
-runServer -- starts Socket.io server
+Attributes:
+  log (Logger): Log interface common to all Cinch modules.
+  LOBBY (int): Room number for Lobby.
+  MAX_ROOM_SIZE (int): Maximum number of players allowed in a room, not
+    including the Lobby.
 
-(Room)
-isFull
-getAvailableSeats
-startGame
-getSeatingChart
+Public classes:
+  Room: Organizes groups of clients with their corresponding Game object.
+  GameNamespace: SocketIO namespace used by server.
+  Server: Manager for SocketIO connections.
 
-(GameNamespace)
-recv_connect
-recv_disconnect
-on_test
-on_chat
-on_room_list
-on_createRoom
-on_exit
-on_join
-on_aiList
-on_aiListData
-on_summonAI
-on_bid
-on_play
-emit_to_room
-emit_to_room_not_me
-emit_to_target_room
-getUsernamesInRoom
-
-Implements a Socket.io server and handles all client-server message routing.
+Public methods:
+  runServer: Starts SocketIO server. Blocks main thread.
 
 """
+
 # Applies gevent magic to standard sockets
 from gevent import monkey
 monkey.patch_all()
@@ -48,7 +35,6 @@ from socketio import socketio_manage
 from socketio.server import SocketIOServer
 from socketio.namespace import BaseNamespace
 from socketio.mixins import BroadcastMixin
-
 
 from threading import Timer
 
@@ -65,8 +51,13 @@ MAX_ROOM_SIZE = NUM_PLAYERS
 
 
 class Room(object):
+    """Container class for a game and users.
 
-    """Container class for a game and users, in which a game will appear.
+    To improve data management, a Room does not directly reference players.
+    Instead, each player (socket connection) keeps their room number in their
+    session and the Room object is located on-demand. This normalizes the data
+    relationship and keeps the Room from maintaining an internal player list
+    that could get out of sync with reality.
 
     Attributes:
       server (Server): Pointer to active server object.
@@ -76,7 +67,6 @@ class Room(object):
       started (boolean): If a game has been started in this room.
 
     """
-
     server = None
 
     def __init__(self, roomNum):
@@ -207,14 +197,11 @@ class Room(object):
 
 
 class GameNamespace(BaseNamespace, BroadcastMixin):
-
     """Namespace for all Cinch client-server communications using Socket.io."""
-
     def __init__(self, *args, **kwargs):
-
         """Initialize connection for a client to this namespace."""
-
         super(GameNamespace, self).__init__(*args, **kwargs)
+
         self.session['roomNum'] = None
         self.session['nickname'] = 'NewUser'
         self.session['seat'] = None
@@ -238,7 +225,7 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         self.disconnect(silent=True)
 
     def on_test(self, *args):
-        # Dummy command to get the console __init__ to fire.
+        """Dummy command to get the console __init__ to fire."""
         log.info('Console connected.')
         return 'ok'
 
@@ -450,10 +437,6 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
 
         self.moveToRoom(roomNum=LOBBY, seat=0)
 
-        return
-        # FUTURE do stuff for game-in-progress -- maybe allow player to replace
-        # one who left
-
     def on_room_list(self):
         """Transmit list of available rooms and their occupants.
 
@@ -467,6 +450,8 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
                     for x in self.request['rooms'] if x.num != LOBBY]
 
         # Not using callback as to support recv_connect
+        # TODO: have all clients send a connection message when they start
+        # instead of relying on recv_connect.
         self.emit('rooms', roomList)
 
     def on_chat(self, message):
@@ -489,17 +474,15 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         """Create new room and announce new room's existence to clients.
 
         Args:
-          args (dict): {seat: ai_model_id, seat2: ...}
+          args (dict, optional): {seat: ai_model_id, seat2: ...}
 
         """
         # 'rooms' is list of Room objects
         roomNum = self.request['curMaxRoomNum'] + 1
-        newRoom = Room(roomNum)
         self.request['curMaxRoomNum'] += 1
+        newRoom = Room(roomNum)
+        self.request['rooms'].append(newRoom)  # store new room in Server
 
-        self.request['rooms'].append(newRoom)     # store new room in Server
-
-        # Goes to all clients in Lobby
         self.emit_to_target_room(
             LOBBY, 'newRoom', {'name': str(newRoom), 'num': roomNum,
                                'started': False, 'isFull': newRoom.isFull(),
@@ -514,10 +497,6 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
             pass  # No args given
 
         return roomNum  # Tells user to join room
-
-        # FUTURE add way to system to add AIs after creating room; useful for
-        # filling a room that won't fill. Would be separate command from
-        # createRoom.
 
     def on_nickname(self, name):
         """Set nickname for user.
@@ -536,7 +515,6 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
             self.emit('err', 'You cannot change names while in a game')
             return None
         else:
-            # set nickname for user
             self.session['nickname'] = name
             return name
 
@@ -601,7 +579,12 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
     # --------------------
 
     def on_bid(self, bid):
-        """Pass bid to game."""
+        """Relay bid to game.
+
+        Args:
+          bid (str): Bid amount. Must be a number.
+
+        """
         g = self.getRoomByNumber(self.session['roomNum']).game
 
         if 'seat' in self.session:
@@ -614,17 +597,22 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
             return
 
         res = g.handle_bid(pNum, int(bid))
+        # False on bad bid, None for inactive player
 
         if res is False:
             self.emit('err', 'Bad bid')
-            # False on bad bid, None for inactive player
         elif res is None:
             self.emit('err', "It's not your turn")
         else:
             self.emit_to_room('bid', res)
 
     def on_play(self, play):
-        """Pass play to game."""
+        """Relay play to game.
+
+        Args:
+          play (str): Bid amount. Must be a number.
+
+        """
         g = self.getRoomByNumber(self.session['roomNum']).game
 
         if 'seat' in self.session:
@@ -662,7 +650,15 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
     # --------------------
 
     def on_game_log(self, gameId):
-        """Retrieve parsed game log for game with id=gameId."""
+        """Return parsed game log for game with id=gameId.
+
+        Args:
+          gameId (int): ID of target game.
+
+        Returns:
+          dict: Prepared game log data.
+
+        """
         gameData = db(db.Games.id == gameId).select().first()
         events = db(db.Events.game_id == gameId).select()
         return parseLog.prepare(gameData, events)
@@ -670,11 +666,11 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
     def on_log_list(self):
         """Retrieve list of available game logs.
 
-        Each list item is a dict with keys (name, id).
+        Returns:
+          list: Each list item is a dict with keys (name, id).
 
         """
-        logs = db(db.Games.id > 0).select().as_list()
-        return logs
+        return db(db.Games.id > 0).select().as_list()
 
     # --------------------
     # Helper methods
@@ -764,12 +760,13 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
 
 
 class Server(object):
+    """Manages namespaces and connections while holding server-global info.
 
-    """Manages namespaces and connections while holding server-global info."""
+    Attributes:
+      request (dict): Maintains data global to all server connections.
 
-    # Server-global dict object available to every connection
-    request = {'rooms': [], 'curMaxRoomNum': LOBBY,
-               'aiInfo': dict()}
+    """
+    request = {'rooms': [], 'curMaxRoomNum': LOBBY, 'aiInfo': dict()}
 
     def __call__(self, environ, start_response):
         """Delegate incoming message to appropriate namespace."""
@@ -784,7 +781,13 @@ class Server(object):
 
 
 def runServer():
-    """Start socketio server on ports specified below."""
+    """Start socketio server.
+
+    The Lobby is created during this method.
+
+    The call to serve_forever() blocks the main thread.
+
+    """
     log.info('Listening on port {0} for socketIO'.format(SOCKETIO_PORT))
 
     try:
