@@ -7,6 +7,7 @@ function Game(gameMsg) {
     self.name = gameMsg.name;
     self.number = gameMsg.num;
     self.isFull = ko.observable(gameMsg.isFull);
+    self.started = ko.observable(gameMsg.started);
     self.seatChart = ko.observableArray(gameMsg.seatChart);
     self.seats = ko.computed(function() {
         var seats = {};

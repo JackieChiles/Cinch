@@ -506,6 +506,14 @@ function CinchViewModel() {
         }
     });
 
+    addSocketHandler('gameStarted', function(roomNum) {
+        ko.utils.arrayForEach(self.games(), function(item) {
+            if (item.number == roomNum) {
+                item.started(true);
+            }
+        });
+    });
+
         // Game message handlers
         addSocketHandler('startData', function(msg) {
             var app = CinchApp;
@@ -514,7 +522,37 @@ function CinchViewModel() {
             app.isNullOrUndefined(msg.mode)     || self.gameMode(msg.mode);
             self.handleAddCards(msg);
             app.isNullOrUndefined(msg.actvP)    || self.activePlayerNumServer(msg.actvP);
+
+            // 'startData' is also used for joining a game in progress
+            app.isNullOrUndefined(msg.resumeData) || self.handleResumeData(msg.resumeData);
         });
+
+        self.handleResumeData = function(data) {
+            // Position cards in play
+            var i;
+
+            ko.utils.arrayForEach(self.players(), function(p) {
+                p.numCardsInHand(data.handSizes[p.number]);
+            });
+
+            for (i = 0; i < data.cip.length; i++) {
+                self.playCard(data.cip[i][0],
+                              CinchApp.serverToClientPNum(data.cip[i][1]));
+                // Compensate for playCard() reducing the displayed hand size
+                self.players()[data.cip[i][1]].numCardsInHand(
+                    self.players()[data.cip[i][1]].numCardsInHand() + 1);
+            }
+            self.trump(data.trp);
+            self.gameScores(data.sco);
+
+            // Inform player about bid status; the server does not record bid
+            // history, so all the bid fields cannot be updated. Future mods to
+            // how bid data is communicated may fix this.
+            self.chats.push(new VisibleMessage(
+                ['The most recent high bid is', data.highBid, 'made by',
+                 self.players()[data.declarer].name()].join(' '), 'System'));
+            self.players()[data.declarer].currentBidValue(data.highBid);
+        };
 
         addSocketHandler('bid', function(msg) {
             var app = CinchApp;

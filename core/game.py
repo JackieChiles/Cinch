@@ -426,3 +426,28 @@ class Game:
         self.gs.trump = None
 
         return self.publish('sog', None, None)
+
+    def join_game_in_progress(self, pNum, name):
+        """Facilitate a player joining a game in progress.
+
+        pNum (int): The target player number.
+        name (str): The player's nickname.
+        """
+        self.players[pNum].name = name
+
+        message = dict(
+            actvP=self.gs.active_player,
+            actor=None,
+            addC=[card.code for card in self.players[pNum].hand],
+            dlr=self.gs.dealer,
+            mode=self.gs.game_mode,
+            tgt=pNum,
+            resumeData=dict(
+                handSizes=[len(x.hand) for x in self.players],
+                trp=self.gs.trump,
+                sco=self.gs.scores,
+                highBid=self.gs.high_bid,
+                declarer=self.gs.declarer,
+                cip=[(c.code, c.owner) for c in self.gs.cards_in_play])
+            )
+        return message

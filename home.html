@@ -62,6 +62,9 @@
                         <ul data-bind="foreach: playerNames">
                             <li data-bind="text: $data"></li>
                         </ul>
+                        <!-- ko if: started -->
+                        <p>Game is in progress.</p>
+                        <!-- /ko -->
                     </div>
                 <!--/ko-->
             </div>
