@@ -2,40 +2,81 @@
 
 CinchApp.animator = {
     positions: [{}, {}, {}, {}],
+    images: [],
     cardEdgeOffset: 10,    
     boardClearDelay: 1300,
     playSurfaceWidth: 290,
     playSurfaceHeight: 245,
     cardImageWidth: 72,
     cardImageHeight: 96,
-    play: function(imagePath, position) {
-        $('<img src="' + imagePath + '" class="card-image" />')
+    play: function(imagePath, position, doAnimate) {
+        var $img = $('<img src="' + imagePath + '" class="card-image" />');
+
+        if(doAnimate) {
+            CinchApp.animator.images[position] = $img
             .css({
                 left: CinchApp.animator.positions[position].startX,
-                top: CinchApp.animator.positions[position].startY      
+                top: CinchApp.animator.positions[position].startY
             })
             .appendTo('#play-surface')
             .animate({
                 left: CinchApp.animator.positions[position].endX,
                 top: CinchApp.animator.positions[position].endY
             }, CinchApp.viewModel.unlockBoard);
-    },
-    boardClear: function(position) {
-        var $cardsInPlay = $('#play-surface img');
+        }
+        else {
+            CinchApp.animator.images[position] = $img
+            .appendTo('#play-surface')
+            .css({
+                left: CinchApp.animator.positions[position].endX,
+                top: CinchApp.animator.positions[position].endY
+            });
 
-        $.when($cardsInPlay.animate({
-            left: CinchApp.animator.positions[position].endX,
-            top: CinchApp.animator.positions[position].endY
-        }))
-        .then(function() {
+            CinchApp.viewModel.unlockBoard();
+        }
+    },
+    boardClear: function(position, doAnimate) {
+        var i = 0;
+        var images = CinchApp.animator.images;
+        var reset = function() {
             setTimeout(function() {
-                CinchApp.animator.boardReset($cardsInPlay);
+                CinchApp.animator.boardReset();
                 CinchApp.viewModel.unlockBoard();
             }, 500);
-        });
+        };
+
+        //Always put the winning card on top
+        images[position].css('z-index', 50);
+
+        if(doAnimate) {
+            for (i = 0; i < images.length; i++) {
+                $.when(images[i].animate({
+                    left: CinchApp.animator.positions[position].endX,
+                    top: CinchApp.animator.positions[position].endY
+                }))
+                .then(i === images.length -1 ? reset : function() {});
+            }
+        }
+        else {
+            for (i = 0; i < images.length; i++) {
+                images[i].css({
+                    left: CinchApp.animator.positions[position].endX,
+                    top: CinchApp.animator.positions[position].endY
+                });
+            }
+
+            reset();
+        }
     },
-    boardReset: function($images) {
-        ($images || $('#play-surface img')).remove();
+    boardReset: function() {
+        var i = 0;
+        var images = CinchApp.animator.images;
+        
+        for (i = 0; i < images.length; i++) {
+            images[i] && CinchApp.animator.images[i].remove();
+        }
+
+        CinchApp.animator.images.length = 0;
     }
 };
 

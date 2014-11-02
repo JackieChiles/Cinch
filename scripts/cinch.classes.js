@@ -96,7 +96,7 @@ function Card(encodedCard) {
     self.imagePath = CinchApp.cardImageDir + self.decoded + CinchApp.cardImageExtension;
     
     self.play = function(player) {
-        CinchApp.animator.play(self.imagePath, player);
+        CinchApp.animator.play(self.imagePath, player, CinchApp.viewModel.enableAnimation());
     };
     
     self.submit = function() {

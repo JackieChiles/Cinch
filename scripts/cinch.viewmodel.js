@@ -114,6 +114,7 @@ function CinchViewModel() {
             return new Card(cardCode);
         });
     });
+    self.enableAnimation = ko.observable(true);
     self.isBoardLocked = ko.observable(false);
     self.teamNames = ko.computed(function() {
         var names = [];
@@ -595,7 +596,7 @@ function CinchViewModel() {
 
         //Wait a bit so the ending play can be seen
         setTimeout(function () {
-            CinchApp.animator.boardClear(self.trickWinner());
+            CinchApp.animator.boardClear(self.trickWinner(), self.enableAnimation());
         }, CinchApp.animator.boardClearDelay);
     };
 

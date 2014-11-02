@@ -92,6 +92,10 @@ button {
     white-space: nowrap;
 }
 
+.value-white-bg.top-setting {
+    vertical-align: middle;
+}
+
 .chat-pane {
     width: 300px;
 }
@@ -436,6 +440,7 @@ input.username {
     position: absolute;
     height: 96px;
     width: 72px;
+    z-index: 1;
 }
 
 /* Special message styles */
