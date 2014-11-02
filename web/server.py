@@ -106,6 +106,18 @@ class Room(object):
         return [x for x in self.server.sockets.values()
                 if 'roomNum' in x.session and x.session['roomNum'] == self.num]
 
+    def getUsernamesInRoom(self):
+        """Return list of all users' nicknames in this room.
+
+        This method ensures the names are in seat order. If we implement
+        username listing for the lobby, this will have to be modified.
+
+        """
+        names = [''] * NUM_PLAYERS
+        for sock in self.getUsers():
+            names[sock.session['seat']] = sock.session['nickname']
+        return names
+
     def isFull(self):
         """Check if the room is full and return a boolean.
 
@@ -179,8 +191,7 @@ class Room(object):
         sock[SOCKETIO_NS].emit_to_room('seatChart', self.getSeatingChart())
 
         self.game = Game()
-        initData = self.game.start_game(
-            sock[SOCKETIO_NS].getUsernamesInRoom(self))
+        initData = self.game.start_game(self.getUsernamesInRoom())
 
         # Send initial game data to players
         log.debug("Sending initial game data in room %s", self.num)
@@ -750,19 +761,6 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         except IndexError:
             log.warning(str(roomNum) + ' is not a valid room number.')
             return None
-
-    def getUsernamesInRoom(self, room):
-        """Return list of all users' nicknames in a given room
-
-        Args:
-          room (Room): Target Room object.
-
-        """
-        names = []
-        for sock in room.getUsers():
-            names.append(sock.session['nickname'])
-
-        return names
 
 
 class Server(object):

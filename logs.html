@@ -106,11 +106,18 @@
           <!-- /ko -->
         </table>
 
+        <!-- ko if: gameData().winner == 0.5 -->
+        <h3 class="centered">The game ended in a draw, likely due to a time limit
+          being reached.</h3>
+        <!-- /ko -->
+
+        <!-- ko ifnot: gameData().winner == 0.5 -->
         <h3 class="centered">Team <span data-bind="text: String.fromCharCode(65+gameData().winner)"></span>
           wins after <span data-bind="text: hands().length"></span> hands with a final
           score of <span data-bind="text: gameData().finalScores[gameData().winner]"></span> &mdash;
           <span data-bind="text: gameData().finalScores[gameData().winner ? 0 : 1]"></span>.
         </h3>
+        <!-- /ko -->
 
         <!-- ko if: gameData().finalScores[gameData().winner] <=  gameData().finalScores[gameData().winner ? 0 : 1] -->
         <p class="centered">* "If both teams reach 11 points during the same hand, the bidding team wins, 
