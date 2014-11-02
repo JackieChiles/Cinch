@@ -512,6 +512,14 @@ function CinchViewModel() {
         }
     });
 
+    addSocketHandler('gameStarted', function(roomNum) {
+        ko.utils.arrayForEach(self.games(), function(item) {
+            if (item.number == roomNum) {
+                item.started(true);
+            }
+        });
+    });
+
         // Game message handlers
         addSocketHandler('startData', function(msg) {
             var app = CinchApp;
@@ -520,6 +528,10 @@ function CinchViewModel() {
             app.isNullOrUndefined(msg.mode)     || self.gameMode(msg.mode);
             self.handleAddCards(msg);
             app.isNullOrUndefined(msg.actvP)    || self.activePlayerNumServer(msg.actvP);
+
+            app.isNullOrUndefined(msg.handSizes) || function(sizes) {
+                console.log("handsizes todo", sizes);
+            }(msg.handSizes);
         });
 
         addSocketHandler('bid', function(msg) {

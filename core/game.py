@@ -426,3 +426,24 @@ class Game:
         self.gs.trump = None
 
         return self.publish('sog', None, None)
+
+    def join_game_in_progress(self, pNum, name):
+        """Facilitate a player joining a game in progress.
+
+        pNum (int): The target player number.
+        name (str): The player's nickname.
+        """
+        # TODO: May want to log this occurrance to the database. A change
+        # of nickname doesn't currently fall under the things we log, though,
+        # and incorporating the change into game log playback would be hard.
+        self.players[pNum].name = name
+
+        message = dict(
+            actvP=self.gs.active_player,
+            actor=None,
+            addC=[card.code for card in self.players[pNum].hand],
+            dlr=self.gs.dealer,
+            mode=self.gs.game_mode,
+            tgt=pNum,
+            handSizes=[len(x.hand) for x in self.players])
+        return message

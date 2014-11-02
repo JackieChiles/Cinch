@@ -184,6 +184,7 @@ class Room(object):
 
         # Send initial game data to players
         log.debug("Sending initial game data in room %s", self.num)
+        sock[SOCKETIO_NS].emit_to_target_room(LOBBY, 'gameStarted', self.num)
 
         target_sock_map = {s.session['seat']: s[SOCKETIO_NS]
                            for s in users}
@@ -354,7 +355,7 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
                 self.emit('err', repr(e))
                 return
 
-            # If the room is now full, begin the game.
+            # If the room is now full, begin or resume the game.
             if room.isFull():
                 self.emit_to_room('roomFull', roomNum)
                 self.emit_to_target_room(LOBBY, 'roomFull', roomNum)
@@ -362,13 +363,27 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
                 # Without this Timer, the last person to join will receive
                 # start data before room data and will not have confirmed
                 # their seat/pNum.
-                t = Timer(0.5, room.startGame)
+                if room.started:
+                    t = Timer(0.5, self.joinInProgress,
+                              [room, seatNum, self.session['nickname']])
+                else:
+                    t = Timer(0.5, room.startGame)
+
                 t.start()
 
             log.debug('%s joined room %s.', self.session['nickname'], roomNum)
 
             return dict(roomNum=roomNum, seatChart=room.getSeatingChart(),
                         mySeat=seatNum)
+
+    def joinInProgress(self, room, seatNum, nickname):
+        """Facilitate a player joining a game in progress."""
+        if not room.started:
+            log.error("joinInProgress fired for a game not yet started")
+            return
+
+        initData = room.game.join_game_in_progress(seatNum, nickname)
+        self.emit('startData', initData)
 
     def on_exit(self):
         """Handle socket request to leave current room.
@@ -437,7 +452,7 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
 
         """
         roomList = [{'name': str(x), 'num': x.num, 'isFull': x.isFull(),
-                     'seatChart': x.getSeatingChart()}
+                     'started': x.started, 'seatChart': x.getSeatingChart()}
                     for x in self.request['rooms'] if x.num != LOBBY]
 
         # Not using callback as to support recv_connect
@@ -476,7 +491,8 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         # Goes to all clients in Lobby
         self.emit_to_target_room(
             LOBBY, 'newRoom', {'name': str(newRoom), 'num': roomNum,
-                               'isFull': newRoom.isFull(), 'seatChart': []})
+                               'started': False, 'isFull': newRoom.isFull(),
+                               'seatChart': []})
 
         # Summon AI players
         try:
