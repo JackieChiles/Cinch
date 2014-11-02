@@ -1,37 +1,65 @@
+table {
+    border-collapse: collapse;
+    color: #000;
+    background-color: #ccc;
+    text-align: center;
+    vertical-align: middle;
+    margin-left: 20px;
+    font-size: 18px;
+    font-family: Arial;
+}
 #playersTbl {
+    border: none;
     border-collapse: collapse;
     text-align: center;
 }
-td {
+td, th {
     padding: 6px;
+    border: 1px solid #aaa;
 }
-.teamAtd {
+.team0td {
     background-color: #e00;
 }
-.teamBtd {
+.team1td {
     background-color: #00e;
 }
 
 .bold {
     font-weight: bold;
 }
-
-
-.hand {
-    border: 1px solid #aaa;
-    -webkit-border-radius: 15px;
-    -moz-border-radius: 15px;
-    -ms-border-radius: 15px;
-    -o-border-radius: 15px;
-    border-radius: 15px;
-    -webkit-box-shadow: rgba(0, 0, 0, 0.2) 2px 2px 2px;
-    -moz-box-shadow: rgba(0, 0, 0, 0.2) 2px 2px 2px;
-    box-shadow: rgba(0, 0, 0, 0.2) 3px 3px 8px;
-}
-.handTable {
-
+.centered {
+    text-align: center;
 }
 
 .winner {
     background-color: green;
+}
+.trumpTag {
+    border: 1px solid #aaa;
+    background-color: #ccc;
+    color: #000;
+    margin-left: 20px;
+    margin-right: 12pt;
+    border-radius: 18pt;
+    padding: 5px;
+    font-size: larger;
+}
+.redSuit {
+    color: #cb0000;
+    font-size: 18pt;
+}
+.blackSuit {
+    color: #000000;
+    font-size: 18pt;
+}
+
+.checkMark:before {
+    content: "✓";
+    font-size: 18pt;
+    color: green;
+}
+
+sup {
+    font-weight: bold;
+    margin-right: -11pt;
 }

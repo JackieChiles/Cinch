@@ -7,7 +7,7 @@ CinchLogApp.views = {
 };
 
 
-//View model (Knockout.js)
+//View model
 function CinchLogViewModel() {
     var self = this;
 
@@ -46,11 +46,26 @@ function CinchLogViewModel() {
     self.showLogList = function() {
 	self.activeView(CinchLogApp.views.home);
     };
+
     self.showGameLog = function(id) {
 	self.getGameLog(id);
 	console.log('fetching game log for ', id);
 	self.activeView(CinchLogApp.views.game);
     }
+
+    self.cardMap = {};
+    self.ranks = ['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A'];
+    self.suits = ['<span class="blackSuit">♣</span>', '<span class="redSuit">♦</span>', '<span class="redSuit">♥</span>', '<span class="blackSuit">♠</span>'];
+
+    self.buildCardMap = function() {
+        var i, suitIndex, decoded;
+
+        for (i = 1; i <= 52; i++) {
+            suitIndex = Math.floor((i - 1) / self.ranks.length);
+            decoded = self.ranks[i - suitIndex * self.ranks.length - 1] + self.suits[suitIndex];
+            self.cardMap[i] = decoded;
+        }
+    };
 
     //Subscriptions
 
@@ -101,6 +116,7 @@ $(function () {
         //Apply Knockout bindings
         ko.applyBindings(CinchApp.viewModel);
 
+        CinchLogApp.viewModel.buildCardMap();
         CinchLogApp.viewModel.getLogList();
         CinchLogApp.viewModel.activeView(CinchLogApp.views.home);
     }

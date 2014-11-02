@@ -53,49 +53,46 @@
         <div class="header">
           <h1>Log for Game #<span data-bind="text: selectedGame"></span></h1>
         </div>
-	<button data-bind="click: showLogList">Back to List</button>
-
-	<p>In the data below, the winner of a trick or bid is marked in green.
-The dealer for a bid or leader on a trick is marked with a superscript dagger (&dagger;).</p>
+	<button style="float: right;" data-bind="click: showLogList">Back to List</button>
 
         <!-- ko if: gameData -->
         <div>
+          <h3>Player Order</h3> 
           <table id="playersTbl">
             <tr>
-              <td class="teamAtd bold" colspan="3">Team A</td><td></td>
+              <td class="team0td bold" colspan="3">Team A</td><td></td>
             </tr>
             <tr>
-              <td class="teamAtd" data-bind="text: gameData().PlayerName0"></td>
-              <td class="teamBtd" data-bind="text: gameData().PlayerName1"></td>
-              <td class="teamAtd" data-bind="text: gameData().PlayerName2"></td>
-              <td class="teamBtd" data-bind="text: gameData().PlayerName3"></td>
+              <td class="team0td" data-bind="text: gameData().PlayerName0"></td>
+              <td class="team1td" data-bind="text: gameData().PlayerName1"></td>
+              <td class="team0td" data-bind="text: gameData().PlayerName2"></td>
+              <td class="team1td" data-bind="text: gameData().PlayerName3"></td>
             </tr>
             <tr>
-              <td></td><td class="teamBtd bold" colspan="3">Team B</td>
+              <td></td><td class="team1td bold" colspan="3">Team B</td>
             </tr>
           </table>
         </div>
 
-        <p>Team <span data-bind="text: String.fromCharCode(65+gameData().winner)"></span>
+        <h3 style="centered">Team <span data-bind="text: String.fromCharCode(65+gameData().winner)"></span>
           wins after <span data-bind="text: hands().length"></span> hands with a final
           score of <span data-bind="text: Math.max.apply(Math, gameData().finalScores)"></span> &mdash;
           <span data-bind="text: Math.min.apply(Math, gameData().finalScores)"></span>.
-        </p>
+        </h3>
 
         <h3>Hand Summary</h3>
         <table id="handSummary">
           <tr>
-            <th>Hand</th>
-            <th>Bid</th>
-            <th>Trump</th>
-            <th>High</th>
-            <th>Low</th>
-            <th>Jack</th>
-            <th>Game</th>
+            <th rowspan="2">Hand</th>
+            <th rowspan="2">Bid</th>
+            <th rowspan="2">Trump</th>
+            <th rowspan="2">High</th>
+            <th rowspan="2">Low</th>
+            <th rowspan="2">Jack</th>
+            <th rowspan="2">Game</th>
             <th colspan="2">Game Points</th>
           </tr>
           <tr>
-            <td colspan="7"></td>
             <th>Team A</th>
             <th>Team B</th>
           </tr>
@@ -104,7 +101,7 @@ The dealer for a bid or leader on a trick is marked with a superscript dagger (&
             <td data-bind="text: $index() + 1"></td>
             <td data-bind="text: bids.values[bids.winner] + ' (' + 
                            String.fromCharCode(65 + (bids.winner % 2)) + ')'"></td>
-            <td data-bind="text: trump"></td>
+            <td data-bind="html: $root.suits[trump]"></td>
             <td data-bind="text: String.fromCharCode(65+points.high)"></td>
             <td data-bind="text: String.fromCharCode(65+points.low)"></td>
             <td data-bind="text: String.fromCharCode(65+points.jack)"></td>
@@ -115,9 +112,19 @@ The dealer for a bid or leader on a trick is marked with a superscript dagger (&
           <!-- /ko -->
         </table>
 
+	<p>In the data below, the winner of a trick or bid is marked in green.
+          The dealer for a bid or leader on a trick is marked with a superscript 
+          dagger (&dagger;).
+        </p>
+
         <div data-bind="foreach: hands">
           <div class="hand">
-            <h3 data-bind="text: 'Hand ' + num"></h3>
+            <hr>
+
+            <h3>
+              <span class="trumpTag" data-bind="html: $root.suits[trump]"></span>
+              <span data-bind="text: 'Hand ' + num"></span>
+            </h3>
 
             <table class="handTable">
               <tr>
@@ -130,27 +137,25 @@ The dealer for a bid or leader on a trick is marked with a superscript dagger (&
               <tr>
                 <td class="bold">Bids</td>
                 <!-- ko foreach: bids.values -->
-                <td>
-                  <span data-bind="text: $data, attr: {class: $parent.bids.winner == $index() ? 'winner' : ''}"></span>
+                <td data-bind="attr: {class: $parent.bids.winner == $index() ? 'winner' : ''}">
+                  <span data-bind="text: $data"></span>
                   <sup data-bind="visible: $parent.bids.dealer == $index()">&dagger;</sup>
                 </td>
                 <!-- /ko -->
               </tr>
-              <tr><td colspan="5"><hr></td></tr>
+              <tr><td class="bold" colspan="5">Tricks</td></tr>
 
               <!-- ko foreach: tricks -->
               <tr>
                 <td data-bind="text: $index() + 1"></td>
                 <!-- ko foreach: values -->
-                <td>
-                  <span data-bind="text: $data, attr: {class: $parent.winner == $index() ? 'winner' : ''}"></span>
+                <td data-bind="attr: {class: $parent.winner == $index() ? 'winner' : ''}">
+                  <span data-bind="html: $root.cardMap[$data]"></span>
                   <sup data-bind="visible: $parent.leader == $index()">&dagger;</sup>
                 </td>
                 <!-- /ko -->
               </tr>
               <!-- /ko -->
-
-              <tr><td colspan="5"><hr></td></tr>
             </table>
 
             <h3>Points</h3>
@@ -167,10 +172,10 @@ The dealer for a bid or leader on a trick is marked with a superscript dagger (&
               <!-- ko foreach: [0, 1] -->
               <tr>
                 <td class="bold" data-bind="text: 'Team ' + String.fromCharCode(65+$index())"></td>
-                <td data-bind="text: $parent.points.high == $index() ? 'x' : ''"></td>
-                <td data-bind="text: $parent.points.low == $index() ? 'x' : ''"></td>
-                <td data-bind="text: $parent.points.jack == $index() ? 'x' : ''"></td>
-                <td data-bind="text: $parent.points.game == $index() ? 'x' : ''"></td>
+                <td data-bind="attr: {class: $parent.points.high == $index() ? 'checkMark' : ''}"></td>
+                <td data-bind="attr: {class: $parent.points.low == $index() ? 'checkMark' : ''}"></td>
+                <td data-bind="attr: {class: $parent.points.jack == $index() ? 'checkMark' : ''}"></td>
+                <td data-bind="attr: {class: $parent.points.game == $index() ? 'checkMark' : ''}"></td>
                 <td data-bind="text: $parent.gamePoints[$index()]"></td>
                 <td data-bind="text: $parent.totalPoints[$index()]"></td>
               </tr>
