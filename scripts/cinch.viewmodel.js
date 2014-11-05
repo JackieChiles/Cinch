@@ -729,8 +729,8 @@ function CinchViewModel() {
         }
     });
     self.winner.subscribe(function(newValue) {
-	if (typeof newValue !== 'undefined') {
+        if (typeof newValue !== 'undefined') {
             self.activeView(CinchApp.views.handEnd);
-	}
+        }
     });
 }
