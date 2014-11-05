@@ -733,4 +733,33 @@ function CinchViewModel() {
             self.activeView(CinchApp.views.handEnd);
         }
     });
+
+    //Set up keyboard shortcuts
+    $(document).keypress(function(event) {
+        var i = 0;
+        var minPlayCode = 49;
+        var minBidCode = 48;
+        var maxPlayCode = 57;
+        var maxBidCode = 53;
+        var code = event.which;
+
+        console.log('Document keypress: ', event.which);
+
+        //Only handle shortcuts in game view and if active element isn't input or textarea
+        if(!$(event.target).is('input, textarea') && self.activeView() === CinchApp.views.game) {
+            //Look for number keys 1-9 (event codes 49-57) for play or 0-5 for bid
+            if (code >= minPlayCode && code <= maxPlayCode && self.gameMode() == CinchApp.gameModes.play) {
+                var card = self.cardsInHand()[code - minPlayCode];
+
+                event.preventDefault();
+                card && card.submit();
+            }
+            else if (code >= minBidCode && code <= maxBidCode && self.gameMode() == CinchApp.gameModes.bid) {
+                var bid = self.possibleBids[code - minBidCode];
+
+                event.preventDefault();
+                bid && bid.isValid() && bid.submit();
+            }
+        }
+    });
 }
