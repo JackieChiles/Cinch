@@ -114,7 +114,21 @@ function CinchViewModel() {
             return new Card(cardCode);
         });
     });
-    self.enableAnimation = ko.observable(true);
+
+    //Retrieve animation and keyboard shortcut settings from local storage
+    (function() {
+        if (localStorage) {
+            var enableAnimation = localStorage.getItem(CinchApp.localStorageKeys.enableAnimation);
+            var enableKeyboardShortcuts = localStorage.getItem(CinchApp.localStorageKeys.enableKeyboardShortcuts);
+
+            //Default of true
+            self.enableAnimation = ko.observable(enableAnimation ? enableAnimation === 'true' : true);
+
+            //Default of false
+            self.enableKeyboardShortcuts = ko.observable(enableKeyboardShortcuts ? enableKeyboardShortcuts === 'true' : false);
+        }
+    })();
+
     self.isBoardLocked = ko.observable(false);
     self.teamNames = ko.computed(function() {
         var names = [];
@@ -733,32 +747,39 @@ function CinchViewModel() {
             self.activeView(CinchApp.views.handEnd);
         }
     });
+    self.enableAnimation.subscribe(function(newValue) {
+        localStorage && localStorage.setItem(CinchApp.localStorageKeys.enableAnimation, newValue);
+    });
+    self.enableKeyboardShortcuts.subscribe(function(newValue) {
+        localStorage && localStorage.setItem(CinchApp.localStorageKeys.enableKeyboardShortcuts, newValue);
+        $('input').blur();
+    });
 
     //Set up keyboard shortcuts
     $(document).keypress(function(event) {
-        var i = 0;
-        var minPlayCode = 49;
-        var minBidCode = 48;
-        var maxPlayCode = 57;
-        var maxBidCode = 53;
-        var code = event.which;
+        if (self.enableKeyboardShortcuts()) {
+            var i = 0;
+            var minPlayCode = 49;
+            var minBidCode = 48;
+            var maxPlayCode = 57;
+            var maxBidCode = 53;
+            var code = event.which;
 
-        //Only handle shortcuts in game view and if active element isn't input or textarea
-        if(!$(event.target).is('input, textarea') && self.activeView() === CinchApp.views.game) {
-            console.log('Document keypress: ', event.which);
+            //Only handle shortcuts in game view and if active element isn't input or textarea
+            if(!$(event.target).is('input, textarea') && self.activeView() === CinchApp.views.game) {
+                //Look for number keys 1-9 (event codes 49-57) for play or 0-5 for bid
+                if (code >= minPlayCode && code <= maxPlayCode && self.gameMode() == CinchApp.gameModes.play) {
+                    var card = self.cardsInHand()[code - minPlayCode];
 
-            //Look for number keys 1-9 (event codes 49-57) for play or 0-5 for bid
-            if (code >= minPlayCode && code <= maxPlayCode && self.gameMode() == CinchApp.gameModes.play) {
-                var card = self.cardsInHand()[code - minPlayCode];
+                    event.preventDefault();
+                    card && card.submit();
+                }
+                else if (code >= minBidCode && code <= maxBidCode && self.gameMode() == CinchApp.gameModes.bid) {
+                    var bid = self.possibleBids[code - minBidCode];
 
-                event.preventDefault();
-                card && card.submit();
-            }
-            else if (code >= minBidCode && code <= maxBidCode && self.gameMode() == CinchApp.gameModes.bid) {
-                var bid = self.possibleBids[code - minBidCode];
-
-                event.preventDefault();
-                bid && bid.isValid() && bid.submit();
+                    event.preventDefault();
+                    bid && bid.isValid() && bid.submit();
+                }
             }
         }
     });

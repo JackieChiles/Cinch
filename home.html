@@ -228,6 +228,10 @@
                     <label for="enable-animation-checkbox">Enable animation: </label>
                     <input data-bind="checked: enableAnimation" type="checkbox" name="enable-animation-checkbox" />
                 </div>
+                <div class="value-white-bg top-setting">
+                    <label for="enable-keyboard-shortcuts-checkbox">Enable keyboard shortcuts: </label>
+                    <input data-bind="checked: enableKeyboardShortcuts" type="checkbox" name="enable-keyboard-shortcuts-checkbox" />
+                </div>
             </div>
             <div class="header">
                 <div class="col4">
@@ -337,11 +341,14 @@
                             css: { 'active-border' : $root.players()[CinchApp.players.south].currentBidValue() == value }">
                         </button>
                     </span>
+                    <span data-bind="visible: enableKeyboardShortcuts">Bid key shortcuts: 0-5</span>
                 </div>
                 <div data-bind="foreach: cardsInHand">
                     <div class="tile-button">
                         <div data-bind="visible: !($root.isActivePlayer() && $root.gameMode() == CinchApp.gameModes.play)" class="card-disabler"></div>
                         <img data-bind="attr: { src: imagePath}, click: submit" />
+                        <br />
+                        <kbd data-bind="visible: $root.enableKeyboardShortcuts, text: $index() + 1, attr: { title: 'Keyboard shortcut: ' + ($index() + 1) }"><kbd>
                     </div>
                 </div>
             </div><!-- /game page -->
