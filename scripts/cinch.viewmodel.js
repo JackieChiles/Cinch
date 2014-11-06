@@ -743,10 +743,10 @@ function CinchViewModel() {
         var maxBidCode = 53;
         var code = event.which;
 
-        console.log('Document keypress: ', event.which);
-
         //Only handle shortcuts in game view and if active element isn't input or textarea
         if(!$(event.target).is('input, textarea') && self.activeView() === CinchApp.views.game) {
+            console.log('Document keypress: ', event.which);
+
             //Look for number keys 1-9 (event codes 49-57) for play or 0-5 for bid
             if (code >= minPlayCode && code <= maxPlayCode && self.gameMode() == CinchApp.gameModes.play) {
                 var card = self.cardsInHand()[code - minPlayCode];
