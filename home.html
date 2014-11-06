@@ -331,17 +331,19 @@
             </div>
             <div data-bind="css: { 'active-border' : isActivePlayer() }" id="game-controls" class="ab-left ab-top ">
                 <div>
-                    Your bid:
+                    <span data-bind="visible: $root.gameMode() == CinchApp.gameModes.bid">Select a bid:</span>
+                    <span data-bind="visible: $root.gameMode() == CinchApp.gameModes.play">Your bid was:</span>
                     <span data-bind="foreach: possibleBids">
                         <button data-bind="
                             value: value,
                             text: name,
                             click: submit,
+                            visible: $root.gameMode() == CinchApp.gameModes.bid || $root.players()[CinchApp.players.south].currentBidValue() == value,
                             enable: isValid() && $root.gameMode() == CinchApp.gameModes.bid,
                             css: { 'active-border' : $root.players()[CinchApp.players.south].currentBidValue() == value }">
                         </button>
                     </span>
-                    <span data-bind="visible: enableKeyboardShortcuts">Bid key shortcuts: 0-5</span>
+                    <span data-bind="visible: enableKeyboardShortcuts() && gameMode() == CinchApp.gameModes.bid">Bid key shortcuts: 0-5</span>
                 </div>
                 <div data-bind="foreach: cardsInHand">
                     <div class="tile-button">
