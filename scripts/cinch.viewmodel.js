@@ -141,11 +141,7 @@ function CinchViewModel() {
     self.winner = ko.observable(); //Integer, winning team. Will be 0 for players 0 and 2 and 1 for players 1 and 3.
     self.winnerName = ko.computed(function() {
         //Return name of the winning team
-	if (self.winner() == 0.5) {
-	    return 'Everybody';
-	} else {
-            return self.teamNames()[self.winner()];
-	}
+        return self.winner() == 0.5 ? 'Everybody' : self.teamNames()[self.winner()];
     });
     self.isGameOver = ko.computed(function() {
         return typeof self.winner() !== 'undefined';
@@ -223,8 +219,7 @@ function CinchViewModel() {
 
         if(!navigateAwayMessage || (navigateAwayMessage && confirm(navigateAwayMessage))) {
             self.socket.emit('exit');
-
-	    self.socket.emit('room_list'); //Update room list in Lobby
+            self.socket.emit('room_list'); //Update room list in Lobby
 
             //Clean up from last game
             self.dealerServer(null);
@@ -422,7 +417,8 @@ function CinchViewModel() {
             if (self.activeView() === CinchApp.views.lobby && room == 0) {
                 self.chats.push(new VisibleMessage(
                     ['User', user, 'has entered the Lobby.'].join(' '), 'System'));
-            } else {
+            }
+            else {
                 self.activeView() === CinchApp.views.game && self.announceUser(user);
             }
             console.log('enter: ', user, room, seat);
@@ -446,87 +442,87 @@ function CinchViewModel() {
             }
         });
 
-    socket.on('exit', function(user, room, seat) {
-        //Notify client that someone has left
-        if (!(self.activeView() === CinchApp.views.lobby && room != 0)) {
-            // Users in the lobby receive exit messages for all rooms in order
-            // to update the seating charts for available rooms. However, we
-            // should not display a "departed" message when a user leaves a
-            // game room and this client is in the lobby.
-            self.chats.push(new VisibleMessage(
-                ['User', user, 'has departed ',
-                 (room == 0 ? 'the Lobby.' : 'Room ' + room + '.')].join(' '), 'System'));
-        }
-        console.log('exit: ', user, room, seat);
+        socket.on('exit', function(user, room, seat) {
+            //Notify client that someone has left
+            if (!(self.activeView() === CinchApp.views.lobby && room != 0)) {
+                // Users in the lobby receive exit messages for all rooms in order
+                // to update the seating charts for available rooms. However, we
+                // should not display a "departed" message when a user leaves a
+                // game room and this client is in the lobby.
+                self.chats.push(new VisibleMessage(
+                    ['User', user, 'has departed ',
+                     (room == 0 ? 'the Lobby.' : 'Room ' + room + '.')].join(' '), 'System'));
+            }
+            console.log('exit: ', user, room, seat);
 
-        //Update the Lobby Game objects
-        var i, j;
-        var tmp;
-        var games = self.games();
-        for (i = 0; i < games.length; i++) {
-            if (games[i].number == room) {
-                tmp = games[i].seatChart();
-                for (j = 0; j < tmp.length; j++) {
-                    if (tmp[j][0] == user && tmp[j][1] == seat) {
-                        break;
+            //Update the Lobby Game objects
+            var i, j;
+            var tmp;
+            var games = self.games();
+            for (i = 0; i < games.length; i++) {
+                if (games[i].number == room) {
+                    tmp = games[i].seatChart();
+                    for (j = 0; j < tmp.length; j++) {
+                        if (tmp[j][0] == user && tmp[j][1] == seat) {
+                            break;
+                        }
                     }
+
+                    tmp.splice(j, 1);
+                    self.games()[i].seatChart(tmp);
                 }
-
-                tmp.splice(j, 1);
-                self.games()[i].seatChart(tmp);
             }
-        }
 
-        //Update in-game view
-        if (self.activeView() === CinchApp.views.game) {
-            socket.$events.seatChart(tmp);
-        }
-    });
-
-    //Helper function for setting game full status
-    function setRoomFullStatus(status, roomNum) {
-        var i;
-        var games = self.games();
-
-        for (i = 0; i < games.length; i++) {
-            if (games[i].number == roomNum) {
-                games[i].isFull(status);
-                self.games(games); // Update class-level observable
-                break;
-            }
-        }
-    }
-
-    addSocketHandler('roomFull', function(roomNum) {
-        //Disallow joining of full rooms from the Lobby
-        setRoomFullStatus(true, roomNum);
-    });
-
-    addSocketHandler('roomNotFull', function(roomNum) {
-        //Re-allow joining of previously full room
-        setRoomFullStatus(false, roomNum);
-    });
-
-    addSocketHandler('roomGone', function(roomNum) {
-        //Remove room from games list
-        var i;
-        var games = self.games();
-
-        for (i = 0; i < games.length; i++) {
-            if (games[i].number == roomNum) {
-                games.splice(i, 1); // Remove element i from array
-                self.games(games); // Update observable array
-            }
-        }
-    });
-
-    addSocketHandler('gameStarted', function(roomNum) {
-        ko.utils.arrayForEach(self.games(), function(item) {
-            if (item.number == roomNum) {
-                item.started(true);
+            //Update in-game view
+            if (self.activeView() === CinchApp.views.game) {
+                socket.$events.seatChart(tmp);
             }
         });
-    });
+
+        //Helper function for setting game full status
+        function setRoomFullStatus(status, roomNum) {
+            var i;
+            var games = self.games();
+
+            for (i = 0; i < games.length; i++) {
+                if (games[i].number == roomNum) {
+                    games[i].isFull(status);
+                    self.games(games); // Update class-level observable
+                    break;
+                }
+            }
+        }
+
+        addSocketHandler('roomFull', function(roomNum) {
+            //Disallow joining of full rooms from the Lobby
+            setRoomFullStatus(true, roomNum);
+        });
+
+        addSocketHandler('roomNotFull', function(roomNum) {
+            //Re-allow joining of previously full room
+            setRoomFullStatus(false, roomNum);
+        });
+
+        addSocketHandler('roomGone', function(roomNum) {
+            //Remove room from games list
+            var i;
+            var games = self.games();
+
+            for (i = 0; i < games.length; i++) {
+                if (games[i].number == roomNum) {
+                    games.splice(i, 1); // Remove element i from array
+                    self.games(games); // Update observable array
+                }
+            }
+        });
+
+        addSocketHandler('gameStarted', function(roomNum) {
+            ko.utils.arrayForEach(self.games(), function(item) {
+                if (item.number == roomNum) {
+                    item.started(true);
+                }
+            });
+        });
 
         // Game message handlers
         addSocketHandler('startData', function(msg) {
