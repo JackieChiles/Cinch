@@ -752,6 +752,8 @@ function CinchViewModel() {
     });
     self.enableKeyboardShortcuts.subscribe(function(newValue) {
         localStorage && localStorage.setItem(CinchApp.localStorageKeys.enableKeyboardShortcuts, newValue);
+
+        //Don't stay focused on the checkbox, or keyboard shortcuts won't work
         $('input').blur();
     });
 

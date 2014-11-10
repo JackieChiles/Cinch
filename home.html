@@ -329,7 +329,7 @@
                     <div data-bind="template: { name: 'chat-pane-template', data: $root }" class="chat-pane"></div>
                 </div>
             </div>
-            <div data-bind="css: { 'active-border pulsing-border' : isActivePlayer() }" id="game-controls" class="ab-left ab-top ">
+            <div data-bind="css: { 'active-border reminder-pulse' : isActivePlayer() }" id="game-controls" class="ab-left ab-top ">
                 <div>
                     <span data-bind="visible: $root.gameMode() == CinchApp.gameModes.bid">Select a bid:</span>
                     <span data-bind="visible: $root.gameMode() == CinchApp.gameModes.play">Your bid was:</span>

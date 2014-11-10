@@ -378,35 +378,35 @@ input.username {
     z-index:5;
 }
 
-@keyframes borderPulse {
+@keyframes reminderPulse {
     from {
-        border: 3px solid rgba(0, 0, 255, 1);
+        background-color: rgba(255, 255, 255, 0.8);
     }
 
     to {
-        border: 3px solid rgba(0, 0, 255, 0.1);
+        background-color: rgba(255, 255, 255, 0);
     }
 }
 
-@-webkit-keyframes borderPulse {
+@-webkit-keyframes reminderPulse {
     from {
-        border: 3px solid rgba(0, 0, 255, 1);
+        background-color: rgba(255, 255, 255, 0.8);
     }
 
     to {
-        border: 3px solid rgba(0, 0, 255, 0.1);
+        background-color: rgba(255, 255, 255, 0);
     }
 }
 
-.active-border.pulsing-border {
-    animation-duration: 0.5s;
-    animation-name: borderPulse;
-    animation-iteration-count: infinite;
-    animation-direction: alternate;
-    -webkit-animation-duration: 0.5s;
-    -webkit-animation-name: borderPulse;
-    -webkit-animation-iteration-count: infinite;
-    -webkit-animation-direction: alternate;
+.active-border.reminder-pulse {
+    animation-duration: 0.4s;
+    animation-name: reminderPulse;
+    animation-iteration-count: 2;
+    animation-timing-function: ease-out;
+    -webkit-animation-duration: 0.4s;
+    -webkit-animation-name: reminderPulse;
+    -webkit-animation-iteration-count: 2;
+    -webkit-animation-timing-function: ease-out;
 }
 
 .empty-seat {
