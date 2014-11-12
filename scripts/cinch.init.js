@@ -36,6 +36,17 @@ $(function () {
 
         //Focus on username entry field
         $('#username-input').focus();
+
+        //Set up detection for the window/tab being active
+        $(window).blur(function() {
+            console.log('Window blur');
+            CinchApp.viewModel.isWindowActive(false);
+        });
+
+        $(window).focus(function() {
+            console.log('Window focus');
+            CinchApp.viewModel.isWindowActive(true);
+        });
     }
     else {
         $('#browser-warning').fadeIn();

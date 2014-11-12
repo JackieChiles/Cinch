@@ -31,6 +31,7 @@ function CinchViewModel() {
     //Data
     self.socket = CinchApp.socket;
     self.actionQueue = []; //Don't add to this directly: call self.addAction
+    self.isWindowActive = ko.observable(true);
     self.username = ko.observable('');
     self.myPlayerNum = ko.observable(0); //Player num assigned by server
     self.myTeamNum = ko.computed(function() {
@@ -710,6 +711,23 @@ function CinchViewModel() {
         }
 
         players[newValue].active(true);
+    });
+    self.isActivePlayer.subscribe(function(newValue) {
+        var notify;
+
+        //Trigger a notification only if the window is not active and we're in the game or hand-end view
+        if(newValue && ("Notification" in window) && !self.isWindowActive() && (self.activeView() === CinchApp.views.game || self.activeView() === CinchApp.views.handEnd)) {
+             notify = function(permission) {
+                new Notification("It's your turn to " + (self.gameMode() === CinchApp.gameModes.play ? 'play' : 'bid') + ' in Cinch.');
+            };
+
+            if(Notification.permission === 'granted') {
+                notify(Notification.permission);
+            }
+            else if (Notification.permission !== 'denied') {
+                Notification.requestPermission(notify);
+            }
+        }
     });
     self.gameMode.subscribe(function(newValue) {
         if(newValue == CinchApp.gameModes.bid) {
