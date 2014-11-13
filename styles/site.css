@@ -409,10 +409,6 @@ input.username {
     -webkit-animation-timing-function: ease-out;
 }
 
-.empty-seat {
-    opacity:0.5!important;
-}
-
 .middle-row {
     float:left;
 }

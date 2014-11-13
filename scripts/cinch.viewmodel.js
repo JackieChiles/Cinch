@@ -211,6 +211,11 @@ function CinchViewModel() {
             self.socket.emit('join', 0, 0);
         });
 
+        //Load the AI list now. It might be used either in AI selection or in-game when filling empty seats.
+        self.socket.emit('aiList', function(msg) {
+            self.ai(msg);
+        });
+
         self.activeView(CinchApp.views.lobby);
     };
 
@@ -251,9 +256,11 @@ function CinchViewModel() {
 
     self.enterAi = function() {
         self.activeView(CinchApp.views.ai);
-        self.socket.emit('aiList', function(msg) {
-            self.ai(msg);
-        });
+    };
+
+    self.inviteAi = function(seat) {
+        //TODO: need to translate seat number?
+        self.chosenAi[seat]() && self.socket.emit('summonAI', self.chosenAi[seat]().id, self.curRoom(), seat);
     };
 
     self.joinCallback = function(msg) {
