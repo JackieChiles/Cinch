@@ -254,13 +254,18 @@ function CinchViewModel() {
         }
     };
 
+    self.resetChosenAi = function() {
+        self.chosenAi[CinchApp.players.west](null);
+        self.chosenAi[CinchApp.players.north](null);
+        self.chosenAi[CinchApp.players.east](null);
+    };
+
     self.enterAi = function() {
-        self.chosenAi = {};
+        self.resetChosenAi();
         self.activeView(CinchApp.views.ai);
     };
 
     self.inviteAi = function(seat) {
-        //TODO: need to translate seat number?
         self.chosenAi[seat]() && self.socket.emit('summonAI', self.chosenAi[seat]().id, self.curRoom(), seat);
     };
 
