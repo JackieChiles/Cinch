@@ -255,6 +255,7 @@ function CinchViewModel() {
     };
 
     self.enterAi = function() {
+        self.chosenAi = {};
         self.activeView(CinchApp.views.ai);
     };
 

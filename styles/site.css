@@ -7,11 +7,6 @@ body {
     margin:0px;
 }
 
-button {
-    font-size:1.2em;
-    padding:5px;
-}
-
 kbd {
     -moz-border-radius:3px;
     -moz-box-shadow:0 1px 0 rgba(0,0,0,0.2),0 0 0 2px #fff inset;
@@ -29,6 +24,11 @@ kbd {
     margin:0 .1em;
     padding:.1em .6em;
     text-shadow:0 1px 0 #fff;
+}
+
+button.large-button {
+    font-size:1.2em;
+    padding:5px;
 }
 
 .cinch-view {
@@ -376,6 +376,11 @@ input.username {
 .active-border.ab-z {
     position:relative!important;
     z-index:5;
+}
+
+.compact-fieldset {
+    padding: 2px;
+    margin: 0;
 }
 
 @keyframes reminderPulse {
