@@ -380,7 +380,11 @@ input.username {
 
 .compact-fieldset {
     padding: 2px;
-    margin: 0;
+    margin: 5px 0;
+}
+
+.seat-invite-link {
+    max-width: 100%;
 }
 
 @keyframes reminderPulse {

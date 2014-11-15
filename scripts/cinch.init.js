@@ -48,6 +48,16 @@ $(function () {
 
         //Parse the URL query string
         CinchApp.viewModel.getUrlParameters();
+
+        //Highlight the text of invite links when focused
+        $('.seat-invite-link').mouseup(function() {
+            //Eliminates a de-select in some Webkit browsers
+            return false;
+        });
+
+        $('.seat-invite-link').focus(function() {
+            $(this).select();
+        });
     }
     else {
         $('#browser-warning').fadeIn();

@@ -282,6 +282,10 @@
                                     <select data-bind="options: ai, optionsText: 'name', value: chosenAi[CinchApp.players.north], optionsCaption: 'Pick one'"></select>
                                     <button data-bind="click: function() { inviteAi(CinchApp.players.north); }">Invite</button>
                                 </fieldset>
+                                <div>
+                                    <strong>Link:</strong>
+                                    <input data-bind="value: getInviteLink(curRoom(), CinchApp.players.north)" type="text" class="seat-invite-link" />
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -306,6 +310,10 @@
                                     <select data-bind="options: ai, optionsText: 'name', value: chosenAi[CinchApp.players.west], optionsCaption: 'Pick one'"></select>
                                     <button data-bind="click: function() { inviteAi(CinchApp.players.west); }">Invite</button>
                                 </fieldset>
+                                <div>
+                                    <strong>Link:</strong>
+                                    <input data-bind="value: getInviteLink(curRoom(), CinchApp.players.west)" type="text" class="seat-invite-link" />
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -334,6 +342,10 @@
                                     <select data-bind="options: ai, optionsText: 'name', value: chosenAi[CinchApp.players.east], optionsCaption: 'Pick one'"></select>
                                     <button data-bind="click: function() { inviteAi(CinchApp.players.east); }">Invite</button>
                                 </fieldset>
+                                <div>
+                                    <strong>Link:</strong>
+                                    <input data-bind="value: getInviteLink(curRoom(), CinchApp.players.east)" type="text" class="seat-invite-link" />
+                                </div>
                             </div>
                         </div>
                     </div>

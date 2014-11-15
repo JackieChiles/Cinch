@@ -724,6 +724,11 @@ function CinchViewModel() {
         return view === views.game || view === views.handEnd ? 'Leaving the page will end the current game for you.' : null;
     };
 
+    self.getInviteLink = function (gameNum, seatNum) {
+        //Building the URL this way should work as long as we don't have any additional funky stuff like hash
+        return window.location.href.replace(window.location.search, "") + '?game=' + gameNum + '&seat=' + seatNum;
+    };
+
     //Subscriptions
     self.isBoardLocked.subscribe(function(newValue) {
         //If the board has been unlocked, execute the next action if available       
