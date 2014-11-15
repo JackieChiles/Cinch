@@ -38,8 +38,10 @@
 
             <span title="This is the name that will be displayed to other players." class="username-label">Username:</span>
             <input data-bind="value: username, valueUpdate: 'afterkeydown'" type="text" placeholder="Enter your username" class="username" id="username-input" />
-            
-            <button data-bind="click: enterLobby" id="enter-lobby-btn" class="large-button">OK</button>
+            <div data-bind="visible: urlParamGame() && urlParamSeat()">
+                You will join game <strong data-bind="text: urlParamGame"></strong> in seat <strong data-bind="text: urlParamSeat"></strong>.
+            </div>
+            <button data-bind="click: enter" id="enter-lobby-btn" class="large-button">OK</button>
         </div><!-- /home page -->
        
         <div id="lobby-page" class="cinch-view">

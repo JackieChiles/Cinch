@@ -45,6 +45,9 @@ $(function () {
         $(window).focus(function() {
             CinchApp.viewModel.isWindowActive(true);
         });
+
+        //Parse the URL query string
+        CinchApp.viewModel.getUrlParameters();
     }
     else {
         $('#browser-warning').fadeIn();

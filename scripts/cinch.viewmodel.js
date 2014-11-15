@@ -32,6 +32,17 @@ function CinchViewModel() {
     self.socket = CinchApp.socket;
     self.actionQueue = []; //Don't add to this directly: call self.addAction
     self.isWindowActive = ko.observable(true);
+    self.urlParameters = ko.observable({});
+    self.urlParamGame = ko.computed(function() {
+        var gameNum = parseInt(self.urlParameters().game, 10);
+
+        return isNaN(gameNum) ? null : gameNum;
+    });
+    self.urlParamSeat = ko.computed(function() {
+        var seatNum = parseInt(self.urlParameters().seat, 10);
+
+        return isNaN(seatNum) || seatNum >= CinchApp.numPlayers ? null : seatNum;
+    });
     self.username = ko.observable('');
     self.myPlayerNum = ko.observable(0); //Player num assigned by server
     self.myTeamNum = ko.computed(function() {
@@ -194,12 +205,16 @@ function CinchViewModel() {
 
     //When the user chooses to enter the lobby to select a game,
     //submit nickname request and switch to lobby view
-    self.enterLobby = function() {
+    //Or, join game immediately if query string parameters found
+    self.enter = function() {
         // Require a non-empty username
         if (self.username().length < 1) {
             alert("A username is required.");
             return;
         }
+
+        var gameNum = self.urlParamGame();
+        var seatNum = self.urlParamSeat();
 
         self.username() && self.socket.emit('nickname', self.username(), function(msg) {
             if (msg !== null) {
@@ -208,7 +223,11 @@ function CinchViewModel() {
             // If we ever want to show the people in the lobby, will need to
             // add a callback to this action. Otherwise, this user will not appear
             // in the lobby their first time connecting.
-            self.socket.emit('join', 0, 0);
+
+            //Join a game if one was specified in query string, otherwise join lobby
+            (gameNum && seatNum) ?
+                self.socket.emit('join', gameNum, seatNum, self.joinCallback) :
+                self.socket.emit('join', 0, 0);
         });
 
         //Load the AI list now. It might be used either in AI selection or in-game when filling empty seats.
@@ -216,7 +235,7 @@ function CinchViewModel() {
             self.ai(msg);
         });
 
-        self.activeView(CinchApp.views.lobby);
+        (gameNum && seatNum) || self.activeView(CinchApp.views.lobby);
     };
 
     //Moves user from a game room to the lobby
@@ -269,14 +288,45 @@ function CinchViewModel() {
         self.chosenAi[seat]() && self.socket.emit('summonAI', self.chosenAi[seat]().id, self.curRoom(), seat);
     };
 
-    self.joinCallback = function(msg) {
-        self.curRoom(msg.roomNum);
-        self.activeView(CinchApp.views.game);
-        self.chats([]); //Clear any chats from before game start
+    self.getUrlParameters = function() {
+        //Adapted from http://stackoverflow.com/a/2880929/830125
+        //As with almost any simple solution to query string parsing, this one has its detractors,
+        //but it's good enough for our case
 
-        if (msg.roomNum != 0) {
-            self.myPlayerNum(msg.mySeat);
-            self.socket.$events.seatChart(msg.seatChart);
+        var match;
+        var pl = /\+/g;  // Regex for replacing addition symbol with a space
+        var search = /([^&=]+)=?([^&]*)/g;
+        var decode = function (s) { return decodeURIComponent(s.replace(pl, " ")); };
+        var query = window.location.search.substring(1);
+        var urlParameters = {};
+
+        while (match = search.exec(query)) {
+           urlParameters[decode(match[1])] = decode(match[2]);
+        }
+
+        self.urlParameters(urlParameters);
+    };
+
+    self.joinCallback = function(msg) {
+        //Message could be empty if there was an issue joining the room
+        if (msg) {
+            self.curRoom(msg.roomNum);
+            self.activeView(CinchApp.views.game);
+            self.chats([]); //Clear any chats from before game start
+
+            if (msg.roomNum != 0) {
+                self.myPlayerNum(msg.mySeat);
+                self.socket.$events.seatChart(msg.seatChart);
+            }
+        }
+        else {
+            //Reset the query string in case a bad join request was made there
+            self.urlParameters({});
+            history.pushState(null, "Cinch Home", window.location.href.replace(window.location.search, ""));
+
+            //Join failed, so just go to the lobby
+            self.socket.emit('join', 0, 0);
+            self.activeView(CinchApp.views.lobby);
         }
     };
 
