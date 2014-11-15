@@ -341,8 +341,11 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         roomNum = int(roomNum)  # Arg `roomNum` is sent as unicode from browser
         room = self.getRoomByNumber(roomNum)
 
-        if room.isFull():
-            self.emit('err', 'That room is full')
+        if room is None:
+            self.emit('err', 'That room does not exist.')
+            return
+        elif room.isFull():
+            self.emit('err', 'That room is full.')
             return
         else:
             try:
