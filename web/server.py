@@ -795,6 +795,7 @@ def runServer():
 
     try:
         server = SocketIOServer(('0.0.0.0', SOCKETIO_PORT), Server(),
+                                heartbeat_timeout=120,
                                 resource="socket.io", policy_server=False)
         Room.server = server
         server.application.request['rooms'].append(Room(LOBBY))
