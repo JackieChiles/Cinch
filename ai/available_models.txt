@@ -1,2 +1,3 @@
 RandAI.py
 JoeLowbid.py
+HAL.py

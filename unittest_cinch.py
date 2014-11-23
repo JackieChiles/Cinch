@@ -85,7 +85,7 @@ class AITests(unittest.TestCase):
         # Configure the AI for testing
         self.ai.gs = base.GS()
         self.ai.hand = list()
-        self.ai.resetGamestate()
+        self.ai.gs.reset()
         self.pNum = None
     
     def testPlayLegality(self):
@@ -120,7 +120,32 @@ class AITests(unittest.TestCase):
         # 2D was led, we only have AS
         self.ai.hand = [Card(52)] # AS
         self.assertTrue(func(Card(52)))
-        
+
+    def testBidLegality(self):
+        """ai base should properly evaluate bid legality"""
+        # is_legal_bid is a function of the proposed bid value, ai.pNum,
+        # gs.dealer, and gs.highBid.
+        func = self.ai.is_legal_bid  # focus of this test
+        gs = self.ai.gs
+        gs.dealer = 1
+
+        # as not dealer
+        self.ai.pNum = 3
+        gs.highBid = 2
+        self.assertFalse(func(1))
+        self.assertTrue(func(0))
+        self.assertTrue(func(4))
+
+        # as dealer
+        self.ai.pNum = 1
+        gs.highBid = 0
+        self.assertTrue(func(4))
+        self.assertFalse(func(0))
+
+        gs.highBid = 5
+        self.assertTrue(func(5))  # countercinch
+        self.assertFalse(func(4))
+        self.assertTrue(func(0))
 
 if __name__ == "__main__":
     unittest.main()
