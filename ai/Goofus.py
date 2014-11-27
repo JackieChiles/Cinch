@@ -48,7 +48,7 @@ __version__ = "1.0"
 __date__ = "17 November 2014"
 __skill__ = "1"
 __agent_name__ = "Goofus"
-__description__ = "Goofus will make decisions at a very basic level when playing and bidding."
+__description__ = "Goofus will make decisions at a very basic level when playing and bidding, using only the current game state."
 
 
 class Goofus(AIBase):
