@@ -122,78 +122,78 @@ class Goofus(AIBase):
         #TODO: use tuples instead of two separate arrays
         rules = [
             Rule(self.conIsMyLeadFirstTrick,
-                False,
-                [
-                    (self.ft, True),
-                    (self.jt, True),
-                    (self.tt, True),
-                    (self.lt, True),
-                    (self.fn, True),
-                    (self.tn, True),
-                    (self.ln, True)
-                ]),
+                 False,
+                 [
+                     (self.ft, True),
+                     (self.jt, True),
+                     (self.tt, True),
+                     (self.lt, True),
+                     (self.fn, True),
+                     (self.tn, True),
+                     (self.ln, True)
+                 ]),
             Rule(self.conIsMyLead,
-                False,
-                [
-                    (self.ft, True),
-                    (self.fn, True)
-                ]),
+                 False,
+                 [
+                     (self.ft, True),
+                     (self.fn, True)
+                 ]),
             Rule(self.conMyPlayLastParterTaking,
-                False,
-                [
-                    (self.jt, False),
-                    (self.tn, False),
-                    (self.tt, False),
-                    (self.fn, True),
-                    (self.ln, False),
-                    (self.lt, False),
-                    (self.ft, False)
-                ]),
+                 False,
+                 [
+                     (self.jt, False),
+                     (self.tn, False),
+                     (self.tt, False),
+                     (self.fn, True),
+                     (self.ln, False),
+                     (self.lt, False),
+                     (self.ft, False)
+                 ]),
             Rule(self.conMyPlayLastPartnerNotTakingJackTrumpOrTenShowing,
-                True,
-                [
-                    (self.jt, False),
-                    (self.tn, False),
-                    (self.tt, False),
-                    (self.ln, False),
-                    (self.fn, False),
-                    (self.lt, False),
-                    (self.ft, False)
-                ]),
+                 True,
+                 [
+                     (self.jt, False),
+                     (self.tn, False),
+                     (self.tt, False),
+                     (self.ln, False),
+                     (self.fn, False),
+                     (self.lt, False),
+                     (self.ft, False)
+                 ]),
             Rule(self.conMyPlayLastPartnerNotTaking,
-                True,
-                [
-                    (self.jt, False),
-                    (self.tn, False),
-                    (self.tt, False)
-                ]),
+                 True,
+                 [
+                     (self.jt, False),
+                     (self.tn, False),
+                     (self.tt, False)
+                 ]),
             Rule(self.conPartnerShowingAceTrump,
-                False,
-                [
-                    (self.jt, False),
-                    (self.tn, False),
-                    (self.tt, False)
-                ]),
+                 False,
+                 [
+                     (self.jt, False),
+                     (self.tn, False),
+                     (self.tt, False)
+                 ]),
             Rule(self.conMyPlaySecondOrThirdJackTrumpOrTenShowing,
-                True,
-                [
-                    (self.ft, True),
-                    (self.lt, True),
-                    (self.fn, True),
-                    (self.ln, True),
-                    (self.tt, False)
-                ]),
+                 True,
+                 [
+                     (self.ft, True),
+                     (self.lt, True),
+                     (self.fn, True),
+                     (self.ln, True),
+                     (self.tt, False)
+                 ]),
             Rule(self.conDefault,
-                False,
-                [
-                    (self.ln, False),
-                    (self.lt, False),
-                    (self.fn, False),
-                    (self.ft, False),
-                    (self.tn, False),
-                    (self.tt, False),
-                    (self.jt, False)
-                ])
+                 False,
+                 [
+                     (self.ln, False),
+                     (self.lt, False),
+                     (self.fn, False),
+                     (self.ft, False),
+                     (self.tn, False),
+                     (self.tt, False),
+                     (self.jt, False)
+                 ])
         ]
 
         # Run each rule in order and play the first matching card hit
@@ -346,7 +346,7 @@ class Rule(object):
     def __init__(self, condition, filterToWinners, cardClasses):
         self.condition = condition
         self.filterToWinners = filterToWinners
-        self.cardClasses = cardClasses # Two-tuples: (lambda, doSortDescending)
+        self.cardClasses = cardClasses # Two-tuples: (func, doSortDescending)
 
     # TODO: don't pass agent
     def evaluate(self, agent):
