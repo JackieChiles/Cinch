@@ -7,6 +7,8 @@ A flexible system for play decisions allows generic rules to be added, removed,
 or reordered fairly easily. See the play method for the current setup of play
 heuristic rules.
 
+Version 1.0 rules can also be found here: https://docs.google.com/spreadsheets/d/1D9a1m6X9L8kFtlCAaL7xc-PCU2UZiZJMb7s9seydlno/edit?usp=sharing
+
 Bidding is done as the following:
  - One with any ace
  - Two with ace and deuce
@@ -340,7 +342,7 @@ class Goofus(AIBase):
     def ln(self):
         return filter(lambda c: c.rank < 10 and c.suit != self.gs.trump, self.legalPlays)
 
-class Rule():
+class Rule(object):
     def __init__(self, condition, filterToWinners, cardClasses):
         self.condition = condition
         self.filterToWinners = filterToWinners
