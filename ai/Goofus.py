@@ -165,6 +165,13 @@ class Goofus(AIBase):
                     (self.tn, False),
                     (self.tt, False)
                 ]),
+            Rule(self.conPartnerShowingAceTrump,
+                False,
+                [
+                    (self.jt, False),
+                    (self.tn, False),
+                    (self.tt, False)
+                ]),
             Rule(self.conMyPlaySecondOrThirdJackTrumpOrTenShowing,
                 True,
                 [
@@ -244,8 +251,23 @@ class Goofus(AIBase):
     other conditions.
     """
 
+    def getPartnerCard(self):
+        # Partner hasn't played yet
+        if len(self.gs.cardsInPlay) < 2:
+            return None
+
+        if len(self.gs.cardsInPlay) == 2:
+            return self.gs.cardsInPlay[0]
+        else: # Three cards in play
+            return self.gs.cardsInPlay[1]
+
     def isPartnerWinningTrick(self):
-        return self.whoWinsTrick(self.gs.cardsInPlay) == self.gs.cardsInPlay[1]
+        partnerCard = self.getPartnerCard()
+
+        if partnerCard is None:
+            return False
+        else:
+            return self.whoWinsTrick(self.gs.cardsInPlay) == partnerCard
 
     def isMyPlayLast(self):
         return len(self.gs.cardsInPlay) == 3
@@ -267,6 +289,14 @@ class Goofus(AIBase):
 
     def conMyPlayLastPartnerNotTaking(self):
         return self.isMyPlayLast() and not self.isPartnerWinningTrick()
+
+    def conPartnerShowingAceTrump(self):
+        partnerCard = self.getPartnerCard()
+
+        if partnerCard is None:
+            return False
+        else:
+            return partnerCard.suit == self.gs.trump and partnerCard.rank == 14
 
     def conMyPlaySecondOrThirdJackTrumpOrTenShowing(self):
         return (len(self.gs.cardsInPlay) == 1 or len(self.gs.cardsInPlay) == 2) and self.isJackTrumpOrTenShowing()
