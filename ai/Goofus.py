@@ -1,7 +1,7 @@
 #!/usr/bin/python2
-"""
-Goofus uses heuristics based only on the current game state, and no historical
-information.
+"""Goofus: AI agent that uses heuristics based only on the current game state.
+
+Goofus does not use historical information as of v1.0.
 
 A flexible system for play decisions allows generic rules to be added, removed,
 or reordered fairly easily. See the play method for the current setup of play
@@ -34,6 +34,7 @@ Attributes:
 
 Public classes:
   Goofus: AI model with minimal skill.
+  Rule: Rule to be run when determining what card to play.
 
 """
 
@@ -119,7 +120,6 @@ class Goofus(AIBase):
         #TODO: Try not to lead suits that would leave bare tens
 
         # Set up the rules to determine what to play
-        #TODO: use tuples instead of two separate arrays
         rules = [
             Rule(self.conIsMyLeadFirstTrick,
                  False,
@@ -207,6 +207,11 @@ class Goofus(AIBase):
         """Overriding base class think."""
         pass
 
+    """Helper methods
+
+    Helper methods used in conditions, rules processing, or elsewhere.
+    """
+
     def whoWinsTrick(self, cards, gs=None): # Shamelessly copied from HAL. Things like this might ultimately go in AI base, I would think.
         """Return the card that wins the trick.
 
@@ -246,13 +251,6 @@ class Goofus(AIBase):
     def isThisWinner(self, card):
         return self.whoWinsTrick(self.gs.cardsInPlay + [card]) == card
 
-    """
-    Conditions
-
-    Each condition should return a boolean value based on parameters of the current game state or 
-    other conditions.
-    """
-
     def getPartnerCard(self):
         # Partner hasn't played yet
         if len(self.gs.cardsInPlay) < 2:
@@ -276,6 +274,12 @@ class Goofus(AIBase):
 
     def isJackTrumpOrTenShowing(self):
         return len(filter(lambda c: c.rank == 10 or (c.rank == 11 and c.suit == self.gs.trump), self.gs.cardsInPlay)) > 0
+
+    """Conditions
+
+    Each condition should return a boolean value based on parameters of the current game state or 
+    other conditions.
+    """
 
     def conIsMyLead(self):
         return len(self.gs.cardsInPlay) == 0
@@ -306,8 +310,7 @@ class Goofus(AIBase):
     def conDefault(self):
         return True
 
-    """
-    Card classes
+    """Card classes
 
     Cards are divided into the following seven classes:
      - FT - Face trump
@@ -344,12 +347,36 @@ class Goofus(AIBase):
 
 class Rule(object):
     def __init__(self, condition, filterToWinners, cardClasses):
+        """Initializes the rule.
+
+        Args:
+          condition (func): Must return a boolean value. If the condition is met,
+            the evaluate method will look for matching cards to return.
+          filterToWinners (boolean): True if cards should only be returned if
+            they would win the trick
+          cardClasses (list): List of two-item tuples containing a func and a
+            boolean value. The func must return a list of cards, and the boolean
+            should be True if the returned cards should be sorted descending.
+        """
+
         self.condition = condition
         self.filterToWinners = filterToWinners
-        self.cardClasses = cardClasses # Two-tuples: (func, doSortDescending)
+        self.cardClasses = cardClasses
 
-    # TODO: don't pass agent
     def evaluate(self, agent):
+        """Evaluates the rule.
+
+        If the condition is met, each given card class is
+        searched for matching cards. A list of zero or more matching cards is
+        returned.
+
+        Args:
+          agent: AI agent calling the rule.
+
+        Returns:
+          List: Zero or more cards from hand that satisfy the rule.
+        """
+
         # If the condition is true, look at each specified card class in order.
         # Return the filtered and sorted set of matching cards if any are found.
         if self.condition():
