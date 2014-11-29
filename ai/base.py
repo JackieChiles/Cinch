@@ -297,9 +297,9 @@ class AIBase(object):
             bid = 1
             log.error("Agent illegally tried to pass; adjusting bid to 1.")
         else:
-            bid = 0
             log.error("Agent made illegal bid of {0}; adjusting bid to PASS."
                       "".format(bid))
+            bid = 0
 
         self.ns.emit('bid', bid)  # Transmit bid to server
 
