@@ -69,13 +69,15 @@ class Goofus(AIBase):
         """
         super(Goofus, self).__init__(room, seat, self.identity)
         self.start()  # Blocks thread
-        self.bidSuit = 0
+        self.bidSuit = None
         self.legalPlays = []
 
     def bid(self):
         """Overriding base class bid."""
-        bids = [0, 0, 0, 0]
+        maxBid = 0
+        maxBidCount = 0
 
+        # Find the highest possible bid
         for suit in range(4):
             a = len(filter(lambda c: c.suit == suit and c.rank == 14, self.hand)) > 0
             k = len(filter(lambda c: c.suit == suit and c.rank == 13, self.hand)) > 0
@@ -86,20 +88,28 @@ class Goofus(AIBase):
 
             # Decision on bid value for each suit made as described above
             if a and k and q and j and d:
-                bids[suit] = 5
+                bid = 5
             elif a and d and count > 3:
-                bids[suit] = 3
+                bid = 3
             elif a and d:
-                bids[suit] = 2
+                bid = 2
             elif a:
-                bids[suit] = 1
+                bid = 1
             else:
-                bids[suit] = 0
+                bid = 0
 
-        # Make the best bid possible
-        bid = max(bids)
-        self.bidSuit = bids.index(bid)
-        self.send_bid(bid)
+            # If this suit can get a higher bid, or the same bid but with more 
+            # cards of the suit in hand, choose this suit.
+            if bid > maxBid or (bid == maxBid and count > maxBidCount):
+                maxBid = bid
+                maxBidCount = count
+                self.bidSuit = suit
+
+        # Just pass if the chosen bid was not legal (base.py will handle illegal pass as stuck dealer)
+        if self.is_legal_bid(maxBid):
+            self.send_bid(maxBid)
+        else:
+            self.send_bid(0)
 
     def play(self):
         """Overriding base class play."""
