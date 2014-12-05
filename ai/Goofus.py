@@ -47,8 +47,8 @@ from ai.base import AIBase, log
 
 AI_CLASS = "Goofus"  # Set this to match the class name for the agent
 __author__ = "JackieChiles"
-__version__ = "1.0"
-__date__ = "17 November 2014"
+__version__ = "1.1"
+__date__ = "4 December 2014"
 __skill__ = "1"
 __agent_name__ = "Goofus"
 __description__ = "Goofus will make decisions at a very basic level when playing and bidding, using only the current game state."
@@ -76,6 +76,7 @@ class Goofus(AIBase):
         """Overriding base class bid."""
         maxBid = 0
         maxBidCount = 0
+        faceCount = len(filter(lambda c: c.rank > 10, self.hand))
 
         # Find the highest possible bid
         for suit in range(4):
@@ -89,11 +90,11 @@ class Goofus(AIBase):
             # Decision on bid value for each suit made as described above
             if a and k and q and j and d:
                 bid = 5
-            elif a and d and count > 3:
+            elif (a and d and count > 3) or (k and d and count > 3 and faceCount > 3):
                 bid = 3
-            elif a and d:
+            elif (a and d) or (k and d and count > 3) or (a and count > 3):
                 bid = 2
-            elif a:
+            elif a or ((k or q) and (faceCount > 3 or count > 2)):
                 bid = 1
             else:
                 bid = 0
@@ -135,9 +136,9 @@ class Goofus(AIBase):
                  False,
                  [
                      (self.ft, True),
-                     (self.jt, True),
-                     (self.tt, True),
                      (self.lt, True),
+                     (self.tt, True),
+                     (self.jt, True),
                      (self.fn, True),
                      (self.tn, True),
                      (self.ln, True)
