@@ -38,8 +38,11 @@
 
             <span title="This is the name that will be displayed to other players." class="username-label">Username:</span>
             <input data-bind="value: username, valueUpdate: 'afterkeydown'" type="text" placeholder="Enter your username" class="username" id="username-input" />
-            <div data-bind="visible: urlParamGame() && urlParamSeat()">
-                You will join game <strong data-bind="text: urlParamGame"></strong> in seat <strong data-bind="text: urlParamSeat"></strong>.
+            <div data-bind="visible: urlParamGame">
+                You will join game <strong data-bind="text: urlParamGame"></strong>
+                <span data-bind="visible: urlParamSeat">
+                    in seat <strong data-bind="text: urlParamSeat"></strong>
+                </span>.
             </div>
             <button data-bind="click: enter" id="enter-lobby-btn" class="large-button">OK</button>
         </div><!-- /home page -->
@@ -233,6 +236,10 @@
                     <label for="enable-keyboard-shortcuts-checkbox">Enable keyboard shortcuts: </label>
                     <input data-bind="checked: enableKeyboardShortcuts" type="checkbox" id="enable-keyboard-shortcuts-checkbox" />
                 </div>
+                <div class="value-white-bg top-setting">
+                    <label for="game-link-input">Link: </label>
+                    <input data-bind="value: currentRoomInviteLink" type="text" class="invite-link" id="game-link-input" />
+                </div>
             </div>
             <div class="header">
                 <div class="col4">
@@ -284,7 +291,7 @@
                                 </fieldset>
                                 <div>
                                     <strong>Link:</strong>
-                                    <input data-bind="value: getInviteLink(curRoom(), CinchApp.players.north)" type="text" class="seat-invite-link" />
+                                    <input data-bind="value: getInviteLink(curRoom(), CinchApp.players.north)" type="text" class="invite-link" />
                                 </div>
                             </div>
                         </div>
@@ -312,7 +319,7 @@
                                 </fieldset>
                                 <div>
                                     <strong>Link:</strong>
-                                    <input data-bind="value: getInviteLink(curRoom(), CinchApp.players.west)" type="text" class="seat-invite-link" />
+                                    <input data-bind="value: getInviteLink(curRoom(), CinchApp.players.west)" type="text" class="invite-link" />
                                 </div>
                             </div>
                         </div>
@@ -344,7 +351,7 @@
                                 </fieldset>
                                 <div>
                                     <strong>Link:</strong>
-                                    <input data-bind="value: getInviteLink(curRoom(), CinchApp.players.east)" type="text" class="seat-invite-link" />
+                                    <input data-bind="value: getInviteLink(curRoom(), CinchApp.players.east)" type="text" class="invite-link" />
                                 </div>
                             </div>
                         </div>

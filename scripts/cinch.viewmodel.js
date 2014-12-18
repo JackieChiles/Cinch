@@ -200,6 +200,17 @@ function CinchViewModel() {
 
     //Seat selection
     self.selectedRoom = ko.observable();
+    self.getInviteLink = function (gameNum, seatNum) {
+        //Building the URL this way should work as long as we don't have any additional funky stuff like hash
+        //Seat number is optional, so leave it off if not provided
+        //If game number not provided, give up and just return the current URL
+        return gameNum ?
+            window.location.href.replace(window.location.search, "") + '?game=' + gameNum + (typeof seatNum === 'undefined' ? '' : '&seat=' + seatNum) :
+            window.location.href;
+    };
+    self.currentRoomInviteLink = ko.computed(function() {
+        return self.getInviteLink(self.curRoom());
+    });
 
     //Functions
 
@@ -235,7 +246,21 @@ function CinchViewModel() {
             self.ai(msg);
         });
 
-        (gameNum && seatNum) || self.activeView(CinchApp.views.lobby);
+        //If game and seat number were specified, wait for server response to join request
+        if (gameNum && !seatNum) {
+            //If only gameNum was specified, go to the seat selection page for that game
+            var possibleRooms = self.games().filter(function(game) {
+                return game.number == gameNum;
+            });
+
+            if (possibleRooms.length > 0) {
+                possibleRooms[0].select();
+            }
+        }
+        else if (!seatNum) {
+            //If gameNum and seatNum weren't specified in the query string, go to lobby
+            self.activeView(CinchApp.views.lobby);
+        }
     };
 
     //Moves user from a game room to the lobby
@@ -722,11 +747,6 @@ function CinchViewModel() {
         var views = CinchApp.views;
 
         return view === views.game || view === views.handEnd ? 'Leaving the page will end the current game for you.' : null;
-    };
-
-    self.getInviteLink = function (gameNum, seatNum) {
-        //Building the URL this way should work as long as we don't have any additional funky stuff like hash
-        return window.location.href.replace(window.location.search, "") + '?game=' + gameNum + '&seat=' + seatNum;
     };
 
     //Subscriptions
