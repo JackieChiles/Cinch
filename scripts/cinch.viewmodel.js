@@ -746,7 +746,7 @@ function CinchViewModel() {
         var view = self.activeView();
         var views = CinchApp.views;
 
-        return view === views.game || view === views.handEnd ? 'Leaving the page will end the current game for you.' : null;
+        return (view === views.game || view === views.handEnd) && !self.isGameOver() ? 'Leaving the page will end the current game for you.' : null;
     };
 
     //Subscriptions
