@@ -1,7 +1,7 @@
 {
   "name": "ember-cinch",
   "version": "0.0.0",
-  "description": "Small description for ember-cinch goes here",
+  "description": "Ember UI for the Cinch card game.",
   "private": true,
   "directories": {
     "doc": "doc",
@@ -12,11 +12,11 @@
     "start": "ember server",
     "test": "ember test"
   },
-  "repository": "",
+  "repository": "https://github.com/JackieChiles/Cinch",
   "engines": {
-    "node": ">= 0.12.0"
+    "node": ">= 6.9.1"
   },
-  "author": "",
+  "author": "Drew Gaynor",
   "license": "MIT",
   "devDependencies": {
     "broccoli-asset-rev": "^2.4.5",
@@ -38,7 +38,6 @@
     "ember-export-application-global": "^1.0.5",
     "ember-load-initializers": "^0.5.1",
     "ember-resolver": "^2.0.3",
-    "ember-welcome-page": "^1.0.3",
     "loader.js": "^4.0.10"
   }
 }
