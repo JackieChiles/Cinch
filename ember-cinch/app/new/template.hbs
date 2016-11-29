@@ -1,5 +1,9 @@
 <div class="layout-column layout-align-center">
     <div class="layout-row layout-align-center">
+        {{#paper-button raised=true primary=true class="flex-50" onClick=(action startGame)}}Start Game{{/paper-button}}
+    </div>
+
+    <div class="layout-row layout-align-center">
         {{#paper-card class="flex-25" as |card|}}
             {{#card.title as |title|}}
                 {{#title.text as |text|}}
