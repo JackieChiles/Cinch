@@ -1,0 +1,29 @@
+<div class="layout-column layout-align-center">
+    <div class="layout-row layout-align-center">
+        {{#paper-card class="flex-25" as |card|}}
+            {{#card.title as |title|}}
+                {{#title.text as |text|}}
+                    {{#text.headline}}Partner{{/text.headline}}
+                {{/title.text}}
+            {{/card.title}}
+        {{/paper-card}}
+    </div>
+
+    <div class="layout-row layout-align-center">
+        {{#paper-card class="flex-25" as |card|}}
+            {{#card.title as |title|}}
+                {{#title.text as |text|}}
+                    {{#text.headline}}Left Opponent{{/text.headline}}
+                {{/title.text}}
+            {{/card.title}}
+        {{/paper-card}}
+
+        {{#paper-card class="flex-25" as |card|}}
+            {{#card.title as |title|}}
+                {{#title.text as |text|}}
+                    {{#text.headline}}Right Opponent{{/text.headline}}
+                {{/title.text}}
+            {{/card.title}}
+        {{/paper-card}}
+    </div>
+</div>
