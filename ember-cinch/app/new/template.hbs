@@ -1,13 +1,17 @@
 <div class="layout-column layout-align-center">
     <div class="layout-row layout-align-center">
-        {{#paper-button raised=true primary=true class="flex-50" onClick=(action startGame)}}Start Game{{/paper-button}}
+        {{#paper-button raised=true primary=true class="flex-50" onClick=(action startGame)}}
+            {{t "start"}}
+        {{/paper-button}}
     </div>
 
     <div class="layout-row layout-align-center">
         {{#paper-card class="flex-25" as |card|}}
             {{#card.title as |title|}}
                 {{#title.text as |text|}}
-                    {{#text.headline}}Partner{{/text.headline}}
+                    {{#text.headline}}
+                        {{t "partner"}}
+                    {{/text.headline}}
                 {{/title.text}}
             {{/card.title}}
         {{/paper-card}}
@@ -17,7 +21,9 @@
         {{#paper-card class="flex-25" as |card|}}
             {{#card.title as |title|}}
                 {{#title.text as |text|}}
-                    {{#text.headline}}Left Opponent{{/text.headline}}
+                    {{#text.headline}}
+                        {{t "leftOpponent"}}
+                    {{/text.headline}}
                 {{/title.text}}
             {{/card.title}}
         {{/paper-card}}
@@ -25,7 +31,9 @@
         {{#paper-card class="flex-25" as |card|}}
             {{#card.title as |title|}}
                 {{#title.text as |text|}}
-                    {{#text.headline}}Right Opponent{{/text.headline}}
+                    {{#text.headline}}
+                        {{t "rightOpponent"}}
+                    {{/text.headline}}
                 {{/title.text}}
             {{/card.title}}
         {{/paper-card}}
