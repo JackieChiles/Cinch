@@ -5,5 +5,6 @@
   "start": "Start Game",
   "partner": "Partner",
   "leftOpponent": "Left Opponent",
-  "rightOpponent": "Right Opponent"
+  "rightOpponent": "Right Opponent",
+  "availableAgents": "Available AI Agents"
 }

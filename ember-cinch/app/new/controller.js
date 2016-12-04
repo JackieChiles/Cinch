@@ -6,8 +6,14 @@ export default Ember.Controller.extend({
   startGame() {
   },
 
+  populateAgents() {
+    this.store.findAll('agent').then(agents => {
+      this.set('agents', agents);
+    });
+  },
+
   init() {
     this._super(...arguments);
-    this.set('agents', []);
+    this.populateAgents();
   }
 });

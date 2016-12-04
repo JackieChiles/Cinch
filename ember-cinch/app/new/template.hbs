@@ -1,6 +1,6 @@
 <div class="layout-column layout-align-center">
     <div class="layout-row layout-align-center">
-        {{#paper-button raised=true primary=true class="flex-50" onClick=(action startGame)}}
+        {{#paper-button raised=true primary=true onClick=(action startGame)}}
             {{t "start"}}
         {{/paper-button}}
     </div>
@@ -36,6 +36,26 @@
                     {{/text.headline}}
                 {{/title.text}}
             {{/card.title}}
+        {{/paper-card}}
+    </div>
+
+    <div class="layout-row layout-align-center">
+        {{#paper-card class="flex-50" as |card|}}
+            {{#paper-toolbar}}
+                {{#paper-toolbar-tools}}
+                    <h2>{{t "availableAgents"}}</h2>
+                {{/paper-toolbar-tools}}
+            {{/paper-toolbar}}
+
+            {{#card.content}}
+                {{#paper-list}}
+                    {{#each agents as |agent|}}
+                        {{#paper-item}}
+                            {{agent.name}}
+                        {{/paper-item}}
+                    {{/each}}
+                {{/paper-list}}
+            {{/card.content}}
         {{/paper-card}}
     </div>
 </div>
