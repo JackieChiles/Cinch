@@ -6,5 +6,6 @@
   "partner": "Partner",
   "leftOpponent": "Left Opponent",
   "rightOpponent": "Right Opponent",
-  "availableAgents": "Available AI Agents"
+  "availableAgents": "Available AI Agents",
+  "aiAgent": "AI Agent"
 }

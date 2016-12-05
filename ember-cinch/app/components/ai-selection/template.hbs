@@ -1,0 +1,19 @@
+{{#paper-card as |card|}}
+    {{#paper-toolbar}}
+        {{#paper-toolbar-tools}}
+            <h2>{{label}}</h2>
+        {{/paper-toolbar-tools}}
+    {{/paper-toolbar}}
+
+    {{#card.content}}
+        {{#paper-select
+           label=(t "aiAgent")
+           options=agents
+           selected=agent
+           onChange=(action (mut agent))
+           as |agent|
+        }}
+            {{agent.name}}
+        {{/paper-select}}
+    {{/card.content}}
+{{/paper-card}}
