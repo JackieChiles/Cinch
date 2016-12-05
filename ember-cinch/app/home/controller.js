@@ -4,8 +4,10 @@ export default Ember.Controller.extend({
   newGame() {
     this.transitionToRoute('new');
   },
+
   joinGame() {
   },
+
   viewPastGames() {
   }
 });

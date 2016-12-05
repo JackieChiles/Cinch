@@ -15,4 +15,4 @@ app.get('/api/v1/games', (req, res) => {
   res.type(mime).send({ data: [] });
 });
 
-exports.start = () => app.listen(3000, () => console.log('Started API server...'));
+exports.start = () => app.listen(3000);

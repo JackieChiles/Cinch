@@ -1,2 +1,3 @@
 const api = require('./api/rest.js');
-api.start();
+require('./api/sockets.js').init(api.start());
+console.log('Started API server...')
