@@ -17,7 +17,7 @@ app.get('/api/v1/agents', (req, res) => {
 
 // Returns a list of games
 app.get('/api/v1/games', (req, res) => {
-  res.type(mime).send({ data: [] });
+  res.type(mime).send({ games: [] });
 });
 
 exports.start = () => app.listen(3000);
