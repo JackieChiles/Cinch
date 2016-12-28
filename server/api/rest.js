@@ -3,10 +3,15 @@ const app = express();
 const fakeData = require('./fake-data.js');
 const mime = 'application/json';
 
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', 'http://localhost:4200');
+  next();
+});
+
 // Returns a list of AI agents
 app.get('/api/v1/agents', (req, res) => {
   res.type(mime).send({
-    data: fakeData.agents
+    agents: fakeData.agents
   });
 });
 

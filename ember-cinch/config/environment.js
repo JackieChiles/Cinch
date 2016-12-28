@@ -7,6 +7,8 @@ module.exports = function(environment) {
     rootURL: '/',
     locationType: 'auto',
     apiHost: 'http://localhost:3000',
+    contentSecurityPolicy: {},
+
     EmberENV: {
       FEATURES: {
         // Here you can enable experimental features on an ember canary build
@@ -46,6 +48,8 @@ module.exports = function(environment) {
   if (environment === 'production') {
 
   }
+
+  ENV.contentSecurityPolicy['connect-src'] += ' ' + ENV.apiHost;
 
   return ENV;
 };
