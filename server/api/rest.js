@@ -2,7 +2,8 @@ const express = require('express');
 const app = express();
 const fakeData = require('./fake-data.js');
 const mime = 'application/json';
-const gameEngine = require('../engine/game-engine.js').engine;
+const gameEngine = require('../engine/game-engine').engine;
+const userManager = require('../users/user-manager');
 const bodyParser = require('body-parser');
 
 // Set up headers for all requests
@@ -16,6 +17,11 @@ app.use((req, res, next) => {
 // Set up parsing of POST request data
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+
+// Returns a new user object
+app.get('/api/v1/user', (req, res) => {
+  res.type(mime).send(userManager.getNewUser());
+});
 
 // Returns a list of AI agents
 app.get('/api/v1/agents', (req, res) => {

@@ -14,5 +14,6 @@
   "east": "East",
   "west": "West",
   "selectSeat": "Select a seat below to join game {gameId}.",
-  "pastGames": "Past Games"
+  "pastGames": "Past Games",
+  "welcome": "Welcome, {username}"
 }
