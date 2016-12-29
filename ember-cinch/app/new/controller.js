@@ -8,6 +8,9 @@ export default Ember.Controller.extend({
 
   startGame() {
     // TODO send agent selections
-    this.get('ajax').post('start', {});
+    this.get('ajax').post('start', {}).then(response => {
+      // Respose is game object
+      this.transitionToRoute('play', response);
+    }); // TODO handle request error;
   }
 });

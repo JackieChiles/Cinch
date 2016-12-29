@@ -23,7 +23,9 @@ exports.engine = {
 
     if (game) {
       // TODO Join user to game
+      return game;
     }
+
     return {};
   },
 

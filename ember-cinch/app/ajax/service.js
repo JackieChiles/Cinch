@@ -6,7 +6,7 @@ export default AjaxService.extend({
   host: ENV.apiHost,
   namespace: '/api/v1',
   post(endpoint, data) {
-    this.request(endpoint, {
+    return this.request(endpoint, {
       method: 'POST',
       contentType: 'application/json; charset=UTF-8',
       data: JSON.stringify(data)
