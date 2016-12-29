@@ -7,7 +7,15 @@ module.exports = function(environment) {
     rootURL: '/',
     locationType: 'auto',
     apiHost: 'http://localhost:3000',
-    contentSecurityPolicy: {},
+    contentSecurityPolicy: {
+      'default-src': "'none'",
+      'script-src': "'self' 'unsafe-inline'",
+      'style-src': "'self' 'unsafe-inline' https://fonts.googleapis.com",
+      'font-src': "'self' fonts.gstatic.com",
+      'connect-src': "'self'",
+      'img-src': "'self' data:",
+      'media-src': "'self'"
+    },
 
     EmberENV: {
       FEATURES: {

@@ -1,0 +1,21 @@
+<div class="flex layout-column layout-fill">
+    {{#paper-sidenav-container  class="inner-sidenav flex"}}
+        {{#paper-sidenav class="md-whiteframe-z2" name="left" lockedOpen=true}}
+            {{#paper-list}}
+                {{#each games as |game|}}
+                    {{#paper-item onClick=(action selectGame game)}}
+                        <div>
+                            {{game.id}}
+                        </div>
+                    {{/paper-item}}
+
+                    {{paper-divider}}
+                {{/each}}
+            {{/paper-list}}
+        {{/paper-sidenav}}
+
+        {{#paper-card-content class="flex"}}
+            {{outlet}}
+        {{/paper-card-content}}
+    {{/paper-sidenav-container}}
+</div>

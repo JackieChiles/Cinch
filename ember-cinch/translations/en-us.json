@@ -1,4 +1,5 @@
 {
+  "home": "Cinch Home",
   "new": "New Game",
   "join": "Join Game",
   "viewPast": "View Past Games",
@@ -7,5 +8,11 @@
   "leftOpponent": "Left Opponent",
   "rightOpponent": "Right Opponent",
   "availableAgents": "Available AI Agents",
-  "aiAgent": "AI Agent"
+  "aiAgent": "AI Agent",
+  "north": "North",
+  "south": "South",
+  "east": "East",
+  "west": "West",
+  "selectSeat": "Select a seat below to join game {gameId}.",
+  "pastGames": "Past Games"
 }

@@ -1,19 +1,12 @@
 import Ember from 'ember';
+import ENV from 'ember-cinch/config/environment';
 
 export default Ember.Controller.extend({
-  agents: null,
+  ajax: Ember.inject.service(),
+
+  agents: Ember.computed.reads('model'),
 
   startGame() {
-  },
-
-  populateAgents() {
-    this.store.findAll('agent').then(agents => {
-      this.set('agents', agents);
-    });
-  },
-
-  init() {
-    this._super(...arguments);
-    this.populateAgents();
+    this.get('ajax').post(`${ENV.apiHost}/api/v1/start`, {});
   }
 });

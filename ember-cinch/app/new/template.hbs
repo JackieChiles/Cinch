@@ -1,46 +1,40 @@
-{{#paper-toolbar}}
-    {{#paper-toolbar-tools}}
-        <h1>{{t "new"}}</h1>
-    {{/paper-toolbar-tools}}
-{{/paper-toolbar}}
+<div class="flex layout-column layout-fill">
+    {{#paper-sidenav-container  class="inner-sidenav flex"}}
+        {{#paper-sidenav class="md-whiteframe-z2" name="left" lockedOpen=true}}
+            {{#paper-button raised=true accent=true onClick=(action startGame)}}
+                {{t "start"}}
+            {{/paper-button}}
 
-<div class="layout-row">
-    <div class="layout-column flex-25">
-        {{#paper-button raised=true accent=true onClick=(action startGame)}}
-            {{t "start"}}
-        {{/paper-button}}
-
-        {{#paper-card as |card|}}
             {{#paper-toolbar}}
                 {{#paper-toolbar-tools}}
                     <h2>{{t "availableAgents"}}</h2>
                 {{/paper-toolbar-tools}}
             {{/paper-toolbar}}
 
-            {{#card.content}}
-                {{#paper-list}}
-                    {{#each agents as |agent|}}
-                        {{#paper-item class="md-2-line"}}
-                            <div class="md-list-item-text">
-                                <h3>{{agent.name}}</h3>
-                                <p>{{agent.description}}</p>
-                            </div>
-                            {{paper-divider}}
-                        {{/paper-item}}
-                    {{/each}}
-                {{/paper-list}}
-            {{/card.content}}
-        {{/paper-card}}
-    </div>
+            {{#paper-list}}
+                {{#each agents as |agent|}}
+                    {{#paper-item class="md-2-line"}}
+                        <div class="md-list-item-text">
+                            <h3>{{agent.name}}</h3>
+                            <p>{{agent.description}}</p>
+                        </div>
+                        {{paper-divider}}
+                    {{/paper-item}}
+                {{/each}}
+            {{/paper-list}}
+        {{/paper-sidenav}}
 
-    <div class="layout-column layout-align-center flex-75">
-        <div class="layout-row layout-align-center">
-            {{ai-selection label=(t "partner") agent=(mut partnerAgent) agents=agents}}
-        </div>
+        {{#paper-card-content class="flex"}}
+            <div class="layout-column layout-align-center flex-75">
+                <div class="layout-row layout-align-center">
+                    {{ai-selection label=(t "partner") agent=(mut partnerAgent) agents=agents}}
+                </div>
 
-        <div class="layout-row layout-align-center">
-            {{ai-selection label=(t "leftOpponent") agent=(mut leftAgent) agents=agents}}
-            {{ai-selection label=(t "rightOpponent") agent=(mut rightAgent) agents=agents}}
-        </div>
-    </div>
+                <div class="layout-row layout-align-center">
+                    {{ai-selection label=(t "leftOpponent") agent=(mut leftAgent) agents=agents}}
+                    {{ai-selection label=(t "rightOpponent") agent=(mut rightAgent) agents=agents}}
+                </div>
+            </div>
+        {{/paper-card-content}}
+    {{/paper-sidenav-container}}
 </div>

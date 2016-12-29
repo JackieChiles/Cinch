@@ -1,0 +1,20 @@
+{{#paper-content padding=true}}
+    <p>
+        {{t "selectSeat" gameId=game.id}}
+    </p>
+
+    <div class="layout-column layout-align-center flex-75">
+        <div class="layout-row layout-align-center">
+            {{player-seat label=(t "north")}}
+        </div>
+
+        <div class="layout-row layout-align-center">
+            {{player-seat label=(t "west")}}
+            {{player-seat label=(t "east")}}
+        </div>
+
+        <div class="layout-row layout-align-center">
+            {{player-seat label=(t "south")}}
+        </div>
+    </div>
+{{/paper-content}}

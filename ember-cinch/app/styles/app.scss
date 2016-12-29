@@ -1,1 +1,24 @@
 @import 'ember-paper';
+
+.ember-application > .ember-view {
+  height: 100%;
+}
+
+.main-toolbar {
+  a {
+    height: 100%;
+
+    button.paper-button.md-button {
+      height: 100%;
+      margin: 0;
+    }
+
+    &.active button.paper-button.md-button {
+      background-color: #2196F3;
+    }
+  }
+
+  .md-toolbar-tools {
+    padding: 0;
+  }
+}

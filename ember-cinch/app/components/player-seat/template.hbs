@@ -1,0 +1,17 @@
+{{#paper-card as |card|}}
+    {{#paper-toolbar}}
+        {{#paper-toolbar-tools}}
+            <h2>{{label}}</h2>
+        {{/paper-toolbar-tools}}
+    {{/paper-toolbar}}
+
+    {{#card.content}}
+        {{#if player}}
+            {{player.id}}
+        {{else}}
+            {{#paper-button onClick=(action takeSeat seat) primary=true}}
+                {{t "join"}}
+            {{/paper-button}}
+        {{/if}}
+    {{/card.content}}
+{{/paper-card}}

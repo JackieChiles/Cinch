@@ -9,6 +9,10 @@ const Router = Ember.Router.extend({
 Router.map(function() {
   this.route('home');
   this.route('new');
+  this.route('games', function() {
+    this.route('join', { path: ':gameId' });
+  });
+  this.route('history');
 });
 
 export default Router;
