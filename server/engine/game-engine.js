@@ -14,8 +14,21 @@ exports.engine = {
     return newGame.getGameState();
   },
 
+  // Join a player to an existing game
+  // TODO handle invalid seat selection
+  // TODO handle no matching game found
+  join(data) {
+    console.log(`User '${data.player.id}' attempting to join game '${data.gameId}' in seat '${data.seat}'`);
+    const game = this.activeGames.filter(game => game.id === data.gameId)[0];
+
+    if (game) {
+      // TODO Join user to game
+    }
+    return {};
+  },
+
   // Get a list of public game state for all active games
   getGameList() {
-    return this.activeGames.map(g => g.getGameState());
+    return this.activeGames.map(game => game.getGameState());
   }
 };

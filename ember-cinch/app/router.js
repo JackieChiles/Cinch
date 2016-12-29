@@ -13,6 +13,7 @@ Router.map(function() {
     this.route('join', { path: ':gameId' });
   });
   this.route('history');
+  this.route('play', { path: 'play/:gameId' });
 });
 
 export default Router;

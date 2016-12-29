@@ -7,6 +7,7 @@ export default Ember.Controller.extend({
   agents: Ember.computed.reads('model'),
 
   startGame() {
-    this.get('ajax').post(`${ENV.apiHost}/api/v1/start`, {});
+    // TODO send agent selections
+    this.get('ajax').post('start', {});
   }
 });
