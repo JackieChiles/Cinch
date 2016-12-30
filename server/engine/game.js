@@ -8,7 +8,10 @@ const uuid = require('uuid/v4');
   {
     seats: {
       south: {
-        playerId: 'a48f'
+        user: {
+          id: 'a48f',
+          name: 'Jim'
+        }
       },
       west: {
         agentId: '97ce'
@@ -22,11 +25,19 @@ const uuid = require('uuid/v4');
 */
 exports.Game = function (initialState) {
   this.id = uuid();
+  this.north = initialState.north;
+  this.east = initialState.east;
+  this.south = initialState.south;
+  this.west = initialState.west;
 
   // Returns public game state for this game
   this.getGameState = () => {
     return {
-      id: this.id
+      id: this.id,
+      north: this.north,
+      east: this.east,
+      south: this.south,
+      west: this.west
     };
   };
 };

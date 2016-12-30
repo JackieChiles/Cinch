@@ -1,7 +1,10 @@
 @import 'ember-paper';
+@import 'app/components/game-board/style';
 
 .ember-application > .ember-view {
   height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .main-toolbar {

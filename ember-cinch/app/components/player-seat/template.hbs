@@ -6,8 +6,8 @@
     {{/paper-toolbar}}
 
     {{#card.content}}
-        {{#if player}}
-            {{player.id}}
+        {{#if user}}
+            {{user.name}}
         {{else}}
             {{#paper-button onClick=(action takeSeat seat) primary=true raised=true}}
                 {{t "join"}}

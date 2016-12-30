@@ -1,6 +1,6 @@
 const express = require('express');
 const app = express();
-const fakeData = require('./fake-data.js');
+const fakeData = require('./fake-data');
 const mime = 'application/json';
 const gameEngine = require('../engine/game-engine').engine;
 const userManager = require('../users/user-manager');
@@ -20,7 +20,9 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 // Returns a new user object
 app.get('/api/v1/user', (req, res) => {
-  res.type(mime).send(userManager.getNewUser());
+  res.type(mime).send({
+    user: userManager.getNewUser()
+  });
 });
 
 // Returns a list of AI agents
@@ -44,18 +46,24 @@ app.get('/api/v1/games/:gameId', (req, res) => {
 
   if (game) {
     console.log(`Retrieved game '${game.id}'`);
-    res.type(mime).send(game);
+    res.type(mime).send({
+      game
+    });
   }
 });
 
 // Starts a new game
 app.post('/api/v1/start', (req, res) => {
-  res.type(mime).send(gameEngine.startNew(req.body));
+  res.type(mime).send({
+    game: gameEngine.startNew(req.body)
+  });
 });
 
 // Joins an active game
 app.post('/api/v1/join', (req, res) => {
-  res.type(mime).send(gameEngine.join(req.body));
+  res.type(mime).send({
+    game: gameEngine.join(req.body)
+  });
 });
 
 exports.start = () => app.listen(3000);

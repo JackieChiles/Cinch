@@ -13,8 +13,8 @@ export default Ember.Controller.extend({
 
   // Retrieves info for a new user from the server
   getUserInfo() {
-    this.get('ajax').request('user').then(user => {
-      this.set('user', user);
+    this.get('ajax').request('user').then(response => {
+      this.set('user', response.user);
     });
   },
 

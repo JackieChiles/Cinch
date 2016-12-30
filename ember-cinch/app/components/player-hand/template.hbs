@@ -1,0 +1,8 @@
+{{#paper-card}}
+    {{#paper-card-content}}
+        {{user.name}}
+        {{#each cards as |card|}}
+            {{card-image card=card}}
+        {{/each}}
+    {{/paper-card-content}}
+{{/paper-card}}

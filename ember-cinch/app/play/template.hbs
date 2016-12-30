@@ -1,1 +1,11 @@
-{{outlet}}
+<div class="flex layout-column">
+    {{#paper-sidenav-container  class="inner-sidenav flex"}}
+        {{#paper-sidenav class="md-whiteframe-z2" name="left" lockedOpen=true}}
+            {{!-- TODO chat pane --}}
+        {{/paper-sidenav}}
+
+        {{#paper-card-content class="flex"}}
+            {{game-board game=game currentUser=user}}
+        {{/paper-card-content}}
+    {{/paper-sidenav-container}}
+</div>

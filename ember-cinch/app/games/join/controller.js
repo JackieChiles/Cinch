@@ -13,8 +13,7 @@ export default Ember.Controller.extend({
       gameId: this.get('game.id'),
       seat
     }).then(response => {
-      // Response is game object
-      this.transitionToRoute('play', response);
+      this.transitionToRoute('play', response.game);
     }); // TODO handle request error
   }
 });

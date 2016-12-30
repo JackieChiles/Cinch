@@ -6,7 +6,9 @@ exports.engine = {
 
   // Initialize and start a new game
   startNew(data) {
-    const newGame = new Game(data);
+    const newGame = new Game({
+      south: data.user
+    });
     this.activeGames.push(newGame);
 
     console.log(`New game '${newGame.id}' started`);
@@ -21,8 +23,8 @@ exports.engine = {
     console.log(`User '${data.user.name}' (${data.user.id}) attempting to join game '${data.gameId}' in seat '${data.seat}'`);
     const game = this.activeGames.filter(game => game.id === data.gameId)[0];
 
-    if (game) {
-      // TODO Join user to game
+    if (game && !game[data.seat]) {
+      game[data.seat] = data.user;
       return game;
     }
 
