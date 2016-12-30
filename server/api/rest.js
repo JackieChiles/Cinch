@@ -2,7 +2,7 @@ const express = require('express');
 const app = express();
 const fakeData = require('./fake-data');
 const mime = 'application/json';
-const gameEngine = require('../engine/game-engine').engine;
+const gameEngine = require('../engine/game-engine');
 const userManager = require('../users/user-manager');
 const bodyParser = require('body-parser');
 
@@ -61,8 +61,10 @@ app.post('/api/v1/start', (req, res) => {
 
 // Joins an active game
 app.post('/api/v1/join', (req, res) => {
+  const game = gameEngine.join(req.body);
+  console.log('Sending response to join request\n', game);
   res.type(mime).send({
-    game: gameEngine.join(req.body)
+    game
   });
 });
 

@@ -1,19 +1,18 @@
-const Game = require('./game').Game;
+const Game = require('./game');
 
-exports.engine = {
+module.exports = {
   // Games currently in progress
   activeGames: [],
 
   // Initialize and start a new game
   startNew(data) {
-    const newGame = new Game({
-      south: data.user
-    });
+    const newGame = new Game();
+    newGame.join('south', data.user);
     this.activeGames.push(newGame);
 
     console.log(`New game '${newGame.id}' started`);
 
-    return newGame.getGameState();
+    return newGame.getGameState(data.user.id);
   },
 
   // Join a player to an existing game
@@ -23,9 +22,9 @@ exports.engine = {
     console.log(`User '${data.user.name}' (${data.user.id}) attempting to join game '${data.gameId}' in seat '${data.seat}'`);
     const game = this.activeGames.filter(game => game.id === data.gameId)[0];
 
-    if (game && !game[data.seat]) {
-      game[data.seat] = data.user;
-      return game;
+    if (game) {
+      console.log('Found game to join\n  User: ', data.user, '\n  Seat: ', data.seat);
+      return game.join(data.seat, data.user);
     }
 
     return {};

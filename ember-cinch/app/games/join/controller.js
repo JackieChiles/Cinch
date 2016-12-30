@@ -14,6 +14,7 @@ export default Ember.Controller.extend({
       seat
     }).then(response => {
       this.transitionToRoute('play', response.game);
+      this.get('application.socket').emit('join', response.game.id);
     }); // TODO handle request error
   }
 });
