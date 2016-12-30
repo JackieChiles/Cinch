@@ -12,7 +12,7 @@ export default Ember.Component.extend({
   // Position of current user in game. Will be null if current user is not joined to this game.
   currentUserPosition: Ember.computed('game', function () {
     const game = this.get('game');
-    const currentUser = this.get('currentUser')
+    const currentUser = this.get('currentUser');
 
     if (game && currentUser) {
       return [

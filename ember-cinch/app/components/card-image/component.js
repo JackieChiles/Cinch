@@ -1,8 +1,7 @@
 import Ember from 'ember';
 
 export default Ember.Component.extend({
-  tagName: 'img',
-  attributeBindings: ['src', 'alt'],
+  classNames: ['card-image'],
 
   // Required parameter with 'suit' and 'rank' properties
   card: null,

@@ -1,6 +1,9 @@
 {{#paper-card}}
     {{#paper-card-content}}
-        {{user.name}}
+        <div class="username">
+            {{user.name}}
+        </div>
+
         {{#each cards as |card|}}
             {{card-image card=card}}
         {{/each}}
