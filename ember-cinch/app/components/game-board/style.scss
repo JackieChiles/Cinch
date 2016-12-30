@@ -1,23 +1,59 @@
+$self-hand-width: 828px;
+$horizontal-hand-height: 124px;
+$horizontal-hand-width: 376px;
+$vertical-hand-height: 402px;
+$vertical-hand-width: 120px;
+
 .game-board {
+  .top-game-board-row {
+    justify-content: center;
+  }
+
   .play-surface {
-    height: 200px;
+    height: 250px;
     width: 400px;
-    background-color:#339C53;
-    border:2px solid #703C0D;
+    background-color: #339C53;
+    border: 2px solid #703C0D;
   }
 
   .middle-column {
     align-items: center;
+    justify-content: center;
     min-width: 420px;
     max-width: 420px;
+  }
+
+  .player-hand {
+    margin: 4px;
+
+    & > .ember-view {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+    }
+
+    md-card-content {
+      padding: 4px;
+    }
   }
 
   .player-hand-horizontal {
     display: flex;
     justify-content: center;
 
+    &.player-hand-self .player-hand {
+      width: $self-hand-width;
+
+      .card-image {
+        width: initial;
+        padding: 0 2px;
+      }
+    }
+
     .player-hand {
       display: inline-block;
+      height: $horizontal-hand-height;
+      width: $horizontal-hand-width;
 
       md-card-content {
         display: flex;
@@ -46,12 +82,17 @@
     display: flex;
     align-items: center;
 
-    .card-image {
-      height: 30px;
-      overflow: hidden;
+    .player-hand {
+      height: $vertical-hand-height;
+      width: $vertical-hand-width;
 
-      &:last-child {
-        height: initial;
+      .card-image {
+        height: 30px;
+        overflow: hidden;
+
+        &:last-child {
+          height: initial;
+        }
       }
     }
   }

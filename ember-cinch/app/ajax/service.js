@@ -1,4 +1,3 @@
-import Ember from 'ember';
 import AjaxService from 'ember-ajax/services/ajax';
 import ENV from 'ember-cinch/config/environment';
 
