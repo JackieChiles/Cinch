@@ -1,7 +1,7 @@
 import Ember from 'ember';
 
 export default Ember.Component.extend({
-  classNames: ['flex', 'game-board'],
+  classNames: ['flex', 'layout-row', 'layout-align-center', 'game-board'],
 
   // Parameter, game object
   game: null,

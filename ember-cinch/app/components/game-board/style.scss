@@ -1,13 +1,15 @@
 .game-board {
   .play-surface {
-    height: 400px;
+    height: 200px;
     width: 400px;
     background-color:#339C53;
     border:2px solid #703C0D;
   }
 
-  .middle-row {
+  .middle-column {
     align-items: center;
+    min-width: 420px;
+    max-width: 420px;
   }
 
   .player-hand-horizontal {
@@ -29,7 +31,7 @@
       }
 
       .card-image {
-        width: 30px;
+        width: 20px;
         overflow: hidden;
 
         &:last-child {
@@ -41,6 +43,8 @@
 
   .player-hand-vertical {
     width: 120px;
+    display: flex;
+    align-items: center;
 
     .card-image {
       height: 30px;

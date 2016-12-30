@@ -1,19 +1,19 @@
-<div class="player-hand-horizontal">
-    {{player-hand user=partner}}
+<div class="player-hand-vertical">
+    {{player-hand user=leftOpponent}}
 </div>
 
-<div class="flex layout-row layout-align-center middle-row">
-    <div class="player-hand-vertical">
-        {{player-hand user=leftOpponent}}
+<div class="flex layout-column layout-align-center middle-column">
+    <div class="player-hand-horizontal">
+        {{player-hand user=partner}}
     </div>
 
     <div class="play-surface"></div>
 
-    <div class="player-hand-vertical">
-        {{player-hand user=rightOpponent}}
+    <div class="player-hand-horizontal">
+        {{player-hand user=self}}
     </div>
 </div>
 
-<div class="player-hand-horizontal">
-    {{player-hand user=self}}
+<div class="player-hand-vertical">
+    {{player-hand user=rightOpponent}}
 </div>
