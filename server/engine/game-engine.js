@@ -1,4 +1,5 @@
 const Game = require('./game');
+const io = require('../api/sockets').io;
 
 module.exports = {
   // Games currently in progress
@@ -6,7 +7,7 @@ module.exports = {
 
   // Initialize and start a new game
   startNew(data) {
-    const newGame = new Game();
+    const newGame = new Game({}, io);
     newGame.join('south', data.user);
     this.activeGames.push(newGame);
 
