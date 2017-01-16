@@ -49,6 +49,14 @@ function Game(initialState, io) {
   // Position that last dealt
   this.dealer = 'south';
 
+  // Given a current position, returns the next position in turn order
+  this.getNextPosition = function (position) {
+    return position === 'north' ? 'east' :
+      position === 'east' ? 'south' :
+      position === 'south' ? 'west' :
+      'north';
+  };
+
   // Position of the player currently taking a turn
   this.activePlayer = this.getNextPosition(this.dealer);
 
@@ -139,14 +147,6 @@ function Game(initialState, io) {
       this.west.id === userId ? 'west' :
       null;
   };
-
-  // Given a current position, returns the next position in turn order
-  this.getNextPosition = function (position) {
-    return position === 'north' ? 'east' :
-      position === 'east' ? 'south' :
-      position === 'south' ? 'west' :
-      'north';
-  }
 
   // Advances to the next position in turn order
   this.advancePosition = function () {
