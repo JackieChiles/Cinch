@@ -22,6 +22,8 @@ export default Ember.Component.extend({
   // Parameter, user object
   currentUser: null,
 
+  isBidPhase: Ember.computed.equal('game.phase', 'bid'),
+
   // Position of current user in game. Will be null if current user is not joined to this game.
   currentUserPosition: Ember.computed('game.{north,east,south,west}', function () {
     const game = this.get('game');

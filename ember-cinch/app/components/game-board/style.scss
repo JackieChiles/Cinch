@@ -14,6 +14,16 @@ $vertical-hand-width: 120px;
     width: 400px;
     background-color: #339C53;
     border: 2px solid #703C0D;
+    display: flex;
+    flex-direction: column;
+
+    .play-area.opponents {
+      display: flex;
+    }
+
+    .play-area {
+      flex: 1 1 auto;
+    }
   }
 
   .middle-column {
