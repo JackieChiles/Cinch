@@ -18,13 +18,6 @@ app.use((req, res, next) => {
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// Returns a new user object
-app.get('/api/v1/user', (req, res) => {
-  res.type(mime).send({
-    user: userManager.getNewUser()
-  });
-});
-
 // Returns a list of AI agents
 app.get('/api/v1/agents', (req, res) => {
   res.type(mime).send({
@@ -50,22 +43,6 @@ app.get('/api/v1/games/:gameId', (req, res) => {
       game
     });
   }
-});
-
-// Starts a new game
-app.post('/api/v1/start', (req, res) => {
-  res.type(mime).send({
-    game: gameEngine.startNew(req.body)
-  });
-});
-
-// Joins an active game
-app.post('/api/v1/join', (req, res) => {
-  const game = gameEngine.join(req.body);
-  console.log('Sending response to join request\n', game);
-  res.type(mime).send({
-    game
-  });
 });
 
 exports.start = () => app.listen(3000);

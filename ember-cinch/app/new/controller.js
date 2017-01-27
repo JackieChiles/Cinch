@@ -1,18 +1,22 @@
 import Ember from 'ember';
 
 export default Ember.Controller.extend({
-  ajax: Ember.inject.service(),
   application: Ember.inject.controller(),
 
   agents: Ember.computed.reads('model'),
 
   startGame() {
     // TODO send agent selections
-    this.get('ajax').post('start', {
+    this.get('application.socket').emit('new', {
       user: this.get('application.user')
-    }).then(response => {
-      this.transitionToRoute('play', response.game);
-      this.get('application.socket').emit('join', response.game.id);
-    }); // TODO handle request error;
+    });
+  },
+
+  init() {
+    this._super(...arguments);
+
+    // TODO handle request error
+    // TODO turn off handler after navigating away
+    this.get('application.socket').on('new-success', game => this.transitionToRoute('play', game));
   }
 });

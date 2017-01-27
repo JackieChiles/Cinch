@@ -7,9 +7,22 @@ const getAnonymousName = function () {
    return `${rand(colors)} ${rand(animals)}`;
 };
 
-exports.getNewUser = function () {
+// Key is socket ID, value is public user ID
+const socketUserHash = {};
+
+// Returns a new user object
+exports.getNewUser = function (socket) {
+  const id = uuid();
+
+  socketUserHash[id] = socket.id;
+
   return {
     name: getAnonymousName(),
-    id: uuid()
+    id
   };
+};
+
+// Returns the socket ID for the given public user ID
+exports.getUserSocketId = function (userId) {
+  return socketUserHash[userId];
 };

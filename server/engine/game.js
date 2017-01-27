@@ -1,5 +1,6 @@
 const uuid = require('uuid/v4');
 const shuffle = require('shuffle-array');
+
 const ranks = ['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A'];
 const suits = ['C', 'D', 'H', 'S'];
 const bidOptions = {
@@ -100,11 +101,6 @@ function Game(initialState, io) {
    */
   this.trickWinners = {};
 
-  // Emits a socket.io event to all in this game room
-  this.emitSocketEventToRoom = function (event, data) {
-    io.to(this.id).emit(event, data);
-  };
-
   // Returns public game state for this game
   // If user ID is passed that matches one in-game, that user's hand will be included as well
   this.getGameState = function (userId) {
@@ -154,6 +150,11 @@ function Game(initialState, io) {
     return activePlayer;
   }
 
+  // Calls the given function for the user in each position (north, east, south, west)
+  this.forEachPosition = function (operation) {
+    [this.north, this.east, this.south, this.west].forEach(operation);
+  };
+
   // Returns 'true' if all seats are full, otherwise 'false'
   this.isFull = function () {
     return this.north && this.east && this.south && this.west;
@@ -163,18 +164,23 @@ function Game(initialState, io) {
   this.join = function (seat, user) {
     if (seat && user && !this[seat]) {
       this[seat] = user;
-      this.hands[user.id] = this.getNewHand();
+      console.log('User join successful');
 
       if (this.isFull()) {
         // All seats are filled; start the game
-        this.phase = 'bid';
-        this.emitSocketEventToRoom('start', {
-          phase: this.phase
+        this.dealHand();
+        const phase = this.phase = 'bid';
+
+        // Send hands to each user
+        this.forEachPosition(user => {
+          io.start(this, user.id, {
+            // TODO send 'hands' key instead for consistency
+            myHand: this.hands[user.id],
+            phase
+          });
         });
       }
-
-      console.log('User join successful. Hand generated\n', this.hands[user.id], '\nNew deck length ', this.deck.length);
-
+ 
       return this.getGameState(user.id);
     }
 
@@ -251,7 +257,7 @@ function Game(initialState, io) {
         this.advancePosition();
       }
 
-      this.emitSocketEventToRoom('bid', {
+      io.bid(this, {
         position,
         bidValue,
         phase: this.phase,
@@ -312,10 +318,7 @@ function Game(initialState, io) {
   this.dealHand = function () {
     this.hands = {};
     this.deck = getNewDeck();
-    this.hands[north.id] = this.getNewHand();
-    this.hands[south.id] = this.getNewHand();
-    this.hands[east.id] = this.getNewHand();
-    this.hands[west.id] = this.getNewHand();
+    this.forEachPosition(user => this.hands[user.id] = this.getNewHand());
   };
 
   // Applies the given play from the given user, updates state, and emits play event to room
@@ -380,7 +383,8 @@ function Game(initialState, io) {
         this.advancePosition();
       }
 
-      this.emitSocketEventToRoom('play', {
+      // TODO send newly dealt hand
+      io.play(this, {
         position,
         card,
         trickWinner,

@@ -7,14 +7,19 @@ export default Ember.Controller.extend({
   game: Ember.computed.reads('model'),
 
   takeSeat(seat) {
-    this.get('ajax').post('join', {
-      // TODO user ID and name
+    this.get('application.socket').emit('join', {
+      // TODO can do user lookup server-side
       user: this.get('application.user'),
       gameId: this.get('game.id'),
-      seat
-    }).then(response => {
-      this.transitionToRoute('play', response.game);
-      this.get('application.socket').emit('join', response.game.id);
-    }); // TODO handle request error
+      position: seat
+    });
+  },
+
+  init() {
+    this._super(...arguments);
+
+    // TODO handle request error
+    // TODO turn off handler after navigating away
+    this.get('application.socket').on('join-success', game => this.transitionToRoute('play', game));
   }
 });

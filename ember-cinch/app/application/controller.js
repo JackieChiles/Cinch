@@ -9,20 +9,15 @@ export default Ember.Controller.extend({
 
   connectSocket() {
     const socket = this.get('socketIo').socketFor('localhost:3000');
-    socket.on('connect', () => Ember.Logger.info('Connected to socket server'));
-    this.set('socket', socket);
-  },
-
-  // Retrieves info for a new user from the server
-  getUserInfo() {
-    this.get('ajax').request('user').then(response => {
-      this.set('user', response.user);
+    socket.on('connection-success', user => {
+      Ember.Logger.info('Connected to socket server');
+      this.set('user', user);
     });
+    this.set('socket', socket);
   },
 
   init() {
     this._super(...arguments);
     this.connectSocket();
-    this.getUserInfo();
   }
 });
