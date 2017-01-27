@@ -23,7 +23,7 @@ export default Ember.Component.extend({
   currentUser: null,
 
   // Position of current user in game. Will be null if current user is not joined to this game.
-  currentUserPosition: Ember.computed('game', function () {
+  currentUserPosition: Ember.computed('game.{north,east,south,west}', function () {
     const game = this.get('game');
     const currentUser = this.get('currentUser');
 
