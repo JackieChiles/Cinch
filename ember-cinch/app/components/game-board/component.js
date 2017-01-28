@@ -29,6 +29,9 @@ export default Ember.Component.extend({
   // Parameter, bid action, single argument is bid value
   bid() {},
 
+  // Parameter, play action, single argument is card
+  play() {},
+
   // Returns current bid name for the given position
   getBidName(position) {
     const bid = this.get('game.currentBids').filter(bid => bid.position === position)[0];

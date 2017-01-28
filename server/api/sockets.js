@@ -7,6 +7,7 @@ module.exports = {
   init: server => {
     io = require('socket.io')(server);
 
+    // Inbound socket messages
     io.on('connection', socket => {
       // Respond to the new user connection
       console.log(`Client connected with socket id ${socket.id}`);
@@ -42,12 +43,14 @@ module.exports = {
       });
 
       // User makes a bid
-      socket.on('bid', data => {
-        gameEngine.bid(userManager.getUserId(socket.id), data);
-      });
+      socket.on('bid', data => gameEngine.bid(userManager.getUserId(socket.id), data));
+
+      // User makes a play
+      socket.on('play', data => gameEngine.play(userManager.getUserId(socket.id), data));
     });
   },
 
+  // Outbound socket messages
   start(userId, data) {
     io.to(userManager.getSocketId(userId)).emit('start', data);
   },

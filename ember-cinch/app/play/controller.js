@@ -11,16 +11,19 @@ export default Ember.Controller.extend({
   // Update the game state
   updateGame(game) {
     Ember.Logger.log('Updating game state');
+
+    //TODO figure out phase delay
+    /*
     // Update all except phase; leave a delay so final bids/plays can be shown
     const newPhase = game.phase;
     const oldGame = this.get('game');
-
     if (newPhase !== oldGame.phase) {
       game.phase = oldGame.phase;
 
       // TODO store timer variable
       Ember.run.later(() => this.set('game.phase', newPhase), PHASE_CHANGE_DELAY);
     }
+    */
 
     this.set('game', game);
   },
@@ -69,6 +72,14 @@ export default Ember.Controller.extend({
     this.get('application.socket').emit('bid', {
       gameId: this.get('game.id'),
       value
+    });
+  },
+
+  play(card) {
+    Ember.Logger.log('Play made', card);
+    this.get('application.socket').emit('play', {
+      gameId: this.get('game.id'),
+      card
     });
   },
 

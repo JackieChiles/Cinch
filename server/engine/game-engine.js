@@ -34,6 +34,11 @@ module.exports = {
     return this.getGame(data.gameId).bid(userId, data.value);
   },
 
+  // User makes a play
+  play(userId, data) {
+    return this.getGame(data.gameId).play(userId, data.card);
+  },
+
   // Get a list of public game state for all active games
   getGameList() {
     return this.activeGames.map(game => game.getGameState());

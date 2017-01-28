@@ -21,7 +21,6 @@ const WINNING_SCORE = 11;
 
 // Generates and shuffles a new 52-card deck
 const getNewDeck = () => shuffle(suits.reduce((deck, suit) => ranks.reduce((cards, rank) => (cards.push({ rank, suit }), cards), deck), []));
-                                
 
 /*
   Game class
@@ -96,7 +95,7 @@ function Game(initialState, io) {
   this.plays = [];
 
   /*
-    Key is trick number, value is position that took it. Must be cleared at end of hand.
+    Key is trick number, value is play that took it. Must be cleared at end of hand.
     Can be determined from 'plays' but this is a convenience property so we don't have to recompute.
    */
   this.trickWinners = {};
@@ -263,9 +262,14 @@ function Game(initialState, io) {
     }
   };
 
+  // Returns array of plays made this trick
+  this.getCurrentTrickPlays = function () {
+    return this.plays.filter(play => play.hand === this.hand && play.trick === this.trick);
+  };
+
   // Returns an array of cards that are currently in play this trick
   this.getCardsInPlay = function () {
-    return this.plays.filter(play => play.hand === this.hand && play.trick === this.trick).map(play => play.card);
+    return this.getCurrentTrickPlays().map(play => play.card);
   };
 
   // Returns true if play from given user is legal at this time, otherwise false
@@ -292,8 +296,17 @@ function Game(initialState, io) {
       );
   };
 
-  this.determineCurrentTrickWinner = function () {
-    // TODO implement
+  // Returns the play that won the current trick. Does not check for legality of plays.
+  this.getCurrentTrickWinner = function () {
+    return getCurrentTrickPlays().reduce((previous, current) => {
+      // Current card is trump which beats prior non-trump or lower trump
+      if (current.card.suit === this.trump) {
+        return previous.card.suit === this.trump && previous.card.rank > current.card.rank ? previous : current;
+      }
+
+      // Current card is not trump which only beats prior lower non-trump when following suit
+      return current.card.suit === previous.card.suit && current.card.rank > previous.card.rank ? current : previous;
+    });
   };
 
   // TODO implement
@@ -303,6 +316,11 @@ function Game(initialState, io) {
     if (playsForHand.length === NUM_PLAYERS * HAND_SIZE) {
       // Only update scores if all plays have been made for hand
       const trump = playsForHand[0].card.suit;
+
+      // High
+      // Low
+      // Jack
+      // Game
 
     } else {
       console.warn(`Attempted to update scores before hand '${this.hand}' was over`);
@@ -317,6 +335,7 @@ function Game(initialState, io) {
 
   // Applies the given play from the given user, updates state, and emits play event to room
   this.play = function (userId, card) {
+    console.log('Play attempted', userId, card);
     if (this.isPlayLegal(userId, card)) {
       const position = this.getUserPosition(userId);
       let trickWinner = null;
@@ -335,7 +354,7 @@ function Game(initialState, io) {
 
       if (cardsInPlay.length === NUM_PLAYERS) {
         // Trick is over
-        trickWinner = this.determineCurrentTrickWinner();
+        trickWinner = this.getCurrentTrickWinner();
         this.trickWinners[this.trick] = trickWinner;
 
         if (this.trick === HAND_SIZE) {

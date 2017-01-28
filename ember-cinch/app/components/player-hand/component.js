@@ -10,5 +10,8 @@ export default Ember.Component.extend({
   cards: [],
 
   // Parameter, display text for current bid made by user, if any
-  currentBid: null
+  currentBid: null,
+
+  // Parameter, optional, action to fire when card is clicked with card as parameter
+  cardAction() {}
 });

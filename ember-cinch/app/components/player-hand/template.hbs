@@ -1,15 +1,17 @@
 {{#paper-card}}
     {{#paper-card-content}}
-        <div class="username">
-            {{user.name}}
-        </div>
+        <div class="info">
+            <div class="username">
+                {{user.name}}
+            </div>
 
-        <div class="current-bid">
-            Bid: {{currentBid}}
+            <div class="current-bid">
+                Bid: {{currentBid}}
+            </div>
         </div>
 
         {{#each cards as |card|}}
-            {{card-image card=card}}
+            {{card-image card=card onClick=(action cardAction)}}
         {{/each}}
     {{/paper-card-content}}
 {{/paper-card}}
