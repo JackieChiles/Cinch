@@ -7,5 +7,8 @@ export default Ember.Component.extend({
   user: null,
 
   // Parameter, array of cards with 'rank' and 'suit' properties and/or 'faceDown' boolean
-  cards: []
+  cards: [],
+
+  // Parameter, display text for current bid made by user, if any
+  currentBid: null
 });

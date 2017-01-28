@@ -1,11 +1,11 @@
 <div class="flex layout-row top-game-board-row">
     <div class="player-hand-vertical">
-        {{player-hand user=leftOpponent cards=leftOpponentHand}}
+        {{player-hand user=leftOpponent cards=leftOpponentHand currentBid=leftOpponentBid}}
     </div>
 
     <div class="flex layout-column layout-align-center middle-column">
         <div class="player-hand-horizontal">
-            {{player-hand user=partner cards=partnerHand}}
+            {{player-hand user=partner cards=partnerHand currentBid=partnerBid}}
         </div>
 
         <div class="play-surface">
@@ -30,10 +30,10 @@
     </div>
 
     <div class="player-hand-vertical">
-        {{player-hand user=rightOpponent cards=rightOpponentHand}}
+        {{player-hand user=rightOpponent cards=rightOpponentHand currentBid=rightOpponentBid}}
     </div>
 </div>
 
 <div class="player-hand-horizontal player-hand-self">
-    {{player-hand user=self cards=selfHand}}
+    {{player-hand user=self cards=selfHand currentBid=selfBid}}
 </div>

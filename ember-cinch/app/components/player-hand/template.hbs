@@ -4,6 +4,10 @@
             {{user.name}}
         </div>
 
+        <div class="current-bid">
+            Bid: {{currentBid}}
+        </div>
+
         {{#each cards as |card|}}
             {{card-image card=card}}
         {{/each}}

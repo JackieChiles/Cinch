@@ -26,8 +26,17 @@ export default Ember.Component.extend({
   // Parameter, user object
   currentUser: null,
 
-  // Parameter, bid action
-  bid(value) {},
+  // Parameter, bid action, single argument is bid value
+  bid() {},
+
+  // Returns current bid name for the given position
+  getBidName(position) {
+    const bid = this.get('game.currentBids').filter(bid => bid.position === position)[0];
+
+    if (bid) {
+      return this.get('bidNames')[bid.value];
+    }
+  },
 
   isBidPhase: Ember.computed.equal('game.phase', 'bid'),
 
@@ -74,7 +83,7 @@ export default Ember.Component.extend({
   }),
 
   selfBid: Ember.computed('game', 'selfPosition', function () {
-    return this.get('bidNames')[this.get(`game.currentBids.${this.get('selfPosition')}`)];
+    return this.getBidName(this.get('selfPosition'));
   }),
 
   partnerPosition: Ember.computed('currentUserPosition', function () {
@@ -92,7 +101,7 @@ export default Ember.Component.extend({
   partnerHand: generateFaceDownHand(),
 
   partnerBid: Ember.computed('game', 'partnerPosition', function () {
-    return this.get('bidNames')[this.get(`game.currentBids.${this.get('partnerPosition')}`)];
+    return this.getBidName(this.get('partnerPosition'));
   }),
 
   leftOpponentPosition: Ember.computed('currentUserPosition', function () {
@@ -110,7 +119,7 @@ export default Ember.Component.extend({
   leftOpponentHand: generateFaceDownHand(),
 
   leftOpponentBid: Ember.computed('game', 'leftOpponentPosition', function () {
-    return this.get('bidNames')[this.get(`game.currentBids.${this.get('leftOpponentPosition')}`)];
+    return this.getBidName(this.get('leftOpponentPosition'));
   }),
 
   rightOpponentPosition: Ember.computed('currentUserPosition', function () {
@@ -128,10 +137,12 @@ export default Ember.Component.extend({
   rightOpponentHand: generateFaceDownHand(),
 
   rightOpponentBid: Ember.computed('game', 'rightOpponentPosition', function () {
-    return this.get('bidNames')[this.get(`game.currentBids.${this.get('rightOpponentPosition')}`)];
+    return this.getBidName(this.get('rightOpponentPosition'));
   }),
 
   init() {
+    this._super(...arguments);
+
     const intl = this.get('intl');
     this.set('bidNames', [
       intl.t('bids.pass'),
@@ -140,6 +151,6 @@ export default Ember.Component.extend({
       intl.t('bids.three'),
       intl.t('bids.four'),
       intl.t('bids.cinch')
-    ];
+    ]);
   }
 });
