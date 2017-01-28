@@ -17,12 +17,25 @@ $vertical-hand-width: 120px;
     display: flex;
     flex-direction: column;
 
-    .play-area.opponents {
+    .play-area {
       display: flex;
+      flex: 1 1 1px;
+
+      &.self {
+        align-items: flex-end;
+      }
     }
 
-    .play-area {
-      flex: 1 1 auto;
+    .bid-buttons {
+      display: flex;
+      justify-content: center;
+      flex: 1 0 auto;
+
+      button {
+        margin: 0;
+        min-width: 0;
+        border-radius: 0;
+      }
     }
   }
 

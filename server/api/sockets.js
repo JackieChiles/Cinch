@@ -38,20 +38,25 @@ module.exports = {
 
         // Notify others of new user in game
         // TODO re-think this as this should be gated by success of gameEngine.join
-        socket.broadcast.to(game.id).emit('join', data);
+        socket.broadcast.to(game.id).emit('join', { game });
+      });
+
+      // User makes a bid
+      socket.on('bid', data => {
+        gameEngine.bid(userManager.getUserId(socket.id), data);
       });
     });
   },
 
-  start(game, userId, data) {
-    io.to(userManager.getUserSocketId(userId)).emit('start', data);
+  start(userId, data) {
+    io.to(userManager.getSocketId(userId)).emit('start', data);
   },
 
-  bid(game, data) {
-    io.to(game.id).emit('bid', data);
+  bid(userId, data) {
+    io.to(userManager.getSocketId(userId)).emit('bid', data);
   },
 
-  play(game, data) {
-    io.to(game.id).emit('play', data);
+  play(userId, data) {
+    io.to(userManager.getSocketId(userId)).emit('play', data);
   }
 };

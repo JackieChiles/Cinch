@@ -41,6 +41,7 @@
     "ember-load-initializers": "^0.5.1",
     "ember-paper": "1.0.0-alpha.8",
     "ember-resolver": "^2.0.3",
+    "ember-truth-helpers": "1.3.0",
     "ember-websockets": "6.2.2",
     "loader.js": "^4.0.10",
     "mock-socket": "6.0.3"

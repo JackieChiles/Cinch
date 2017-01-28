@@ -2,7 +2,7 @@ const Game = require('./game');
 
 module.exports = {
   // Games currently in progress
-  activeGames: [],
+  activeGames: [], // TODO make this hash instead?
 
   // Initialize and start a new game
   startNew(data, io) {
@@ -17,10 +17,9 @@ module.exports = {
 
   // Join a player to an existing game
   // TODO handle invalid seat selection
-  // TODO handle no matching game found
   join(data) {
     console.log(`User '${data.user.name}' (${data.user.id}) attempting to join game '${data.gameId}' in position '${data.position}'`);
-    const game = this.activeGames.filter(game => game.id === data.gameId)[0];
+    const game = this.getGame(data.gameId);
 
     if (game) {
       console.log('Found game to join\n  User: ', data.user, '\n  Seat: ', data.position);
@@ -30,8 +29,18 @@ module.exports = {
     return {};
   },
 
+  // User makes a bid
+  bid(userId, data) {
+    return this.getGame(data.gameId).bid(userId, data.value);
+  },
+
   // Get a list of public game state for all active games
   getGameList() {
     return this.activeGames.map(game => game.getGameState());
+  },
+
+  // TODO handle no matching game found
+  getGame(id) {
+    return this.activeGames.filter(game => game.id === id)[0];
   }
 };

@@ -117,20 +117,19 @@ function Game(initialState, io) {
       activePlayer: this.activePlayer,
       nsScore: this.nsScore,
       ewScore: this.ewScore,
-      hands: {}
+      hands: {},
+      currentBids: this.getCurrentHandBids(),
+      cardsInPlay: this.getCardsInPlay()
     };
 
-    console.log(`Looking for hand in game state for user ${userId}. Current hands:\n`, this.hands);
-
     if (userId && this.hands[userId]) {
-      console.log(`Found hand in game state for user ${userId} `, this.hands[userId]);
       state.hands[userId] = this.hands[userId];
     }
 
     return state;
   };
 
-  // Generates a new hand of HAND_SIZE
+  // Deals a hand of HAND_SIZE
   this.getNewHand = function () {
     return this.deck.splice(-HAND_SIZE)
   };
@@ -147,7 +146,7 @@ function Game(initialState, io) {
   // Advances to the next position in turn order
   this.advancePosition = function () {
     this.activePlayer = this.getNextPosition(this.activePlayer);
-    return activePlayer;
+    return this.activePlayer;
   }
 
   // Calls the given function for the user in each position (north, east, south, west)
@@ -172,13 +171,7 @@ function Game(initialState, io) {
         const phase = this.phase = 'bid';
 
         // Send hands to each user
-        this.forEachPosition(user => {
-          io.start(this, user.id, {
-            // TODO send 'hands' key instead for consistency
-            myHand: this.hands[user.id],
-            phase
-          });
-        });
+        this.forEachPosition(user => io.start(user.id, { game: this.getGameState(user.id) }));
       }
  
       return this.getGameState(user.id);
@@ -194,12 +187,12 @@ function Game(initialState, io) {
 
   // Returns bids for the current hand
   this.getCurrentHandBids = function () {
-    return getHandBids(this.hand);
+    return this.getHandBids(this.hand);
   };
 
   // Returns the winning bid for the given hand. Returns null if no bids found for hand.
   this.getWinningBid = function (hand) {
-    const handBids = getHandBids;
+    const handBids = this.getHandBids(hand);
 
     if (handBids.length) {
       // When there is a tie for high bid (either PASS or CINCH), the dealer will be one of the winning bidders and is considered the bid winner in either case. The bids array is ordered, so the dealer should be last and returned correctly by this reduce.
@@ -257,12 +250,13 @@ function Game(initialState, io) {
         this.advancePosition();
       }
 
-      io.bid(this, {
+      console.log('Bid made', userId, bidValue);
+
+      this.forEachPosition(user => io.bid(user.id, {
         position,
         bidValue,
-        phase: this.phase,
-        activePlayer: this.activePlayer
-      });
+        game: this.getGameState(user.id)
+      }));
     } else {
       console.warn('Illegal bid attempted ', userId, bidValue);
       // TODO handle illegal bid
@@ -383,19 +377,13 @@ function Game(initialState, io) {
         this.advancePosition();
       }
 
-      // TODO send newly dealt hand
-      io.play(this, {
+      this.forEachPosition(user => io.play(user.id, {
         position,
         card,
         trickWinner,
         gameWinner,
-        phase: this.phase,
-        activePlayer: this.activePlayer,
-        nsScore: this.nsScore,
-        ewScore: this.ewScore,
-        trick: this.trick,
-        hand: this.hand
-      });
+        game: this.getGameState(user.id)
+      }));
     } else {
       console.warn('Illegal play attempted ', userId, card);
       // TODO handle illegal play

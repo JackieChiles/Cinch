@@ -16,5 +16,13 @@
   "selectSeat": "Select a seat below to join game {gameId}.",
   "pastGames": "Past Games",
   "welcome": "Welcome, {username}",
-  "faceDownCard": "Face down card"
+  "faceDownCard": "Face down card",
+  "bids": {
+    "pass": "Pass",
+    "one": "One",
+    "two": "Two",
+    "three": "Three",
+    "four": "Four",
+    "cinch": "Cinch"
+  }
 }
