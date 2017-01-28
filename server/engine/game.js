@@ -298,7 +298,7 @@ function Game(initialState, io) {
 
   // Returns the play that won the current trick. Does not check for legality of plays.
   this.getCurrentTrickWinner = function () {
-    return getCurrentTrickPlays().reduce((previous, current) => {
+    return this.getCurrentTrickPlays().reduce((previous, current) => {
       // Current card is trump which beats prior non-trump or lower trump
       if (current.card.suit === this.trump) {
         return previous.card.suit === this.trump && previous.card.rank > current.card.rank ? previous : current;
@@ -342,6 +342,9 @@ function Game(initialState, io) {
 
       // If game is over, will be string 'east-west' or 'north-south' indicating winning team
       let gameWinner = null;
+
+      // Remove card from hand
+      this.hands[userId] = this.hands[userId].filter(c => !(c.suit === card.suit && c.rank === card.rank));
 
       this.plays.push({
         position,

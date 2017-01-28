@@ -39,24 +39,12 @@ export default Ember.Controller.extend({
 
     socket.on('start', data => {
       Ember.Logger.log('Game is starting');
-/*
-      const hands = this.get('game.hands');
-      hands[this.get('application.user.id')] = data.myHand;
-      this.set('game.hands', hands);
-      this.set('game.phase', data.phase);
-      */
       this.updateGame(data.game);
     });
 
-    socket.on('bid', data => {/*
-      this.set(`game.currentBids.${data.position}`, data.bidValue);
-      this.set('game.activePlayer', data.activePlayer);
+    socket.on('bid', data => this.updateGame(data.game));
 
-      // Delay phase change so all bids can be seen
-      // TODO store timer variable
-      Ember.run.later(() => this.set('game.phase', data.phase), PHASE_CHANGE_DELAY);*/
-      this.updateGame(data.game);
-    });
+    socket.on('play', data => this.updateGame(data.game));
   },
 
   teardown() {
