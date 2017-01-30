@@ -9,23 +9,42 @@
         </div>
 
         <div class="play-surface">
-            <div class="play-area horizontal partner"></div>
-            <div class="play-area opponents">
-                <div class="play-area horizontal"></div>
-                <div class="play-area horizontal"></div>
-            </div>
-            <div class="play-area horizontal self">
-                {{#if (and isBidPhase isMyBid)}}
-                    <div class="bid-buttons">
-                        {{paper-button raised=true label=(t 'bids.pass') onClick=(action bid 0)}}
-                        {{paper-button raised=true label=(t 'bids.one') onClick=(action bid 1)}}
-                        {{paper-button raised=true label=(t 'bids.two') onClick=(action bid 2)}}
-                        {{paper-button raised=true label=(t 'bids.three') onClick=(action bid 3)}}
-                        {{paper-button raised=true label=(t 'bids.four') onClick=(action bid 4)}}
-                        {{paper-button raised=true label=(t 'bids.cinch') onClick=(action bid 5)}}
+            {{#if (and isBidPhase isMyBid)}}
+                <div class="bid-buttons">
+                    {{paper-button raised=true label=(t 'bids.pass') onClick=(action bid 0)}}
+                    {{paper-button raised=true label=(t 'bids.one') onClick=(action bid 1)}}
+                    {{paper-button raised=true label=(t 'bids.two') onClick=(action bid 2)}}
+                    {{paper-button raised=true label=(t 'bids.three') onClick=(action bid 3)}}
+                    {{paper-button raised=true label=(t 'bids.four') onClick=(action bid 4)}}
+                    {{paper-button raised=true label=(t 'bids.cinch') onClick=(action bid 5)}}
+                </div>
+            {{else}}
+                <div class="play-area left">
+                    {{#if leftOpponentCard}}
+                        {{card-image card=leftOpponentCard cssClass='horizontal'}}
+                    {{/if}}
+                </div>
+
+                <div class="play-area center">
+                    <div class="play-area partner">
+                        {{#if partnerCard}}
+                            {{card-image card=partnerCard}}
+                        {{/if}}
                     </div>
-                {{/if}}
-            </div>
+
+                    <div class="play-area self">
+                        {{#if selfCard}}
+                            {{card-image card=selfCard}}
+                        {{/if}}
+                    </div>
+                </div>
+
+                <div class="play-area right">
+                    {{#if rightOpponentCard}}
+                        {{card-image card=rightOpponentCard cssClass='horizontal'}}
+                    {{/if}}
+                </div>
+            {{/if}}
         </div>
     </div>
 

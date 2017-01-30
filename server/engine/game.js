@@ -118,7 +118,7 @@ function Game(initialState, io) {
       ewScore: this.ewScore,
       hands: {},
       currentBids: this.getCurrentHandBids(),
-      cardsInPlay: this.getCardsInPlay()
+      currentPlays: this.getCurrentTrickPlays()
     };
 
     if (userId && this.hands[userId]) {
@@ -279,20 +279,18 @@ function Game(initialState, io) {
     const leadCard = cardsInPlay[0];
     const hand = this.hands[userId];
 
-     // Card must be in hand
-    return hand.filter(c => c.suit === card.suit && c.rank === card.rank).length &&
+    
+    return userPosition &&                  // User is in game
+      this.activePlayer === userPosition && // It's user's turn to bid
+      this.phase === 'play' &&              // It's time to play
+
+      // Card must be in hand
+      hand.filter(c => c.suit === card.suit && c.rank === card.rank).length &&
       (
-        // Anything legal on lead
-        !leadCard ||
-
-        // Following suit
-        leadCard.suit === card.suit ||
-
-        // Trumping
-        this.trump === card.suit ||
-
-        // Throwing off-suit; lead suit not in hand
-        hand.filter(c => c.suit === leadCard.suit).length === 0
+        !leadCard ||                                       // Anything legal on lead
+        leadCard.suit === card.suit ||                     // Following suit
+        this.trump === card.suit ||                        // Trumping
+        !hand.filter(c => c.suit === leadCard.suit).length // Can't follow suit
       );
   };
 

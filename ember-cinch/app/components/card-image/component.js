@@ -2,8 +2,11 @@ import Ember from 'ember';
 
 export default Ember.Component.extend({
   classNames: ['card-image'],
-  classNameBindings: ['actionable'],
+  classNameBindings: ['actionable', 'cssClass'],
   intl: Ember.inject.service(),
+
+  // Parameter, optional, can be 'rotate90', 'rotate180', or 'rotate270' to rotate image
+  cssClass: null,
 
   // Parameter, optional, fired when image is clicked with card as parameter
   onClick: null,

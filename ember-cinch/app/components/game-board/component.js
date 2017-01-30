@@ -34,10 +34,31 @@ export default Ember.Component.extend({
 
   // Returns current bid name for the given position
   getBidName(position) {
-    const bid = this.get('game.currentBids').filter(bid => bid.position === position)[0];
+    const currentBids = this.get('game.currentBids');
+
+    if (!currentBids) {
+      return;
+    }
+
+    const bid = currentBids.filter(bid => bid.position === position)[0];
 
     if (bid) {
       return this.get('bidNames')[bid.value];
+    }
+  },
+
+  // Returns current card in play for the given position
+  getCardInPlay(position) {
+    const currentPlays = this.get('game.currentPlays');
+
+    if (!currentPlays) {
+      return;
+    }
+
+    const play = currentPlays.filter(play => play.position === position)[0];
+
+    if (play) {
+      return play.card;
     }
   },
 
@@ -89,6 +110,10 @@ export default Ember.Component.extend({
     return this.getBidName(this.get('selfPosition'));
   }),
 
+  selfCard: Ember.computed('game', 'selfPosition', function () {
+    return this.getCardInPlay(this.get('selfPosition'));
+  }),
+
   partnerPosition: Ember.computed('currentUserPosition', function () {
     const currentUserPosition = this.get('currentUserPosition');
     return currentUserPosition === 'north' ? 'south' :
@@ -105,6 +130,10 @@ export default Ember.Component.extend({
 
   partnerBid: Ember.computed('game', 'partnerPosition', function () {
     return this.getBidName(this.get('partnerPosition'));
+  }),
+
+  partnerCard: Ember.computed('game', 'partnerPosition', function () {
+    return this.getCardInPlay(this.get('partnerPosition'));
   }),
 
   leftOpponentPosition: Ember.computed('currentUserPosition', function () {
@@ -125,6 +154,10 @@ export default Ember.Component.extend({
     return this.getBidName(this.get('leftOpponentPosition'));
   }),
 
+  leftOpponentCard: Ember.computed('game', 'leftOpponentPosition', function () {
+    return this.getCardInPlay(this.get('leftOpponentPosition'));
+  }),
+
   rightOpponentPosition: Ember.computed('currentUserPosition', function () {
     const currentUserPosition = this.get('currentUserPosition');
     return currentUserPosition === 'north' ? 'west' :
@@ -141,6 +174,10 @@ export default Ember.Component.extend({
 
   rightOpponentBid: Ember.computed('game', 'rightOpponentPosition', function () {
     return this.getBidName(this.get('rightOpponentPosition'));
+  }),
+
+  rightOpponentCard: Ember.computed('game', 'rightOpponentPosition', function () {
+    return this.getCardInPlay(this.get('rightOpponentPosition'));
   }),
 
   init() {

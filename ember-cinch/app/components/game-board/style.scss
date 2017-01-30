@@ -15,20 +15,22 @@ $vertical-hand-width: 120px;
     background-color: #339C53;
     border: 2px solid #703C0D;
     display: flex;
-    flex-direction: column;
 
     .play-area {
       display: flex;
       flex: 1 1 1px;
+      align-items: center;
+      justify-content: center;
 
-      &.self {
-        align-items: flex-end;
+      &.center {
+        flex-direction: column;
       }
     }
 
     .bid-buttons {
       display: flex;
       justify-content: center;
+      align-items: flex-end;
       flex: 1 0 auto;
 
       button {

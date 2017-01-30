@@ -1,3 +1,9 @@
-.card-image.actionable {
-  cursor: pointer;
+.card-image {
+  &.actionable {
+    cursor: pointer;
+  }
+
+  &.horizontal img {
+    transform: rotate(90deg);
+  }
 }
