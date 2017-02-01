@@ -19,6 +19,10 @@ const HAND_SIZE = 9;
 const NUM_PLAYERS = 4;
 const WINNING_SCORE = 11;
 
+const isGreaterRank = (left, right) => {
+  return ranks.indexOf(left) > ranks.indexOf(right);
+};
+
 // Generates and shuffles a new 52-card deck
 const getNewDeck = () => shuffle(suits.reduce((deck, suit) => ranks.reduce((cards, rank) => (cards.push({ rank, suit }), cards), deck), []));
 
@@ -26,7 +30,7 @@ const getNewDeck = () => shuffle(suits.reduce((deck, suit) => ranks.reduce((card
   Game class
 
   initialState will evenutually contain agent selections and such
-  io is socket.io instance
+  io is api/sockets.js instance
 */
 function Game(initialState, io) {
   this.id = uuid();
@@ -122,6 +126,7 @@ function Game(initialState, io) {
     };
 
     if (userId && this.hands[userId]) {
+      // TODO Sort hand before sending
       state.hands[userId] = this.hands[userId];
     }
 
@@ -279,10 +284,13 @@ function Game(initialState, io) {
     const leadCard = cardsInPlay[0];
     const hand = this.hands[userId];
 
-    
-    return userPosition &&                  // User is in game
-      this.activePlayer === userPosition && // It's user's turn to bid
-      this.phase === 'play' &&              // It's time to play
+    console.log();
+    console.log('isPlayLegal', this);
+    console.log();
+
+    return this.phase === 'play' &&         // It's time to play
+      userPosition &&                       // User is in game
+      this.activePlayer === userPosition && // It's user's turn to play
 
       // Card must be in hand
       hand.filter(c => c.suit === card.suit && c.rank === card.rank).length &&
@@ -299,11 +307,11 @@ function Game(initialState, io) {
     return this.getCurrentTrickPlays().reduce((previous, current) => {
       // Current card is trump which beats prior non-trump or lower trump
       if (current.card.suit === this.trump) {
-        return previous.card.suit === this.trump && previous.card.rank > current.card.rank ? previous : current;
+        return previous.card.suit === this.trump && isGreaterRank(previous.card.rank, current.card.rank) ? previous : current;
       }
 
       // Current card is not trump which only beats prior lower non-trump when following suit
-      return current.card.suit === previous.card.suit && current.card.rank > previous.card.rank ? current : previous;
+      return current.card.suit === previous.card.suit && isGreaterRank(current.card.rank, previous.card.rank) ? current : previous;
     });
   };
 
@@ -357,8 +365,10 @@ function Game(initialState, io) {
         // Trick is over
         trickWinner = this.getCurrentTrickWinner();
         this.trickWinners[this.trick] = trickWinner;
+        console.log(`Trick ${this.trick} is over`, trickWinner);
 
         if (this.trick === HAND_SIZE) {
+          console.log(`Hand ${this.hand} is over`);
           // Hand is over
           this.updateScores();
 
@@ -367,6 +377,7 @@ function Game(initialState, io) {
 
           if (isNorthSouthOver || isEastWestOver) {
             // Game is over
+            console.log('Game is over');
             if (isNorthSouthOver && isEastWestOver) {
               // Both teams reached winning score; winner is this hand's bid winner
               const winningBid = this.getCurrentHandWinningBid();
@@ -382,18 +393,24 @@ function Game(initialState, io) {
             this.phase = 'bid';
             this.hand = this.hand + 1;
             this.trick = 1;
-            this.dealer = getNextPosition(this.dealer);
+            this.dealer = this.getNextPosition(this.dealer);
             this.dealHand();
-            this.activePlayer = getNextPosition(this.dealer);
+            this.activePlayer = this.getNextPosition(this.dealer);
           }
           
         } else {
           // Trick is over, but hand still in progress
-          this.activePlayer = trickWinner;
+          this.activePlayer = trickWinner.position;
           this.trick = this.trick + 1;
         }
       } else {
         // Trick still in progress
+
+        if (cardsInPlay.length === 1 && this.trick === 1) {
+          // Set trump from first play in first trick
+          this.trump = card.suit;
+        }
+
         this.advancePosition();
       }
 
