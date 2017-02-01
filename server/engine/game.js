@@ -23,6 +23,18 @@ const isGreaterRank = (left, right) => {
   return ranks.indexOf(left) > ranks.indexOf(right);
 };
 
+const sortHand = hand => {
+  return hand.sort((a, b) => {
+    if (a.suit === b.suit) {
+      // Suits match, compare rank
+      return ranks.indexOf(a.rank) - ranks.indexOf(b.rank);
+    } else {
+      // Suits differ
+      return a.suit < b.suit ? -1 : 1;
+    }
+  });
+};
+
 // Generates and shuffles a new 52-card deck
 const getNewDeck = () => shuffle(suits.reduce((deck, suit) => ranks.reduce((cards, rank) => (cards.push({ rank, suit }), cards), deck), []));
 
@@ -127,7 +139,7 @@ function Game(initialState, io) {
 
     if (userId && this.hands[userId]) {
       // TODO Sort hand before sending
-      state.hands[userId] = this.hands[userId];
+      state.hands[userId] = sortHand(this.hands[userId]);
     }
 
     return state;
