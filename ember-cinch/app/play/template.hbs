@@ -1,7 +1,10 @@
 <div class="flex layout-column">
     {{#paper-sidenav-container  class="inner-sidenav flex"}}
         {{#paper-sidenav class="md-whiteframe-z2" name="left" lockedOpen=true}}
-            {{!-- TODO chat pane --}}
+            {{#paper-list}}
+                {{team-score score=game.nsScore firstPlayer=game.north.name secondPlayer=game.south.name}}
+                {{team-score score=game.ewScore firstPlayer=game.east.name secondPlayer=game.west.name}}
+            {{/paper-list}}
         {{/paper-sidenav}}
 
         {{#paper-card-content class="flex play-content"}}
