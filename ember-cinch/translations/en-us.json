@@ -24,5 +24,6 @@
     "three": "Three",
     "four": "Four",
     "cinch": "Cinch"
-  }
+  },
+  "playerBid": "({value})"
 }

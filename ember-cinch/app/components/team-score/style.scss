@@ -1,6 +1,17 @@
 .team-score {
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  font-size: 2em;
+  .team-score-value {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    font-size: 2em;
+  }
+
+  .player-placeholder {
+    color: lightgrey;
+  }
+
+  .player-bid {
+    color: grey;
+  }
 }
+

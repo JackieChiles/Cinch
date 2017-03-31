@@ -1,13 +1,31 @@
 {{#paper-item class="md-2-line"}}
-    <div class="team-score md-avatar">
+    <div class="team-score-value md-avatar">
         <span>{{score}}</span>
     </div>
+
     <div class="md-list-item-text">
         <div>
-            <strong>{{firstPlayer}}</strong>
+            {{#if firstPlayer}}
+                <strong class={{if (eq firstPosition game.activePlayer) "active-player"}}>{{firstPlayer.name}}</strong>
+            {{else}}
+                <em class="player-placeholder">{{firstPosition}}</em>
+            {{/if}}
+
+            {{#if firstBid}}
+                <span class="player-bid">{{t "playerBid" value=firstBid}}</span>
+            {{/if}}
         </div>
+
         <div>
-            <strong>{{secondPlayer}}</strong>
+            {{#if secondPlayer}}
+                <strong class={{if (eq secondPosition game.activePlayer) "active-player"}}>{{secondPlayer.name}}</strong>
+            {{else}}
+                <em class="player-placeholder">{{secondPosition}}</em>
+            {{/if}}
+
+            {{#if secondBid}}
+                <span class="player-bid">{{t "playerBid" value=secondBid}}</span>
+            {{/if}}
         </div>
     </div>
     {{paper-divider}}

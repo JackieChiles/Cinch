@@ -2,8 +2,17 @@
     {{#paper-sidenav-container  class="inner-sidenav flex"}}
         {{#paper-sidenav class="md-whiteframe-z2" name="left" lockedOpen=true}}
             {{#paper-list}}
-                {{team-score score=game.nsScore firstPlayer=game.north.name secondPlayer=game.south.name}}
-                {{team-score score=game.ewScore firstPlayer=game.east.name secondPlayer=game.west.name}}
+                {{team-score
+                  game=game
+                  score=game.nsScore
+                  firstPosition="north"
+                  secondPosition="south"}}
+
+                {{team-score
+                  game=game
+                  score=game.ewScore
+                  firstPosition="east"
+                  secondPosition="west"}}
             {{/paper-list}}
         {{/paper-sidenav}}
 
