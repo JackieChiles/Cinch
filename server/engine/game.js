@@ -19,8 +19,8 @@ const bidOptions = {
   CINCH: 5
 };
 const teams = {
-  NORTH_SOUTH: 'north-south',
-  EAST_WEST: 'east-west'
+  NORTH_SOUTH: 'north_south',
+  EAST_WEST: 'east_west'
 };
 const HAND_SIZE = 9;
 const NUM_PLAYERS = 4;
@@ -86,9 +86,11 @@ function Game(initialState, io) {
   // Trump suit (string) for the current hand
   this.trump = null;
 
-  // Team match scores for north-south and east-west
-  this.nsScore = 0;
-  this.ewScore = 0;
+  // Team match scores for north_south and east_west
+  this.scores = {
+    north_south: 0,
+    east_west: 0
+  };
 
   // Array of cards in deck in their current order
   this.deck = getNewDeck();
@@ -131,8 +133,8 @@ function Game(initialState, io) {
       hand: this.hand,
       dealer: this.dealer,
       activePlayer: this.activePlayer,
-      nsScore: this.nsScore,
-      ewScore: this.ewScore,
+      nsScore: this.scores[teams.NORTH_SOUTH],
+      ewScore: this.scores[teams.EAST_WEST],
       hands: {},
       currentBids: this.getCurrentHandBids(),
       currentPlays: this.getCurrentTrickPlays()
@@ -338,8 +340,40 @@ function Game(initialState, io) {
     return this.getTrickWinner(this.hand, this.trick);
   };
 
+  // Updates score for team given team name string and score for the hand from 0-4
+  this.updateTeamScore = function (team, handScore) {    
+    // Check if bidder made it or gets set
+    const winningBid = this.getCurrentHandWinningBid();
+
+    if (team.includes(winningBid.position)) {
+      if (winningBid.value === bidOptions.CINCH) {
+        if (handScore === 4 && this.scores[team] === 0) {
+          // Team's score is zero and they made cinch: 11 points
+          this.scores[team] += 11;
+        } else if (handScore === 4) {
+          // Team's score is anything but zero and they made cinch: 10 points
+          this.scores[team] += 10;
+        } else {
+          // Set on a cinch bid: -10 points
+          this.scores[team] -= 10;
+        }
+      } else if (handScore < winningBid.value) {
+        // Set on a non-cinch bid
+        this.scores[team] -= winningBid.value;
+      } else {
+        // Made it on a non-cinch bid
+        this.scores[team] += handScore;
+      }
+    } else {
+      // Team that lost the bid can't get set or cinch
+      this.scores[team] += handScore;
+    }
+  };
+
   // Updates scores for each team at end of hand
   this.updateScores = function () {
+    let nsHandScore = 0;
+    let ewHandScore = 0;
     let nsGamePoints = 0;
     let ewGamePoints = 0;
     let highPlay;
@@ -347,7 +381,7 @@ function Game(initialState, io) {
     let jackTakingPlay;
     const trump = this.trump;
 
-    console.log(`Updating scores. They were previously north-south ${this.nsScore} east-west ${this.ewScore}`);
+    console.log(`Updating scores. They were previously north_south ${this.scores[teams.NORTH_SOUTH]} east_west ${this.scores[teams.EAST_WEST]}`);
 
     // Evaluate the plays for each trick of the hand
     for (let trick = 1; trick <= HAND_SIZE; trick++) {
@@ -383,9 +417,9 @@ function Game(initialState, io) {
     // Score point for playing highest trump
     if (highPlay) {
       if (teams.NORTH_SOUTH.includes(highPlay.position)) {
-        this.nsScore += 1;
+        nsHandScore += 1;
       } else {
-        this.ewScore += 1;
+        ewHandScore += 1;
       }
     }
 
@@ -393,29 +427,32 @@ function Game(initialState, io) {
     // Score point for playing lowest trump
     if (lowPlay) {
       if (teams.NORTH_SOUTH.includes(lowPlay.position)) {
-        this.nsScore += 1;
+        nsHandScore += 1;
       } else {
-        this.ewScore += 1;
+        ewHandScore += 1;
       }
     }
 
     // Score point for taking jack of trump; might be none if jack not dealt
     if (jackTakingPlay) {
       if (teams.NORTH_SOUTH.includes(jackTakingPlay.position)) {
-        this.nsScore += 1;
+        nsHandScore += 1;
       } else {
-        this.ewScore += 1;
+        ewHandScore += 1;
       }
     }
 
     // Score point for most game points; might be none if tied
     if (nsGamePoints > ewGamePoints) {
-      this.nsScore += 1;
+      nsHandScore += 1;
     } else if (nsGamePoints < ewGamePoints) {
-      this.ewScore += 1;
+      ewHandScore += 1;
     }
 
-    console.log(`New scores are north-south ${this.nsScore} east-west ${this.ewScore}`);
+    this.updateTeamScore(teams.NORTH_SOUTH, nsHandScore);
+    this.updateTeamScore(teams.EAST_WEST, ewHandScore);
+
+    console.log(`New scores are north_south ${this.scores[teams.NORTH_SOUTH]} east_west ${this.scores[teams.EAST_WEST]}`);
   };
 
   this.dealHand = function () {
@@ -431,7 +468,7 @@ function Game(initialState, io) {
       const position = this.getUserPosition(userId);
       let trickWinner = null;
 
-      // If game is over, will be string 'east-west' or 'north-south' indicating winning team
+      // If game is over, will be string 'east_west' or 'north_south' indicating winning team
       let gameWinner = null;
 
       // Remove card from hand
@@ -456,12 +493,14 @@ function Game(initialState, io) {
           // Hand is over
           this.updateScores();
 
-          const isNorthSouthOver = this.nsScore >= WINNING_SCORE;
-          const isEastWestOver = this.ewScore >= WINNING_SCORE;
+          const isNorthSouthOver = this.scores[teams.NORTH_SOUTH] >= WINNING_SCORE;
+          const isEastWestOver = this.scores[teams.EAST_WEST] >= WINNING_SCORE;
 
           if (isNorthSouthOver || isEastWestOver) {
             // Game is over
             console.log('Game is over');
+            this.phase = 'postgame';
+
             if (isNorthSouthOver && isEastWestOver) {
               // Both teams reached winning score; winner is this hand's bid winner
               const winningBid = this.getCurrentHandWinningBid();
