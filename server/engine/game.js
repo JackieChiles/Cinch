@@ -141,7 +141,6 @@ function Game(initialState, io) {
     };
 
     if (userId && this.hands[userId]) {
-      // TODO Sort hand before sending
       state.hands[userId] = sortHand(this.hands[userId]);
     }
 
@@ -188,11 +187,14 @@ function Game(initialState, io) {
         // All seats are filled; start the game
         this.dealHand();
         const phase = this.phase = 'bid';
-
-        // Send hands to each user
-        this.forEachPosition(user => io.start(user.id, { game: this.getGameState(user.id) }));
       }
- 
+
+      this.forEachPosition(recipient => {
+        if (recipient) {
+          io.join(recipient.id, { game: this.getGameState(recipient.id) })
+        }
+      });
+
       return this.getGameState(user.id);
     }
 

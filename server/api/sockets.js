@@ -36,10 +36,6 @@ module.exports = {
 
         // Send game data to user
         socket.emit('join-success', game);
-
-        // Notify others of new user in game
-        // TODO re-think this as this should be gated by success of gameEngine.join
-        socket.broadcast.to(game.id).emit('join', { game });
       });
 
       // User makes a bid
@@ -51,15 +47,19 @@ module.exports = {
   },
 
   // Outbound socket messages
-  start(userId, data) {
-    io.to(userManager.getSocketId(userId)).emit('start', data);
-  },
-
   bid(userId, data) {
     io.to(userManager.getSocketId(userId)).emit('bid', data);
   },
 
   play(userId, data) {
     io.to(userManager.getSocketId(userId)).emit('play', data);
+  },
+
+  joinSuccess(userId, data) {
+    io.to(userManager.getSocketId(userId)).emit('join-success', data);
+  },
+
+  join(userId, data) {
+    io.to(userManager.getSocketId(userId)).emit('join', data);
   }
 };

@@ -37,20 +37,13 @@ export default Ember.Controller.extend({
       this.updateGame(data.game);
     });
 
-    socket.on('start', data => {
-      Ember.Logger.log('Game is starting');
-      this.updateGame(data.game);
-    });
-
     socket.on('bid', data => this.updateGame(data.game));
-
     socket.on('play', data => this.updateGame(data.game));
   },
 
   teardown() {
     const socket = this.get('application.socket');
     socket.off('join');
-    socket.off('start');
     socket.off('bid');
     socket.off('play');
   },
