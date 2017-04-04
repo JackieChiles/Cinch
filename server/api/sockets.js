@@ -11,8 +11,11 @@ module.exports = {
     io.on('connection', socket => {
       // Respond to the new user connection
       console.log(`Client connected with socket id ${socket.id}`);
-      const user = userManager.getNewUser(socket);
-      socket.emit('connection-success', user);
+
+      socket.on('initialize', username => {
+        const user = userManager.getNewUser(socket, username);
+        socket.emit('connection-success', user);
+      });
 
       // User starts a new game
       socket.on('new', data => {

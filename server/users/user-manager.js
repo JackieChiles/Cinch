@@ -11,13 +11,13 @@ const getAnonymousName = function () {
 const socketUserHash = {};
 
 // Returns a new user object
-exports.getNewUser = function (socket) {
+exports.getNewUser = function (socket, username) {
   const id = uuid();
 
   socketUserHash[id] = socket.id;
 
   return {
-    name: getAnonymousName(),
+    name: username || getAnonymousName(),
     id
   };
 };
