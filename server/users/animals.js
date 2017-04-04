@@ -11,5 +11,17 @@ module.exports = [
   'Gazelle',
   'Panda',
   'Owl',
-  'Hawk'
+  'Hawk',
+  'Elephant',
+  'Zebra',
+  'Mammoth',
+  'Wolf',
+  'Whale',
+  'Koala',
+  'Kangaroo',
+  'Lizard',
+  'Frog',
+  'Toad',
+  'Camel',
+  'Llama'
 ];

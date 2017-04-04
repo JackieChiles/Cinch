@@ -8,5 +8,9 @@ module.exports = [
   'Violet',
   'Purple',
   'Pink',
-  'Silver'
+  'Silver',
+  'Gold',
+  'Teal',
+  'Turquoise',
+  'Fuchsia'
 ];
