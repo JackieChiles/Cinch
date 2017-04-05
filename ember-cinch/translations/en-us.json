@@ -25,5 +25,9 @@
     "four": "Four",
     "cinch": "Cinch"
   },
-  "playerBid": "({value})"
+  "playerBid": "({value})",
+  "username": "Username",
+  "generate": "Generate",
+  "save": "Save",
+  "remember": "Remember me"
 }

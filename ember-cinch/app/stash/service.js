@@ -9,5 +9,9 @@ export default Ember.Service.extend({
   // Stores the value under the given key in local storage
   stashValue(key, value) {
     localStorage.setItem(key, value);
+  },
+
+  clearValue(key) {
+    localStorage.removeItem(key);
   }
 });

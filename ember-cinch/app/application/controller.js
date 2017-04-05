@@ -6,19 +6,23 @@ export default Ember.Controller.extend(Ember.Evented, {
 
   user: null,
   socket: null,
+  rememberMe: true,
 
   connectSocket() {
     const socket = this.get('socketIo').socketFor('localhost:3000');
 
-    socket.on('connection-success', user => {
+    this.set('socket', socket);
+    const username = this.get('rememberMe') ? this.get('stash').getValue('username') : '';
+    socket.emit('initialize', username, user => {
       Ember.Logger.info('Connected to socket server');
       this.set('user', user);
-      this.get('stash').stashValue('username', user.name);
-      this.trigger('connection-success');
-    });
 
-    this.set('socket', socket);
-    socket.emit('initialize', this.get('stash').getValue('username'));
+      if (this.get('rememberMe')) {
+        this.get('stash').stashValue('username', user.name);
+      }
+
+      this.trigger('initialized');
+    });
   },
 
   init() {

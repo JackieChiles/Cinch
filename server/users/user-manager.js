@@ -27,9 +27,19 @@ exports.getSocketId = function (userId) {
   return socketUserHash[userId];
 };
 
-
 // Returns the public user ID for the given socket ID
+// TODO handle user not found
 exports.getUserId = function (socketId) {
   // TODO don't do this as it will be O(n) n = number of users
   return Object.keys(socketUserHash).filter(userId => socketUserHash[userId] === socketId)[0];
+};
+
+exports.getAnonymousName = getAnonymousName;
+
+exports.updateUsername = function (socketId, name) {
+  const user = exports.getUserId(socketId);
+
+  if (user) {
+    user.name = name;
+  }
 };

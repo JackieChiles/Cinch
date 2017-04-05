@@ -12,9 +12,9 @@ module.exports = {
       // Respond to the new user connection
       console.log(`Client connected with socket id ${socket.id}`);
 
-      socket.on('initialize', username => {
+      socket.on('initialize', (username, callback) => {
         const user = userManager.getNewUser(socket, username);
-        socket.emit('connection-success', user);
+        callback(user);
       });
 
       // User starts a new game
@@ -37,6 +37,7 @@ module.exports = {
         // Join user to socket room for new game
         socket.join(game.id);
 
+        // TODO make this a callback response instead
         // Send game data to user
         socket.emit('join-success', game);
       });
@@ -46,6 +47,18 @@ module.exports = {
 
       // User makes a play
       socket.on('play', data => gameEngine.play(userManager.getUserId(socket.id), data));
+
+      // User requests a new generated username
+      socket.on('generate-username', callback => {
+        callback(userManager.getAnonymousName());
+      });
+
+      // User requests an update to their username
+      // TODO emit to other users
+      socket.on('update-username', (name, callback) => {
+        userManager.updateUsername(socket.id, name);
+        callback(name);
+      });
     });
   },
 

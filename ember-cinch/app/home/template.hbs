@@ -1,3 +1,21 @@
-<div class="layout-row layout-align-center">
-    {{input value=username}}
+<div class="layout-column layout-align-center">
+    <div class="layout-row layout-align-center">
+        {{paper-input value=username label=(t "username") onChange=(action (mut username))}}
+    </div>
+
+    <div class="layout-row layout-align-center">
+        {{#paper-checkbox value=rememberMe onChange=(action toggleRememberMe)}}
+            {{t "remember"}}
+        {{/paper-checkbox}}
+    </div>
+
+    <div class="layout-row layout-align-center">
+        {{#paper-button raised=true onClick=(action generateUsername)}}
+            {{t "generate"}}
+        {{/paper-button}}
+
+        {{#paper-button raised=true primary=true onClick=(action updateUsername)}}
+            {{t "save"}}
+        {{/paper-button}}
+    </div>
 </div>
