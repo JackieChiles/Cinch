@@ -48,7 +48,7 @@ const getNewDeck = () => shuffle(suits.reduce((deck, suit) => ranks.reduce((card
 /*
   Game class
 
-  initialState will evenutually contain agent selections and such
+  initialState will eventually contain agent selections and such
   io is api/sockets.js instance
 */
 function Game(initialState, io) {
@@ -132,11 +132,13 @@ function Game(initialState, io) {
       trick: this.trick,
       hand: this.hand,
       dealer: this.dealer,
+      trump: this.trump,
       activePlayer: this.activePlayer,
       nsScore: this.scores[teams.NORTH_SOUTH],
       ewScore: this.scores[teams.EAST_WEST],
       hands: {},
       currentBids: this.getCurrentHandBids(),
+      currentHandWinningBid: this.getCurrentHandWinningBid(),
       currentPlays: this.getCurrentTrickPlays()
     };
 
@@ -522,7 +524,6 @@ function Game(initialState, io) {
             this.dealHand();
             this.activePlayer = this.getNextPosition(this.dealer);
           }
-          
         } else {
           // Trick is over, but hand still in progress
           this.activePlayer = trickWinner.position;

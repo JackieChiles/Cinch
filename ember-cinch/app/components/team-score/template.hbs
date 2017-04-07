@@ -4,29 +4,8 @@
     </div>
 
     <div class="md-list-item-text">
-        <div>
-            {{#if firstPlayer}}
-                <strong class={{if (eq firstPosition game.activePlayer) "active-player"}}>{{firstPlayer.name}}</strong>
-            {{else}}
-                <em class="player-placeholder">{{firstPosition}}</em>
-            {{/if}}
-
-            {{#if firstBid}}
-                <span class="player-bid">{{t "playerBid" value=firstBid}}</span>
-            {{/if}}
-        </div>
-
-        <div>
-            {{#if secondPlayer}}
-                <strong class={{if (eq secondPosition game.activePlayer) "active-player"}}>{{secondPlayer.name}}</strong>
-            {{else}}
-                <em class="player-placeholder">{{secondPosition}}</em>
-            {{/if}}
-
-            {{#if secondBid}}
-                <span class="player-bid">{{t "playerBid" value=secondBid}}</span>
-            {{/if}}
-        </div>
+        {{player-status game=game position=firstPosition}}
+        {{player-status game=game position=secondPosition}}
     </div>
     {{paper-divider}}
 {{/paper-item}}

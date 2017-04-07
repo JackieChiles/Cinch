@@ -1,0 +1,9 @@
+{{#if player}}
+    <strong class={{if (eq position game.activePlayer) "active-player"}}>{{player.name}}</strong>
+{{else}}
+    <em class="player-placeholder">{{position}}</em>
+{{/if}}
+
+{{#if bid}}
+    <span class="player-bid {{if (and (eq game.phase "play") (eq position game.currentHandWinningBid.position)) "winning-bid"}}">{{t "playerBid" value=bid}}</span>
+{{/if}}
