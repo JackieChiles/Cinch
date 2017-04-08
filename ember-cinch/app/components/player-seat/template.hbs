@@ -9,7 +9,7 @@
         {{#if user}}
             {{user.name}}
         {{else}}
-            {{#paper-button onClick=(action takeSeat seat) primary=true raised=true}}
+            {{#paper-button onClick=(action takeSeat seat) primary=true raised=true class="join-button"}}
                 {{t "join"}}
             {{/paper-button}}
         {{/if}}

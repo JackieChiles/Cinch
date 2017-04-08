@@ -4,16 +4,16 @@
     </p>
 
     <div class="layout-column layout-align-center flex-75">
-        <div class="layout-row layout-align-center">
+        <div class="layout-row layout-align-center north-seat">
             {{player-seat label=(t "north") seat="north" user=game.north takeSeat=(action takeSeat)}}
         </div>
 
-        <div class="layout-row layout-align-center">
+        <div class="layout-row layout-align-center east-west-seats">
             {{player-seat label=(t "west") seat="west" user=game.west takeSeat=(action takeSeat)}}
             {{player-seat label=(t "east") seat="east" user=game.east takeSeat=(action takeSeat)}}
         </div>
 
-        <div class="layout-row layout-align-center">
+        <div class="layout-row layout-align-center south-seat">
             {{player-seat label=(t "south") seat="south" user=game.south takeSeat=(action takeSeat)}}
         </div>
     </div>
