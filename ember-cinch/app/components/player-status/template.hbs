@@ -5,5 +5,5 @@
 {{/if}}
 
 {{#if bid}}
-    <span class="player-bid {{if (and (eq game.phase "play") (eq position game.currentHandWinningBid.position)) "winning-bid"}}">{{t "playerBid" value=bid}}</span>
+    <span class="player-bid {{game.trump}} {{if playerWonBid "winning-bid"}}">{{bid}}</span>
 {{/if}}

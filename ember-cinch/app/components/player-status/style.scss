@@ -10,5 +10,32 @@
   .winning-bid {
     font-weight: bold;
   }
+
+  .winning-bid:after {
+    font-size: 20px;
+    margin-left: 5px;
+  }
+
+  .winning-bid {
+    &.C:after {
+      color: black;
+      content: '♣';
+    }
+
+    &.S:after {
+      color: black;
+      content: '♠';
+    }
+
+    &.D:after {
+      color: red;
+      content: '♦';
+    }
+
+    &.H:after {
+      color: red;
+      content: '♥';
+    }
+  }
 }
 

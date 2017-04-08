@@ -31,5 +31,9 @@ export default Ember.Component.extend({
 
   bid: Ember.computed('game.currentBids', 'position', function () {
     return this._getPositionBid(this.get('position'));
+  }),
+
+  playerWonBid: Ember.computed('position', 'game.{phase,currentHandWinningBid.position}', function () {
+    return this.get('game.phase') === 'play' && this.get('position') === this.get('game.currentHandWinningBid.position');
   })
 });
