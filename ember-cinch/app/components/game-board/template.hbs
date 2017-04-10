@@ -8,7 +8,7 @@
             {{player-hand game=game position=partnerPosition}}
         </div>
 
-        <div class="play-surface">
+        <div class="play-surface {{if isGameOver "game-over"}}">
             {{#if (and isBidPhase isMyBid)}}
                 <div class="bid-buttons">
                     {{paper-button raised=true label=(t 'bids.pass') onClick=(action bid 0)}}
@@ -18,6 +18,14 @@
                     {{paper-button raised=true label=(t 'bids.four') onClick=(action bid 4)}}
                     {{paper-button raised=true label=(t 'bids.cinch') onClick=(action bid 5)}}
                 </div>
+            {{else if (and isGameOver winningPositions)}}
+                <h2 class="game-over-banner">Game Over</h2>
+                <h3 class="winning-team-banner">Winning Team</h3>
+                {{team-score
+                  game=game
+                  score=winningScore
+                  firstPosition=winningPositions.firstObject
+                  secondPosition=winningPositions.lastObject}}
             {{else}}
                 <div class="play-area left">
                     {{#if leftOpponentCard}}

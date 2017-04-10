@@ -32,9 +32,22 @@ export default Ember.Component.extend({
   },
 
   isBidPhase: Ember.computed.equal('game.phase', 'bid'),
+  isGameOver: Ember.computed.equal('game.phase', 'postgame'),
 
   isMyBid: Ember.computed('game.activePlayer', 'currentUserPosition', function () {
     return this.get('game.activePlayer') === this.get('currentUserPosition');
+  }),
+
+  // Array containing the two positions of the winnning players, falsey if game not over
+  winningPositions: Ember.computed('game.gameWinner', function () {
+    const gameWinner = this.get('game.gameWinner');
+    return gameWinner && gameWinner.split('_');
+  }),
+
+  // Score of the winning team if game over, otherwise falsey
+  winningScore: Ember.computed('game.gameWinner', function () {
+    const gameWinner = this.get('game.gameWinner');
+    return gameWinner && (gameWinner.includes('north') ? this.get('game.nsScore') : this.get('game.ewScore'));
   }),
 
   // Position of current user in game. Will be null if current user is not joined to this game.

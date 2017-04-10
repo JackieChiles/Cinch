@@ -39,6 +39,20 @@ $vertical-hand-width: 120px;
         border-radius: 0;
       }
     }
+
+    &.game-over {
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .game-over-banner {
+      font-size: 2em;
+    }
+
+    .team-score {
+      width: 100%;
+      background: lightgreen;
+    }
   }
 
   .middle-column {

@@ -92,6 +92,9 @@ function Game(initialState, io) {
     east_west: 0
   };
 
+  // If game is over, will be string 'east_west' or 'north_south' indicating winning team
+  this.gameWinner = null;
+
   // Array of cards in deck in their current order
   this.deck = getNewDeck();
 
@@ -136,6 +139,7 @@ function Game(initialState, io) {
       activePlayer: this.activePlayer,
       nsScore: this.scores[teams.NORTH_SOUTH],
       ewScore: this.scores[teams.EAST_WEST],
+      gameWinner: this.gameWinner,
       hands: {},
       currentBids: this.getCurrentHandBids(),
       currentHandWinningBid: this.getCurrentHandWinningBid(),
@@ -472,9 +476,6 @@ function Game(initialState, io) {
       const position = this.getUserPosition(userId);
       let trickWinner = null;
 
-      // If game is over, will be string 'east_west' or 'north_south' indicating winning team
-      let gameWinner = null;
-
       // Remove card from hand
       this.hands[userId] = this.hands[userId].filter(c => !(c.suit === card.suit && c.rank === card.rank));
 
@@ -508,12 +509,12 @@ function Game(initialState, io) {
             if (isNorthSouthOver && isEastWestOver) {
               // Both teams reached winning score; winner is this hand's bid winner
               const winningBid = this.getCurrentHandWinningBid();
-              gameWinner = ['north', 'south'].indexOf(winningBid.position) > -1 ? teams.NORTH_SOUTH :
+              this.gameWinner = ['north', 'south'].indexOf(winningBid.position) > -1 ? teams.NORTH_SOUTH :
                 teams.EAST_WEST;
             } else if (isNorthSouthOver) {
-              gameWinner = teams.NORTH_SOUTH;
+              this.gameWinner = teams.NORTH_SOUTH;
             } else {
-              gameWinner = teams.EAST_WEST;
+              this.gameWinner = teams.EAST_WEST;
             }
           } else {
             // Hand is over, but game still in progress
@@ -543,7 +544,6 @@ function Game(initialState, io) {
         position,
         card,
         trickWinner,
-        gameWinner,
         game: this.getGameState(user.id)
       }));
     } else {
