@@ -7,7 +7,7 @@ const Router = EmberRouter.extend({
 });
 
 Router.map(function() {
-  this.route('home');
+  this.route('home', { path: '/' });
   this.route('new');
   this.route('games', function() {
     this.route('join', { path: ':gameId' });
