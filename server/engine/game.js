@@ -160,10 +160,10 @@ function Game(initialState, io) {
 
   // Returns the position of the given user. Returns null if not found
   this.getUserPosition = function (userId) {
-    return this.north.id === userId ? 'north' :
-      this.east.id === userId ? 'east' :
-      this.south.id === userId ? 'south' :
-      this.west.id === userId ? 'west' :
+    return this.north && this.north.id === userId ? 'north' :
+      this.east && this.east.id === userId ? 'east' :
+      this.south && this.south.id === userId ? 'south' :
+      this.west && this.west.id === userId ? 'west' :
       null;
   };
 
@@ -205,6 +205,19 @@ function Game(initialState, io) {
     }
 
     console.log('User join unsuccessful');
+  };
+
+  // User leaves game; returns true if all users have left
+  this.leave = function (userId) {
+    const position = this.getUserPosition(userId);
+
+    if (position) {
+      this[position] = null;
+    }
+
+    // TODO notify other players of departure
+
+    return !(this.north || this.east || this.south || this.west);
   };
 
   // Returns bids for the given hand

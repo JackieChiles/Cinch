@@ -17,6 +17,11 @@ module.exports = {
         callback(user);
       });
 
+      socket.on('disconnect', () => {
+        console.log(`Client disconnected with socket id ${socket.id}`);
+        gameEngine.disconnect(userManager.getUserId(socket.id));
+      });
+
       // User starts a new game
       socket.on('new', data => {
         console.log('New game requested', data);

@@ -3,12 +3,12 @@ const animals = require('./animals');
 const rand = require('random-item-in-array');
 const uuid = require('uuid/v4');
 
-const getAnonymousName = function () {
-   return `${rand(colors)} ${rand(animals)}`;
-};
-
 // Key is public user ID, value is socket ID
 const socketUserHash = {};
+
+exports.getAnonymousName = function () {
+   return `${rand(colors)} ${rand(animals)}`;
+};
 
 // Returns a new user object
 exports.getNewUser = function (socket, username) {
@@ -17,7 +17,7 @@ exports.getNewUser = function (socket, username) {
   socketUserHash[id] = socket.id;
 
   return {
-    name: username || getAnonymousName(),
+    name: username || exports.getAnonymousName(),
     id
   };
 };
@@ -34,12 +34,14 @@ exports.getUserId = function (socketId) {
   return Object.keys(socketUserHash).filter(userId => socketUserHash[userId] === socketId)[0];
 };
 
-exports.getAnonymousName = getAnonymousName;
-
 exports.updateUsername = function (socketId, name) {
   const user = exports.getUserId(socketId);
 
   if (user) {
     user.name = name;
   }
+};
+
+exports.disconnectUser = function (socketId) {
+  delete socketUserHash[exports.getUserId(socketId)];
 };
