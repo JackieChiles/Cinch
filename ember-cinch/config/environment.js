@@ -1,9 +1,9 @@
-/* jshint node: true */
+'use strict';
 
 module.exports = function(environment) {
-  var ENV = {
+  let ENV = {
     modulePrefix: 'ember-cinch',
-    environment: environment,
+    environment,
     rootURL: '/',
     locationType: 'auto',
     apiHost: 'http://localhost:3000',
@@ -15,6 +15,10 @@ module.exports = function(environment) {
       'connect-src': "'self'",
       'img-src': "'self' data:",
       'media-src': "'self'"
+    },
+
+    'ember-websockets': {
+      socketIO: true
     },
 
     EmberENV: {
@@ -51,6 +55,7 @@ module.exports = function(environment) {
     ENV.APP.LOG_VIEW_LOOKUPS = false;
 
     ENV.APP.rootElement = '#ember-testing';
+    ENV.APP.autoboot = false;
   }
 
   if (environment === 'production') {
