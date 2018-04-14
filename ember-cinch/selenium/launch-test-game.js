@@ -4,8 +4,6 @@ const southDriver = new Builder()
   .forBrowser('chrome')
   .build();
 
-southDriver.manage().window().maximize();
-
 southDriver.get('http://localhost:4200/home')
   .then(() => southDriver.findElement(By.css('md-checkbox')).click())
   .then(() => southDriver.findElement(By.css('.main-toolbar .new-link')).click())
@@ -14,8 +12,6 @@ southDriver.get('http://localhost:4200/home')
 const westDriver = new Builder()
   .forBrowser('chrome')
   .build();
-
-westDriver.manage().window().maximize();
 
 westDriver.get('http://localhost:4200/home')
   .then(() => westDriver.findElement(By.css('md-checkbox')).click())
@@ -27,8 +23,6 @@ const northDriver = new Builder()
   .forBrowser('chrome')
   .build();
 
-northDriver.manage().window().maximize();
-
 northDriver.get('http://localhost:4200/home')
   .then(() => northDriver.findElement(By.css('md-checkbox')).click())
   .then(() => northDriver.findElement(By.css('.main-toolbar .games-link')).click())
@@ -38,8 +32,6 @@ northDriver.get('http://localhost:4200/home')
 const eastDriver = new Builder()
   .forBrowser('chrome')
   .build();
-
-eastDriver.manage().window().maximize();
 
 eastDriver.get('http://localhost:4200/home')
   .then(() => eastDriver.findElement(By.css('md-checkbox')).click())

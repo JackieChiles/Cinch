@@ -45,6 +45,6 @@
     "ember-websockets": "6.2.2",
     "loader.js": "^4.0.10",
     "mock-socket": "6.0.3",
-    "selenium-webdriver": "^3.3.0"
+    "selenium-webdriver": "^3.6.0"
   }
 }
