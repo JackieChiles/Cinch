@@ -1,6 +1,6 @@
-import Ember from 'ember';
+import Service from '@ember/service';
 
-export default Ember.Service.extend({
+export default Service.extend({
   // Returns the value under the given key from local storage
   getValue(key) {
     return localStorage.getItem(key);

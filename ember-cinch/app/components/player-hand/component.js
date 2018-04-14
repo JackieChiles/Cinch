@@ -1,4 +1,5 @@
-import Ember from 'ember';
+import { computed } from '@ember/object';
+import Component from '@ember/component';
 
 const HAND_SIZE = 9;
 
@@ -13,7 +14,7 @@ const generateFaceDownHand = () => {
   return hand;
 };
 
-export default Ember.Component.extend({
+export default Component.extend({
   classNames: ['player-hand'],
 
   // Parameter, game object
@@ -25,11 +26,11 @@ export default Ember.Component.extend({
   // Parameter, optional, action to fire when card is clicked with card as parameter
   cardAction() {},
 
-  user: Ember.computed('game', 'position', function () {
+  user: computed('game', 'position', function () {
     return this.get(`game.${this.get('position')}`);
   }),
 
-  cards: Ember.computed('game', 'user', function () {
+  cards: computed('game', 'user', function () {
     return this.get('game.hands')[this.get('user.id')] || generateFaceDownHand();
   })
 });

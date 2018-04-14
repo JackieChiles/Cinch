@@ -1,8 +1,11 @@
+import { inject as service } from '@ember/service';
+import Evented from '@ember/object/evented';
+import Controller from '@ember/controller';
 import Ember from 'ember';
 
-export default Ember.Controller.extend(Ember.Evented, {
-  socketIo: Ember.inject.service(),
-  stash: Ember.inject.service(),
+export default Controller.extend(Evented, {
+  socketIo: service(),
+  stash: service(),
 
   user: null,
   socket: null,

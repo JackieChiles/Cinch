@@ -1,10 +1,12 @@
-import Ember from 'ember';
+import { reads } from '@ember/object/computed';
+import { inject as service } from '@ember/service';
+import Controller, { inject as controller } from '@ember/controller';
 
-export default Ember.Controller.extend({
-  ajax: Ember.inject.service(),
-  application: Ember.inject.controller(),
+export default Controller.extend({
+  ajax: service(),
+  application: controller(),
 
-  game: Ember.computed.reads('model'),
+  game: reads('model'),
 
   takeSeat(seat) {
     this.get('application.socket').emit('join', {

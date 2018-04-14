@@ -1,7 +1,8 @@
-import Ember from 'ember';
+import { reads } from '@ember/object/computed';
+import Controller from '@ember/controller';
 
-export default Ember.Controller.extend({
-  games: Ember.computed.reads('model'),
+export default Controller.extend({
+  games: reads('model'),
 
   selectGame(game) {
     this.transitionToRoute('games.join', game);

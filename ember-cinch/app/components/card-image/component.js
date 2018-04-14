@@ -1,9 +1,13 @@
+import { computed } from '@ember/object';
+import { bool } from '@ember/object/computed';
+import { inject as service } from '@ember/service';
+import Component from '@ember/component';
 import Ember from 'ember';
 
-export default Ember.Component.extend({
+export default Component.extend({
   classNames: ['card-image'],
   classNameBindings: ['actionable', 'cssClass'],
-  intl: Ember.inject.service(),
+  intl: service(),
 
   // Parameter, optional, can be 'rotate90', 'rotate180', or 'rotate270' to rotate image
   cssClass: null,
@@ -22,14 +26,14 @@ export default Ember.Component.extend({
   // Parameter with 'suit' and 'rank' properties and/or 'faceDown' boolean
   card: null,
 
-  actionable: Ember.computed.bool('onClick'),
+  actionable: bool('onClick'),
 
-  src: Ember.computed('card', function () {
+  src: computed('card', function () {
     const card = this.get('card');
     return card.faceDown ? '/card-images/b1fv.png' : `/card-images/${card.rank}${card.suit}.png`;
   }),
 
-  alt: Ember.computed('card', function () {
+  alt: computed('card', function () {
     const card = this.get('card');
     return card.faceDown ? this.get('intl').t('faceDownCard') : `${card.rank}${card.suit}`;
   })

@@ -1,9 +1,10 @@
-import Ember from 'ember';
+import { reads } from '@ember/object/computed';
+import Controller, { inject as controller } from '@ember/controller';
 
-export default Ember.Controller.extend({
-  application: Ember.inject.controller(),
+export default Controller.extend({
+  application: controller(),
 
-  agents: Ember.computed.reads('model'),
+  agents: reads('model'),
 
   startGame() {
     // TODO send agent selections

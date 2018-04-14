@@ -1,12 +1,14 @@
-import Ember from 'ember';
+import { reads, alias } from '@ember/object/computed';
+import { inject as service } from '@ember/service';
+import Controller, { inject as controller } from '@ember/controller';
 
-export default Ember.Controller.extend({
-  application: Ember.inject.controller(),
-  stash: Ember.inject.service(),
+export default Controller.extend({
+  application: controller(),
+  stash: service(),
 
-  socket: Ember.computed.reads('application.socket'),
-  user: Ember.computed.reads('application.user'),
-  rememberMe: Ember.computed.alias('application.rememberMe'),
+  socket: reads('application.socket'),
+  user: reads('application.user'),
+  rememberMe: alias('application.rememberMe'),
   username: '',
 
   generateUsername() {

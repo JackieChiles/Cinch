@@ -1,12 +1,14 @@
+import { reads } from '@ember/object/computed';
+import Controller, { inject as controller } from '@ember/controller';
 import Ember from 'ember';
 
 const PHASE_CHANGE_DELAY = 3000;
 
-export default Ember.Controller.extend({
-  application: Ember.inject.controller(),
+export default Controller.extend({
+  application: controller(),
 
-  user: Ember.computed.reads('application.user'),
-  game: Ember.computed.reads('model'),
+  user: reads('application.user'),
+  game: reads('model'),
 
   // Update the game state
   updateGame(game) {

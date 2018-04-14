@@ -1,8 +1,10 @@
-import Ember from 'ember';
+import { computed } from '@ember/object';
+import { inject as service } from '@ember/service';
+import Component from '@ember/component';
 
-export default Ember.Component.extend({
+export default Component.extend({
   classNames: ['player-status'],
-  intl: Ember.inject.service(),
+  intl: service(),
 
   // Parameter, required, game object
   game: null,
@@ -25,15 +27,15 @@ export default Ember.Component.extend({
     return bid && bidNames[bid.value];
   },
 
-  player: Ember.computed('position', 'game', function() {
+  player: computed('position', 'game', function() {
     return this.get(`game.${this.get('position')}`);
   }),
 
-  bid: Ember.computed('game.currentBids', 'position', function () {
+  bid: computed('game.currentBids', 'position', function () {
     return this._getPositionBid(this.get('position'));
   }),
 
-  playerWonBid: Ember.computed('position', 'game.{phase,currentHandWinningBid.position}', function () {
+  playerWonBid: computed('position', 'game.{phase,currentHandWinningBid.position}', function () {
     return this.get('game.phase') === 'play' && this.get('position') === this.get('game.currentHandWinningBid.position');
   })
 });
