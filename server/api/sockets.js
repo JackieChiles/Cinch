@@ -82,5 +82,9 @@ module.exports = {
 
   join(userId, data) {
     io.to(userManager.getSocketId(userId)).emit('join', data);
+  },
+
+  leave(userId, data) {
+    io.to(userManager.getSocketId(userId)).emit('leave', data);
   }
 };

@@ -195,10 +195,12 @@ function Game(initialState, io) {
         const phase = this.phase = 'bid';
       }
 
-      this.forEachPosition(recipient => {
-        if (recipient) {
-          io.join(recipient.id, { game: this.getGameState(recipient.id) })
+      this.forEachPosition(user => {
+        if (!user || !user.id) {
+          return;
         }
+
+        io.join(user.id, { game: this.getGameState(user.id) })
       });
 
       return this.getGameState(user.id);
@@ -215,7 +217,14 @@ function Game(initialState, io) {
       this[position] = null;
     }
 
-    // TODO notify other players of departure
+    // Notify other players that user has left
+    this.forEachPosition(user => {
+        if (!user || !user.id) {
+          return;
+        }
+
+        io.leave(user.id, { game: this.getGameState(user.id) })
+      });
 
     return !(this.north || this.east || this.south || this.west);
   };
@@ -292,11 +301,17 @@ function Game(initialState, io) {
 
       console.log('Bid made', userId, bidValue);
 
-      this.forEachPosition(user => io.bid(user.id, {
-        position,
-        bidValue,
-        game: this.getGameState(user.id)
-      }));
+      this.forEachPosition(user => {
+        if (!user || !user.id) {
+          return;
+        }
+
+        io.bid(user.id, {
+          position,
+          bidValue,
+          game: this.getGameState(user.id)
+        })
+      });
     } else {
       console.warn('Illegal bid attempted ', userId, bidValue);
       // TODO handle illegal bid

@@ -39,6 +39,11 @@ export default Controller.extend({
       this.updateGame(data.game);
     });
 
+    socket.on('leave', data => {
+      Ember.Logger.log('User left the game');
+      this.updateGame(data.game);
+    });
+
     socket.on('bid', data => this.updateGame(data.game));
     socket.on('play', data => this.updateGame(data.game));
   },
