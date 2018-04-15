@@ -98,7 +98,7 @@ function Game(initialState, io) {
   // Array of cards in deck in their current order
   this.deck = getNewDeck();
 
-  // Key is user ID, value is array of cards
+  // Key is position, value is array of cards
   this.hands = {};
 
   /*
@@ -146,8 +146,10 @@ function Game(initialState, io) {
       currentPlays: this.getCurrentTrickPlays()
     };
 
-    if (userId && this.hands[userId]) {
-      state.hands[userId] = sortHand(this.hands[userId]);
+    const userPosition = this.getUserPosition(userId);
+
+    if (userId && this.hands[userPosition]) {
+      state.hands[userId] = sortHand(this.hands[userPosition]);
     }
 
     return state;
@@ -160,6 +162,10 @@ function Game(initialState, io) {
 
   // Returns the position of the given user. Returns null if not found
   this.getUserPosition = function (userId) {
+    if (!userId) {
+      return null;
+    }
+
     return this.north && this.north.id === userId ? 'north' :
       this.east && this.east.id === userId ? 'east' :
       this.south && this.south.id === userId ? 'south' :
@@ -189,10 +195,10 @@ function Game(initialState, io) {
       this[seat] = user;
       console.log('User join successful');
 
-      if (this.isFull()) {
-        // All seats are filled; start the game
+      if (this.isFull() && this.phase === 'pregame') {
+        // All seats are filled and the game has not yet started; start the game
         this.dealHand();
-        const phase = this.phase = 'bid';
+        this.phase = 'bid';
       }
 
       this.forEachPosition(user => {
@@ -200,7 +206,7 @@ function Game(initialState, io) {
           return;
         }
 
-        io.join(user.id, { game: this.getGameState(user.id) })
+        io.join(user.id, { game: this.getGameState(user.id) });
       });
 
       return this.getGameState(user.id);
@@ -338,11 +344,7 @@ function Game(initialState, io) {
     const userPosition = this.getUserPosition(userId);
     const cardsInPlay = this.getCardsInPlay();
     const leadCard = cardsInPlay[0];
-    const hand = this.hands[userId];
-
-    console.log();
-    console.log('isPlayLegal', this);
-    console.log();
+    const hand = this.hands[userPosition];
 
     return this.phase === 'play' &&         // It's time to play
       userPosition &&                       // User is in game
@@ -494,7 +496,7 @@ function Game(initialState, io) {
   this.dealHand = function () {
     this.hands = {};
     this.deck = getNewDeck();
-    this.forEachPosition(user => this.hands[user.id] = this.getNewHand());
+    this.forEachPosition(user => this.hands[this.getUserPosition(user.id)] = this.getNewHand());
   };
 
   // Applies the given play from the given user, updates state, and emits play event to room
@@ -505,7 +507,7 @@ function Game(initialState, io) {
       let trickWinner = null;
 
       // Remove card from hand
-      this.hands[userId] = this.hands[userId].filter(c => !(c.suit === card.suit && c.rank === card.rank));
+      this.hands[position] = this.hands[position].filter(c => !(c.suit === card.suit && c.rank === card.rank));
 
       this.plays.push({
         position,
