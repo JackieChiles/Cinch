@@ -53,6 +53,9 @@ module.exports = {
       // User makes a play
       socket.on('play', data => gameEngine.play(userManager.getUserId(socket.id), data));
 
+      // User sends a message to the room
+      socket.on('message', data => gameEngine.message(userManager.getUserId(socket.id), data));
+
       // User requests a new generated username
       socket.on('generate-username', callback => {
         callback(userManager.getAnonymousName());

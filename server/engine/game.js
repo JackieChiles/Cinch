@@ -223,6 +223,16 @@ function Game(initialState, io) {
     });
   };
 
+  this.sendUserMessage = function (userId, text) {
+    const position = this.getUserPosition(userId);
+
+    if (!position) {
+      return;
+    }
+
+    this.sendMessage(text, this[position].name);
+  };
+
   // Join a user to an unoccupied seat
   this.join = function (seat, user) {
     if (seat && user && !this[seat]) {

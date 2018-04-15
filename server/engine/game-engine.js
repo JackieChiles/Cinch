@@ -94,6 +94,11 @@ module.exports = {
     return this.getGame(data.gameId).play(userId, data.card);
   },
 
+  // User sends a message to the room
+  message(userId, data) {
+    return this.getGame(data.gameId).sendUserMessage(userId, data.text);
+  },
+
   // Get a list of public game state for all active games
   getGameList() {
     return Object.keys(this.activeGames).map(id => this.activeGames[id].getGameState());

@@ -1,7 +1,7 @@
 <div class="flex layout-column play-view">
     {{#paper-sidenav-container class="inner-sidenav flex"}}
         {{#paper-sidenav class="md-whiteframe-z2" name="left" lockedOpen=true}}
-            {{#paper-list}}
+            {{#paper-list class="team-score-list"}}
                 {{team-score
                   game=game
                   score=game.nsScore
@@ -15,11 +15,14 @@
                   secondPosition="west"}}
             {{/paper-list}}
 
-            {{#paper-item}}
-                <h2>{{t "messages"}}</h2>
+            {{#paper-item class="messages-header"}}
+                <h2>
+                    {{paper-icon "chat" size=32}}
+                    {{t "messages"}}
+                </h2>
             {{/paper-item}}
 
-            {{chat-pane messages=messagesRecentFirst}}
+            {{chat-pane messages=messagesRecentFirst sendChat=(action sendChat)}}
         {{/paper-sidenav}}
 
         {{#paper-card-content class="flex play-content"}}

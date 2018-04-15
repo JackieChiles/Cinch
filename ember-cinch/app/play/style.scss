@@ -7,7 +7,11 @@
     overflow: hidden;
   }
 
-  .chat-pane {
-    overflow: auto;
+  .messages-header {
+    background-color: #eee;
+  }
+
+  .team-score-list {
+    padding-bottom: 0;
   }
 }

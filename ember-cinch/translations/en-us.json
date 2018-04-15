@@ -29,5 +29,7 @@
   "generate": "Generate",
   "save": "Save",
   "remember": "Remember me",
-  "messages": "Messages"
+  "messages": "Messages",
+  "sendChat": "Send chat message",
+  "send": "Send"
 }

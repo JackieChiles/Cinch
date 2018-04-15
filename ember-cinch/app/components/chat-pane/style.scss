@@ -1,0 +1,9 @@
+.chat-pane {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  .messages-list {
+    overflow: auto;
+  }
+}

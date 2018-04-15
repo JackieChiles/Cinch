@@ -77,5 +77,12 @@ export default Controller.extend({
       gameId: this.get('game.id'),
       card
     });
+  },
+
+  sendChat(text) {
+    this.get('application.socket').emit('message', {
+      gameId: this.get('game.id'),
+      text
+    });
   }
 });
