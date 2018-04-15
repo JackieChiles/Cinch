@@ -1,5 +1,5 @@
-<div class="flex layout-column">
-    {{#paper-sidenav-container  class="inner-sidenav flex"}}
+<div class="flex layout-column play-view">
+    {{#paper-sidenav-container class="inner-sidenav flex"}}
         {{#paper-sidenav class="md-whiteframe-z2" name="left" lockedOpen=true}}
             {{#paper-list}}
                 {{team-score
@@ -14,6 +14,12 @@
                   firstPosition="east"
                   secondPosition="west"}}
             {{/paper-list}}
+
+            {{#paper-item}}
+                <h2>{{t "messages"}}</h2>
+            {{/paper-item}}
+
+            {{chat-pane messages=messagesRecentFirst}}
         {{/paper-sidenav}}
 
         {{#paper-card-content class="flex play-content"}}

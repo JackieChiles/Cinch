@@ -28,5 +28,6 @@
   "username": "Username",
   "generate": "Generate",
   "save": "Save",
-  "remember": "Remember me"
+  "remember": "Remember me",
+  "messages": "Messages"
 }

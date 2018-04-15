@@ -1,5 +1,6 @@
 const uuid = require('uuid/v4');
 const shuffle = require('shuffle-array');
+const { t } = require('./translate');
 
 const gamePointValues = {
   'T': 10,
@@ -10,6 +11,12 @@ const gamePointValues = {
 };
 const ranks = ['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A'];
 const suits = ['C', 'D', 'H', 'S'];
+const suitChars = {
+  C: '♣',
+  S: '♠',
+  D: '♦',
+  H: '♥'
+};
 const bidOptions = {
   PASS: 0,
   ONE: 1,
@@ -122,6 +129,15 @@ function Game(initialState, io) {
    */
   this.plays = [];
 
+  /*
+    Ordered list of message sent to users in the form:
+      {
+        sender,
+        text
+      }
+  */
+  this.messages = [];
+
   // Returns public game state for this game
   // If user ID is passed that matches one in-game, that user's hand will be included as well
   this.getGameState = function (userId) {
@@ -143,7 +159,8 @@ function Game(initialState, io) {
       hands: {},
       currentBids: this.getCurrentHandBids(),
       currentHandWinningBid: this.getCurrentHandWinningBid(),
-      currentPlays: this.getCurrentTrickPlays()
+      currentPlays: this.getCurrentTrickPlays(),
+      messages: this.messages
     };
 
     const userPosition = this.getUserPosition(userId);
@@ -189,6 +206,23 @@ function Game(initialState, io) {
     return this.north && this.east && this.south && this.west;
   };
 
+  this.sendMessage = function (text, sender) {
+    const message = {
+      sender: sender || t('system'),
+      text
+    };
+
+    this.messages.push(message);
+
+    this.forEachPosition(recipient => {
+      if (!recipient || !recipient.id) {
+        return;
+      }
+
+      io.message(recipient.id, message);
+    });
+  };
+
   // Join a user to an unoccupied seat
   this.join = function (seat, user) {
     if (seat && user && !this[seat]) {
@@ -201,12 +235,14 @@ function Game(initialState, io) {
         this.phase = 'bid';
       }
 
-      this.forEachPosition(user => {
-        if (!user || !user.id) {
+      this.sendMessage(t('userJoin', { name: user.name, seat }));
+
+      this.forEachPosition(recipient => {
+        if (!recipient || !recipient.id) {
           return;
         }
 
-        io.join(user.id, { game: this.getGameState(user.id) });
+        io.join(recipient.id, { game: this.getGameState(recipient.id) });
       });
 
       return this.getGameState(user.id);
@@ -220,16 +256,18 @@ function Game(initialState, io) {
     const position = this.getUserPosition(userId);
 
     if (position) {
+      const user = this[position];
+      this.sendMessage(t('userLeave', { name: user && user.name, seat: position }));
       this[position] = null;
     }
 
     // Notify other players that user has left
-    this.forEachPosition(user => {
-        if (!user || !user.id) {
+    this.forEachPosition(recipient => {
+        if (!recipient || !recipient.id) {
           return;
         }
 
-        io.leave(user.id, { game: this.getGameState(user.id) })
+        io.leave(recipient.id, { game: this.getGameState(recipient.id) })
       });
 
     return !(this.north || this.east || this.south || this.west);
@@ -305,17 +343,20 @@ function Game(initialState, io) {
         this.advancePosition();
       }
 
+      const user = this[position];
+
+      this.sendMessage(t('userBid', { name: user && user.name, bidValue}));
       console.log('Bid made', userId, bidValue);
 
-      this.forEachPosition(user => {
-        if (!user || !user.id) {
+      this.forEachPosition(recipient => {
+        if (!recipient || !recipient.id) {
           return;
         }
 
-        io.bid(user.id, {
+        io.bid(recipient.id, {
           position,
           bidValue,
-          game: this.getGameState(user.id)
+          game: this.getGameState(recipient.id)
         })
       });
     } else {
@@ -516,6 +557,10 @@ function Game(initialState, io) {
         card
       });
 
+      const user = this[position];
+      const { rank, suit } = card;
+      this.sendMessage(t('userPlay', { name: user && user.name, rank, suit: suitChars[suit] }));
+
       const cardsInPlay = this.getCardsInPlay();
 
       if (cardsInPlay.length === NUM_PLAYERS) {
@@ -570,11 +615,11 @@ function Game(initialState, io) {
         this.advancePosition();
       }
 
-      this.forEachPosition(user => io.play(user.id, {
+      this.forEachPosition(recipient => io.play(recipient.id, {
         position,
         card,
         trickWinner,
-        game: this.getGameState(user.id)
+        game: this.getGameState(recipient.id)
       }));
     } else {
       console.warn('Illegal play attempted ', userId, card);

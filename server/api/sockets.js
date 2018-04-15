@@ -86,5 +86,9 @@ module.exports = {
 
   leave(userId, data) {
     io.to(userManager.getSocketId(userId)).emit('leave', data);
+  },
+
+  message(userId, message) {
+    io.to(userManager.getSocketId(userId)).emit('message', message);
   }
 };

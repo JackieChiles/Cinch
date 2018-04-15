@@ -10,6 +10,11 @@ export default Controller.extend({
   user: reads('application.user'),
   game: reads('model'),
 
+  // Messages for the game in reverse so newest message is on top
+  messagesRecentFirst: Ember.computed('messages.[]', function () {
+    return (this.get('messages') || []).concat([]).reverse();
+  }),
+
   // Update the game state
   updateGame(game) {
     Ember.Logger.log('Updating game state');
@@ -46,13 +51,16 @@ export default Controller.extend({
 
     socket.on('bid', data => this.updateGame(data.game));
     socket.on('play', data => this.updateGame(data.game));
+    socket.on('message', message => this.get('messages').pushObject(message));
   },
 
   teardown() {
     const socket = this.get('application.socket');
     socket.off('join');
+    socket.off('leave');
     socket.off('bid');
     socket.off('play');
+    socket.off('message');
   },
 
   bid(value) {
@@ -69,12 +77,5 @@ export default Controller.extend({
       gameId: this.get('game.id'),
       card
     });
-  },
-
-  init() {
-    this._super(...arguments);
-
-    // TODO turn off handlers after navigating away
-    this.setup();
   }
 });

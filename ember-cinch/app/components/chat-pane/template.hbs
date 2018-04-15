@@ -1,0 +1,12 @@
+{{#paper-list class="messages-list"}}
+    {{#each messages as |message|}}
+        {{#paper-item class="md-2-line message"}}
+            <div class="md-list-item-text">
+                <h3>{{message.sender}}</h3>
+                <p>{{message.text}}</p>
+            </div>
+        {{/paper-item}}
+
+        {{paper-divider}}
+    {{/each}}
+{{/paper-list}}

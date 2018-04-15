@@ -1,3 +1,13 @@
-.play-content {
-  overflow: auto;
+.play-view {
+  .play-content {
+    overflow: auto;
+  }
+
+  md-sidenav {
+    overflow: hidden;
+  }
+
+  .chat-pane {
+    overflow: auto;
+  }
 }
