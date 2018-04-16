@@ -1,13 +1,19 @@
 {{#paper-card}}
-    {{#paper-card-content}}
+    {{#paper-card-content class="hand-content"}}
         <div class="info">
-            <div class="username {{if (eq position game.activePlayer) "active-player"}}">
+            <div class="username {{if (eq position game.activePlayer) "active-player"}} {{if (not isUserJoined) "empty"}}">
                 {{user.name}}
             </div>
         </div>
 
-        {{#each cards as |card|}}
-            {{card-image card=card onClick=(action cardAction)}}
-        {{/each}}
+        {{#if (and isUserJoined (not isPregame))}}
+            {{#each cards as |card|}}
+                {{card-image card=card onClick=(action cardAction)}}
+            {{/each}}
+        {{else}}
+            <div class="circular-progress-wrapper">
+                {{paper-progress-circular}}
+            </div>
+        {{/if}}
     {{/paper-card-content}}
 {{/paper-card}}

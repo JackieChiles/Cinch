@@ -30,6 +30,9 @@ export default Component.extend({
     return this.get(`game.${this.get('position')}`);
   }),
 
+  isUserJoined: computed.bool('user'),
+  isPregame: computed.equal('game.phase', 'pregame'),
+
   cards: computed('game', 'user', function () {
     return this.get('game.hands')[this.get('user.id')] || generateFaceDownHand();
   })
