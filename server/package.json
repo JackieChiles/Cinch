@@ -26,6 +26,7 @@
   },
   "homepage": "https://github.com/JackieChiles/Cinch#readme",
   "dependencies": {
+    "aws-sdk": "^2.254.1",
     "body-parser": "^1.15.2",
     "express": "^4.14.0",
     "intl-messageformat": "^2.2.0",

@@ -1,6 +1,7 @@
 const uuid = require('uuid/v4');
 const shuffle = require('shuffle-array');
 const { t } = require('./translate');
+const events = require('../database/events');
 
 const gamePointValues = {
   'T': 10,
@@ -550,6 +551,10 @@ function Game(initialState, io) {
     this.forEachPosition(user => this.hands[this.getUserPosition(user.id)] = this.getNewHand());
   };
 
+  this.publish = function (type, data) {
+      events.publish({ type, data, gameId: this.id });
+  };
+
   // Applies the given play from the given user, updates state, and emits play event to room
   this.play = function (userId, card) {
     console.log('Play attempted', userId, card);
@@ -560,12 +565,15 @@ function Game(initialState, io) {
       // Remove card from hand
       this.hands[position] = this.hands[position].filter(c => !(c.suit === card.suit && c.rank === card.rank));
 
-      this.plays.push({
+      const play = {
         position,
         hand: this.hand,
         trick: this.trick,
         card
-      });
+      };
+
+      this.plays.push(play);
+      this.publish('play', play);
 
       const user = this[position];
       const { rank, suit } = card;
