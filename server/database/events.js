@@ -18,7 +18,7 @@ module.exports = {
 
     docClient.put({
       TableName: 'game-events',
-      Item: Object.assign({ id: uuid() }, gameEvent)
+      Item: Object.assign({ id: uuid(), timestamp: new Date().toISOString() }, gameEvent)
     }, function (err, data) {
       if (err) {
         console.error("Unable to publish event to dynamoDB. Error JSON:", JSON.stringify(err, null, 2));

@@ -173,6 +173,11 @@ function Game(initialState, io) {
     return state;
   };
 
+  // Returns game state with all users' hands, indexed by position string
+  this.getGameStateWithHands = function () {
+    return Object.assign(this.getGameState(), { hands: this.hands });
+  };
+
   // Deals a hand of HAND_SIZE
   this.getNewHand = function () {
     return this.deck.splice(-HAND_SIZE)
@@ -214,14 +219,7 @@ function Game(initialState, io) {
     };
 
     this.messages.push(message);
-
-    this.forEachPosition(recipient => {
-      if (!recipient || !recipient.id) {
-        return;
-      }
-
-      io.message(recipient.id, message);
-    });
+    this.publish('message', message, false);
   };
 
   this.sendUserMessage = function (userId, text) {
@@ -247,14 +245,7 @@ function Game(initialState, io) {
       }
 
       this.sendMessage(t('userJoin', { name: user.name, seat }));
-
-      this.forEachPosition(recipient => {
-        if (!recipient || !recipient.id) {
-          return;
-        }
-
-        io.join(recipient.id, { game: this.getGameState(recipient.id) });
-      });
+      this.publish('join', {}, true);
 
       return this.getGameState(user.id);
     }
@@ -272,14 +263,7 @@ function Game(initialState, io) {
       this[position] = null;
     }
 
-    // Notify other players that user has left
-    this.forEachPosition(recipient => {
-        if (!recipient || !recipient.id) {
-          return;
-        }
-
-        io.leave(recipient.id, { game: this.getGameState(recipient.id) })
-      });
+    this.publish('leave', {}, true);
 
     return !(this.north || this.east || this.south || this.west);
   };
@@ -359,17 +343,10 @@ function Game(initialState, io) {
       this.sendMessage(t('userBid', { name: user && user.name, bidValue}));
       console.log('Bid made', userId, bidValue);
 
-      this.forEachPosition(recipient => {
-        if (!recipient || !recipient.id) {
-          return;
-        }
-
-        io.bid(recipient.id, {
-          position,
-          bidValue,
-          game: this.getGameState(recipient.id)
-        })
-      });
+      this.publish('bid', {
+        position,
+        bidValue
+      }, true);
     } else {
       console.warn('Illegal bid attempted ', userId, bidValue);
       // TODO handle illegal bid
@@ -551,8 +528,20 @@ function Game(initialState, io) {
     this.forEachPosition(user => this.hands[this.getUserPosition(user.id)] = this.getNewHand());
   };
 
-  this.publish = function (type, data) {
-      events.publish({ type, data, gameId: this.id });
+  // Publish a game event to all users in game and to
+  this.publish = function (type, data, includeGameState) {
+    this.forEachPosition(recipient => {
+      if (!recipient || !recipient.id) {
+        return;
+      }
+
+      const userDataToSend = includeGameState ? Object.assign({ game: this.getGameState(recipient.id) }, data) : data;
+
+      io[type](recipient.id, userDataToSend);
+    });
+
+    const dataWithAllHands = includeGameState ? Object.assign({ game: this.getGameStateWithHands() }, data) : data;
+    events.publish({ type, data: dataWithAllHands, gameId: this.id });
   };
 
   // Applies the given play from the given user, updates state, and emits play event to room
@@ -565,15 +554,12 @@ function Game(initialState, io) {
       // Remove card from hand
       this.hands[position] = this.hands[position].filter(c => !(c.suit === card.suit && c.rank === card.rank));
 
-      const play = {
+      this.plays.push({
         position,
         hand: this.hand,
         trick: this.trick,
         card
-      };
-
-      this.plays.push(play);
-      this.publish('play', play);
+      });
 
       const user = this[position];
       const { rank, suit } = card;
@@ -633,12 +619,11 @@ function Game(initialState, io) {
         this.advancePosition();
       }
 
-      this.forEachPosition(recipient => io.play(recipient.id, {
+      this.publish('play', {
         position,
         card,
-        trickWinner,
-        game: this.getGameState(recipient.id)
-      }));
+        trickWinner
+      }, true);
     } else {
       console.warn('Illegal play attempted ', userId, card);
       // TODO handle illegal play
