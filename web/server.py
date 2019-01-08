@@ -41,9 +41,8 @@ from threading import Timer
 import logging
 log = logging.getLogger(__name__)
 
-from db import parseLog
 from core.game import Game, NUM_PLAYERS
-from common import SOCKETIO_PORT, SOCKETIO_NS, db
+from common import SOCKETIO_PORT, SOCKETIO_NS
 
 # Constants
 LOBBY = 0
@@ -647,33 +646,6 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
 
             else:
                 self.emit_to_room('play', res)
-
-    # --------------------
-    # Game log methods
-    # --------------------
-
-    def on_game_log(self, gameId):
-        """Return parsed game log for game with id=gameId.
-
-        Args:
-          gameId (int): ID of target game.
-
-        Returns:
-          dict: Prepared game log data.
-
-        """
-        gameData = db(db.Games.id == gameId).select().first()
-        events = db(db.Events.game_id == gameId).select()
-        return parseLog.prepare(gameData, events)
-
-    def on_log_list(self):
-        """Retrieve list of available game logs.
-
-        Returns:
-          list: Each list item is a dict with keys (name, id).
-
-        """
-        return db(db.Games.id > 0).select().as_list()
 
     # --------------------
     # Helper methods

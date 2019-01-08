@@ -1,5 +1,0 @@
-This AI behaves "randomly." During bidding, 25% of the time when it is asked to make a bid, it will outbid the current highest bid by any amount; the rest of the time it will pass (except when dealing). When making plays, it will randomly select one legal play from its hand -- actually, it will loop through its hand and play the first legal card it encounters.
-
-This agent provides enough functionality to be a full participant in a game, but calling it intelligent may be an overstatement.
-
-It is certainly artificial.

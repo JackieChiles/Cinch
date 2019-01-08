@@ -3,16 +3,10 @@
 import string
 import random
 from datetime import datetime
-
-import logging
-log = logging.getLogger(__name__)
-
 import common
-from common import db
 from core.player import Player
 import core.cards as cards
 from core.gamestate import GameState
-import db.stats as stats
 
 
 # Constants and global variables
@@ -109,36 +103,6 @@ class Game:
 
         return True          # Couldn't follow suit, throwing off.
 
-    def dbupdate(self):
-        """Write a completed gamestate to the sqlite database."""
-        log.debug("Trying to add a row for the new game.")
-
-        # Get the automatic game ID to use in the Events table in place of the
-        # random engine-generated game ID. The game timestamp is that of the
-        # first game event.
-        autogen_game_id = db.Games.insert(
-            Timestamp=self.gs.events[0]['timestamp'],
-            PlayerName0=self.players[0].name,
-            PlayerName1=self.players[1].name,
-            PlayerName2=self.players[2].name,
-            PlayerName3=self.players[3].name
-        )
-        log.debug("Grabbed a game_id from the database.")
-
-        # Write everything from Events to the database.
-        log.info("Writing game data for local game %s, db game %s.",
-                  self.gs.game_id, autogen_game_id)
-
-        for action in self.gs.events:
-            db.Events.insert(
-                game_id=autogen_game_id,
-                HandNumber=action['hand_num'],
-                Timestamp=action['timestamp'],
-                EventString=action['output']
-            )
-
-        db.commit()
-
     def deal_hand(self):
         """Deal new hand to each player and set card ownership."""
         for player in self.players:
@@ -171,7 +135,6 @@ class Game:
         # Check that player_num is active player.
         #----------------------------------------
         if player_num != self.gs.active_player:
-            log.warning("Non-active player attempted to bid.")
             return None # Ignore
         bid_status = self.check_bid_legality(self.players[player_num], bid)
         if bid_status is False:
@@ -207,7 +170,6 @@ class Game:
         # Check that player_num is active player.
         #----------------------------------------
         if player_num != self.gs.active_player:
-            log.warning("Non-active player attempted to play a card.")
             return None # Ignore
 
         if not (self.check_play_legality(self.players[player_num], card_num)):
@@ -403,8 +365,8 @@ class Game:
         if status in ['eoh', 'eog']:
             gs.hand_number += 1
 
-        if status in ['eog']:
-            self.dbupdate()
+        # if status in ['eog']:
+            # self.dbupdate()
 
         return output
 
