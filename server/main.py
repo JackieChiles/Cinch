@@ -1,8 +1,10 @@
 import asyncio
 import websockets
 import json
+import uuid
 from game import Game
 
+user_websockets = {}
 games = []
 
 
@@ -10,12 +12,12 @@ def log(message):
     print(message)
 
 
-def start_new_game(data):
+async def start_new_game(websocket, data):
     log('New game started')
     games.append(Game())
 
 
-def join_game(data):
+async def join_game(websocket, data):
     try:
         game_id = data['gameId']
     except KeyError:
@@ -24,11 +26,11 @@ def join_game(data):
         log(f'Joining game {game_id}')
 
 
-def leave_game(data):
+async def leave_game(websocket, data):
     log('Leaving current game')
 
 
-def bid(data):
+async def bid(websocket, data):
     try:
         value = data['value']
     except KeyError:
@@ -37,7 +39,7 @@ def bid(data):
         log(f'Bidding {value}')
 
 
-def play(data):
+async def play(websocket, data):
     try:
         value = data['value']
     except KeyError:
@@ -46,7 +48,7 @@ def play(data):
         log(f'Playing card {value}')
 
 
-def chat(data):
+async def chat(websocket, data):
     try:
         value = data['value']
     except KeyError:
@@ -55,8 +57,14 @@ def chat(data):
         log(f'Chat sent: {value}')
 
 
+async def get_games_list(websocket, data):
+    log('Games list retrieved')
+    await send_data(websocket, {'games': games})
+
+
 actions = {
     'new': start_new_game,
+    'list-games': get_games_list,
     'join': join_game,
     'leave': leave_game,
     'bid': bid,
@@ -65,7 +73,7 @@ actions = {
 }
 
 
-def process_message(message):
+async def receive_message(websocket, message):
     # TODO handle json load errors
     data = json.loads(message)
 
@@ -79,12 +87,33 @@ def process_message(message):
         except KeyError:
             log(f'Handler for action {action} not found.')
         else:
-            handler(data)
+            await handler(websocket, data)
+
+
+async def send_message(websocket, message):
+    await websocket.send(message)
+
+
+async def send_data(websocket, data):
+    # TODO handle json encode errors
+    await send_message(websocket, json.dumps(data))
+
+
+async def send_user_data(data, user_id):
+    try:
+        websocket = user_websockets[user_id]
+    except KeyError:
+        log(f'Socket for user {user_id} not found. Could not send message.')
+    else:
+        await send_data(websocket, data)
 
 
 async def socket_handler(websocket, path):
+    user_id = uuid.uuid4()
+    user_websockets[user_id] = websocket
+
     async for message in websocket:
-        process_message(message)
+        await receive_message(websocket, message)
 
 start_server = websockets.serve(socket_handler, '0.0.0.0', 8765)
 
