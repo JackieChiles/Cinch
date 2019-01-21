@@ -1,14 +1,19 @@
 import asyncio
 import websockets
 import json
+from game import Game
 
 games = []
+
 
 def log(message):
     print(message)
 
+
 def start_new_game(data):
     log('New game started')
+    games.append(Game())
+
 
 def join_game(data):
     try:
@@ -18,8 +23,10 @@ def join_game(data):
     else:
         log(f'Joining game {game_id}')
 
+
 def leave_game(data):
     log('Leaving current game')
+
 
 def bid(data):
     try:
@@ -29,6 +36,7 @@ def bid(data):
     else:
         log(f'Bidding {value}')
 
+
 def play(data):
     try:
         value = data['value']
@@ -36,6 +44,7 @@ def play(data):
         log('Value not specified in play request.')
     else:
         log(f'Playing card {value}')
+
 
 def chat(data):
     try:
@@ -45,6 +54,7 @@ def chat(data):
     else:
         log(f'Chat sent: {value}')
 
+
 actions = {
     'new': start_new_game,
     'join': join_game,
@@ -53,6 +63,7 @@ actions = {
     'play': play,
     'chat': chat
 }
+
 
 def process_message(message):
     # TODO handle json load errors
@@ -69,6 +80,7 @@ def process_message(message):
             log(f'Handler for action {action} not found.')
         else:
             handler(data)
+
 
 async def socket_handler(websocket, path):
     async for message in websocket:

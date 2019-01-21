@@ -1,7 +1,3 @@
-#!/usr/bin/python2
-import common
-import core.cards as cards
-
 import logging
 log = logging.getLogger(__name__)
 
@@ -44,7 +40,7 @@ class GameState(object):
         self.cards_in_play = []
         self.scores = [0]*NUM_TEAMS
         self.team_stacks = [[] for _ in range(NUM_TEAMS)]
-        self.winner = 0.5 # Halfway between Team 0 and 1. Crafty, I know.
+        self.winner = 0.5  # Halfway between Team 0 and 1. Crafty, I know.
 
         # Count hands for logging/data collection and also to end the game
         # after some MAX_HANDS (intended to rein in AI deadlocks).

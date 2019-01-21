@@ -1,4 +1,3 @@
-#!/usr/bin/python2
 # -*- coding: utf-8 -*-
 """Define basic properties of cards and decks of cards."""
 
@@ -113,16 +112,16 @@ class Deck(list):
 def encode(rank, suit):
     """Encode (rank, suit) into integer in range 1-52."""
     if rank not in RANKS:
-        raise InvalidRankError, "Invalid rank: %s" % rank
+        raise InvalidRankError("Invalid rank: %s" % rank)
     if suit not in SUITS:
-        raise InvalidSuitError, "Invalid suit: %s" % suit
+        raise InvalidSuitError("Invalid suit: %s" % suit)
 
     return RS_TO_CODE[(rank, suit)]
 
 def decode(card_code):
     """Decode card encoding into (rank, suit) pair."""
     if not (0 < card_code < MAX_CARD_CODE+1):
-        raise OutOfRangeError, "Invalid card code: %s" % card_code
+        raise OutOfRangeError("Invalid card code: %s" % card_code)
 
     return CODE_TO_RS[card_code]
 

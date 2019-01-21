@@ -1,12 +1,11 @@
-#!/usr/bin/python2
 """Game object for managing game properties, players, and game states."""
 import string
 import random
 from datetime import datetime
 import common
-from core.player import Player
-import core.cards as cards
-from core.gamestate import GameState
+from player import Player
+import cards as cards
+from gamestate import GameState
 
 
 # Constants and global variables
