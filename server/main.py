@@ -3,8 +3,9 @@ import websockets
 import json
 import uuid
 from game import Game
+from bidict import bidict
 
-user_websockets = {}
+user_websockets = bidict({})
 games = []
 
 
@@ -14,16 +15,23 @@ def log(message):
 
 async def start_new_game(websocket, data):
     log('New game started')
-    games.append(Game())
+    games.append(Game(send_user_data))
 
 
 async def join_game(websocket, data):
     try:
-        game_id = data['gameId']
+        game_id = data['game_id']
+        user_id = user_websockets.inv[websocket]
     except KeyError:
         log('Game ID not specified in join request.')
     else:
         log(f'Joining game {game_id}')
+        game = next(filter(lambda game: game.id == game_id, games), None)
+
+        if game is None:
+            log(f'Game {game_id} not found. Could not join.')
+        else:
+            game.join(data, user_id)
 
 
 async def leave_game(websocket, data):
