@@ -4,9 +4,11 @@ import common
 import cards as cards
 from bidict import bidict
 import copy
+from math import ceil
 
 # Constants and global variables
 WINNING_SCORE = 11
+CINCH_POINTS = 10
 STARTING_HAND_SIZE = 9
 NUM_TEAMS = 2
 TEAM_SIZE = 2
@@ -15,6 +17,8 @@ MAX_HANDS = 16 # Not part of game rules; intended to prevent AI problems.
                # Can be modified later if actual gameplay is trending longer.
 BID_PASS=0
 BID_CINCH=5
+EVEN_TEAM = 0
+ODD_TEAM = 1
 
 
 class Game:
@@ -37,7 +41,11 @@ class Game:
             'plays': bidict({}),
             'bids': {},
             'trick': 1,
-            'hand': 1
+            'active_player': None,
+            'leader': None,
+            'dealer': None,
+            'even_team_score': 0,
+            'odd_team_score': 0
         }
 
         self.unsent_gs_updates = {}
@@ -62,6 +70,9 @@ class Game:
     def is_hand_over(self):
         return self.gs['trick'] == STARTING_HAND_SIZE
 
+    def is_game_over(self):
+        return self.gs['even_team_score'] > WINNING_SCORE or self.gs['odd_team_score'] > WINNING_SCORE
+
     def is_game_started(self):
         return self.phase != 'pregame'
 
@@ -72,35 +83,40 @@ class Game:
         }, user_id)
 
     def join(self, data, user_id):
+        user_seat = -1
+
         if self.is_game_full():
             # Error if all seats are full
             self.send_error('Game is full. Could not join.', user_id)
             return
         elif 'seat' in data:
-            seat = data['seat']
+            user_seat = data['seat']
 
             # TODO handle invalid requested seat
-            if seat in self.gs['seats']:
+            if user_seat in self.gs['seats']:
                 # Error if specified seat is occupied
                 self.send_error('Seat is occupied. Could not join.', user_id)
             else:
                 # Join in specified seat if not occupied
-                self.gs['seats'][seat] = user_id
+                self.gs['seats'][user_seat] = user_id
         else:
             # If no specified seat, join in first available
             for seat in range(NUM_PLAYERS):
                 if seat not in self.gs['seats']:
-                    self.gs['seats'][seat] = user_id
+                    user_seat = seat
+                    self.gs['seats'][user_seat] = user_id
                     break
 
         # If all seats filled, start game
         if self.is_game_full() and not self.is_game_started():
             self.start_game()
-            self.broadcast_action('join', True)
+            self.broadcast_action('join', user_seat, True)
 
-    def broadcast_action(self, action, include_hands=False):
+    def broadcast_action(self, action, actor, include_hands=False):
         data = {
             'action': action,
+            'trick': self.gs['trick'],  # Always include trick for convenience
+            'actor': actor,
             **self.unsent_gs_updates
         }
 
@@ -126,26 +142,70 @@ class Game:
             self.gs[key] = updates[key]
             self.unsent_gs_updates[key] = updates[key]
 
-    def get_current_high_bid(self):
-        winner = self.get_current_bid_winner()
-        return self.gs['bids'][winner]
+    def get_hand_dealer(self, trick):
+        actions = self.get_actions_this_trick_or_earlier(trick)
 
-    def get_current_bid_winner(self):
-        bids = self.gs['bids']
+        while True:
+            try:
+                action = next(actions)
+
+                if 'dealer' in action:
+                    return action['dealer']
+            except StopIteration:
+                break
+
+        return None
+
+    def get_actions_this_trick_or_earlier(self, trick):
+        return reversed(filter(lambda action['trick'] > trick, self.actions))
+
+    def get_hand_bid_actions(self, trick):
+        # Filter out all actions after this trick
+        # Reverse actions and find the first four bid actions
+        actions = self.get_actions_this_trick_or_earlier(trick)
+        bid_actions = []
+
+        while len(bid_actions) < NUM_PLAYERS:
+            try:
+                action = next(actions)
+
+                if action['action'] == 'bid':
+                    bid_actions.append(action)
+            except StopIteration:
+                break
+
+        return bid_actions
+
+    def get_bid_from_bid_action(self, action):
+        return action['bids'][action['actor']]
+
+    def get_hand_bid_winning_action(self, trick):
+        bid_actions = self.get_hand_bid_actions(trick)
         high = 0
         winners = []
+        dealer = self.get_hand_dealer(trick)
+        dealer_bid_action = None
 
         # Build list of all seats with highest bid
-        for seat in bids:
-            if bids[seat] >= high:
-                winners.append(seat)
+        for action in bid_actions:
+            if self.get_bid_from_bid_action(action) >= high:
+                winners.append(action)
+
+            if action['actor'] == dealer:
+                dealer_bid_action = action
 
         # If only one high bid, that player wins
         if len(winners) == 1:
             return winners[0]
 
         # If multiple high bids, winner either got stuck or counter-cinched
-        return self.gs['dealer']
+        return dealer_bid_action
+
+    def get_current_high_bid(self):
+        return self.get_bid_from_bid_action(self.get_hand_bid_winning_action(self.gs['trick']))
+
+    def get_current_bid_winner(self):
+        return self.get_hand_bid_winning_action(self.gs['trick'])['actor']
 
     def is_bid_legal(self, seat, bid):
         """Check a proposed bid for legality against the current gs.
@@ -169,25 +229,39 @@ class Game:
 
         return False        # If we get here, no legal options left.
 
-    def get_trick_led_card(self):
-        return cards.Card(self.gs['plays'][self.gs['leader']])
+    def get_trick_play_actions(self, trick):
+        return filter(lambda action: action['action'] == 'play' and action['trick'] == trick, self.actions)
 
-    def get_trick_winning_seat(self):
-        plays = self.gs['plays'].inv
-        card_led = self.get_trick_led_card()
-        trump = self.gs['trump']
-        winning_card = card_led
+    def get_hand_trick_range(self, trick):
+        return range(trick - (trick - 1) % STARTING_HAND_SIZE, trick)
 
-        for play in plays:
-            card = cards.Card(play)
+    def get_trick_led_play_action(self, trick):
+        return self.get_trick_play_actions(trick)[0]
+
+    def get_card_from_play_action(self, action):
+        return cards.Card(action['plays'][action['actor']])
+
+    def get_trick_led_card(self, trick):
+        return self.get_card_from_play_action(self.get_trick_led_play_action(trick))
+
+    def get_trick_winning_play_action(self, trick):
+        play_actions = self.get_trick_play_actions(trick)
+        led_play_action = self.get_trick_led_play_action(trick)
+        card_led = self.get_card_from_play_action(led_play_action)
+        trump = self.get_trick_trump(trick)
+        winning_action = led_play_action
+
+        for action in play_actions:
+            card = self.get_card_from_play_action(action)
+            winning_card = self.get_card_from_play_action(winning_action)
 
             if card.suit == trump:
                 if winning_card.suit != trump or card.rank > winning_card.rank:
-                    winning_card = card
+                    winning_action = action
             elif card.suit == card_led.suit and card.rank > winning_card.rank:
-                winning_card = card
+                winning_action = action
 
-        return plays[winning_card.code]
+        return winning_action
 
     def is_play_legal(self, seat, play):
         """Check a proposed play for legality against the current gs.
@@ -265,7 +339,7 @@ class Game:
             # Still bid phase, advance to next bidder
             self.advance_player()
 
-        self.broadcast_action('bid')
+        self.broadcast_action('bid', user_seat)
 
     def play(self, data, user_id):
         """Invoke play processing logic on incoming play.
@@ -301,8 +375,17 @@ class Game:
                     self.update_game_state({'trump': card.suit})
                 break
 
-        # Check for end of trick and handle, otherwise return.
+        # Check for end of trick and handle.
         if self.is_trick_over():
+            # Check for end of hand and handle.
+            if self.is_hand_over():
+                self.score_hand()
+
+                if self.is_game_over():
+                    return self.update_game_state({
+                        'phase': 'postgame'
+                    })
+
             self.update_game_state({
                 'active_player': self.get_trick_winning_seat(),
                 'trick': self.gs['trick'] + 1,
@@ -310,171 +393,71 @@ class Game:
             })
         else:
             self.advance_player()
-            return
 
-        # Check for end of hand and handle, otherwise return.
-        if not self.is_hand_over():
-            return
+        self.broadcast_action('play', user_seat)
 
-        # TODO finish updating play method below
-        # Log hand results and check victory conditions.
-        self.gs.score_hand()
-        victor = False
-        for score in self.gs.scores:
-            if score >= WINNING_SCORE:
-                victor = True
-                break
+    def update_score_from_bid(self, score, bid):
+        if score < bid:
+            # Set: score reduced by bid points
+            return -bid
+        elif bid == BID_CINCH:
+            if score == 0:
+                # Made cinch from zero: automatic win
+                return WINNING_SCORE
 
-        # Also, if we've reached MAX_HANDS, end the game anyway.
-        # message['win'] defaults to 0.5; client/database/stats should
-        # interpret a game with a win value of 0.5 as a draw.
+            # Made cinch at non-zero score: ten points
+            return score + CINCH_POINTS
 
-        if self.gs.hand_number == MAX_HANDS:
-            victor = True
+        # Made bid: score increased by scored points
+        return score
 
-        # This block breaks if there are more than two teams.
-        if victor:
-            if self.gs.scores[self.gs.declarer % TEAM_SIZE] >= WINNING_SCORE:
-                self.gs.winner = self.gs.declarer % TEAM_SIZE
-            elif self.gs.scores[(self.gs.declarer + 1) % TEAM_SIZE] >= WINNING_SCORE:
-                self.gs.winner = (self.gs.declarer + 1) % TEAM_SIZE
-            else:
-                pass # Don't need to set winner if we reached on MAX_HANDS.
+    def score_hand(self):
+        trick = self.gs['trick']
 
-            return self.publish('eog', player_num, card)
+        # TODO implement these methods
+        high_play_action = self.get_hand_high_play_action(trick)
+        low_play_action = self.get_hand_low_play_action(trick)
+        jack_play_action = self.get_hand_jack_winning_play_action(trick)
+        even_team_game_points = self.get_hand_even_game_points(trick)
+        odd_team_game_points = self.get_hand_odd_game_points(trick)
+        even_team_score = 0
+        odd_team_score = 0
 
-        # If no victor, set up for next hand.
-        gs = self.gs # Operate on local variable for speed++
+        # TODO use 0 and 1 index instead of variable for each team score
+        if high_play_action and high_play_action['actor'] % 2 == 0:
+            even_team_score += 1
+        elif high_play_action:
+            odd_team_score += 1
 
-        gs.team_stacks = [[] for _ in range(NUM_TEAMS)]
-        gs.dealer = gs.next_player(gs.dealer)
-        gs.declarer = gs.dealer
-        self.deck = cards.Deck()
-        self.deal_hand()
-        gs.active_player = gs.next_player(gs.dealer)
-        gs.high_bid = 0
-        gs.phase = 'bid'
-        gs.trump = None
+        if low_play_action and low_play_action['actor'] % 2 == 0:
+            even_team_score += 1
+        elif low_play_action:
+            odd_team_score += 1
 
-        self.gs = gs
+        if jack_play_action and jack_play_action['actor'] % 2 == 0:
+            even_team_score += 1
+        elif jack_play_action:
+            odd_team_score += 1
 
-        return self.publish('eoh', player_num, card)
+        if even_team_game_points > odd_team_game_points:
+            even_team_score += 1
+        elif even_team_game_points < odd_team_game_points:
+            odd_team_score += 1
 
-    def publish(self, status, pNum, data):
-        """Translate game actions into messages for clients.
+        winning_bid_action = self.get_hand_bid_winning_action(trick)
+        winning_bid = self.get_bid_from_bid_action(winning_bid_action)
+        even_team_won_bid = winning_bid_action['actor'] % 2 == 0
 
-        Also write data to the appropriate game log file on the server.
-
-        status (str): 3-char code specifying the event type.
-        Legal values:
-            bid: 3/hand, normal bid.
-            eob: 1/hand, final bid.
-            trp: 1/hand, first card played.
-            crd: 26/hand, normal card play.
-            eot: 8/hand, end of trick.
-            eoh: 1/hand, end of hand.
-            eog: 1/game, end of game.
-        pNum (int): local player number
-        data (int or Card): Card object being played by player for modes
-            trp, crd, eot, eoh, eog; integer encoding of bid for bid and eob.
-
-        """
-        gs = self.gs # Make local copy for speed++; it's not edited in here.
-
-        # Initialize the output. Message always contains actvP, so do it here.
-        message = {'actvP': gs.active_player}
-        message['actor'] = pNum
-
-        if status in ['sog', 'eob', 'eoh']:
-            # Handle switching game modes first.
-            message['mode'] = gs.phase
-
-        if status in ['trp', 'crd', 'eot', 'eoh', 'eog']:
-
-            if status == 'trp':
-                message['trp'] = gs.trump
-                # Player declared Suit as trump.
-
-            message['playC'] = data.code
-            # Player played Card.
-
-            if status in ['eot', 'eoh', 'eog']:
-                message['remP'] = gs._t_w_card.owner
-                # Player won the trick with Card.
-
-                if status in ['eoh', 'eog']:
-                    message['mp'] = ['',]*NUM_TEAMS # Initialize
-                    # We will end up with a list of NUM_TEAMS strings,
-                    # where the string is the match points out of 'hljg' won.
-                    message['mp'][gs._results['high_holder']] += 'h'
-                    message['mp'][gs._results['low_holder']] += 'l'
-                    try:
-                        message['mp'][gs._results['jack_holder']] += 'j'
-                    except TypeError: # No jack out, NoneType.
-                        pass
-                    try:
-                        message['mp'][gs._results['game_holder']] += 'g'
-                    except TypeError: # Game tied and not awarded, NoneType.
-                        pass
-                    message['gp'] = gs._results['game_points']
-                    message['sco'] = gs.scores
-
-                    if status == 'eog':
-                        message['win'] = gs.winner
-
-                    else: # Status must be 'eoh': Set up for next hand.
-                        message['dlr'] = gs.dealer
-                        # Player deals.
-                        output = [message.copy() for _ in range(NUM_PLAYERS)]
-                        for player in self.players:
-                            output[player.pNum]['addC'] = [card.code for card
-                                                           in player.hand]
-                            output[player.pNum]['tgt'] = player.pNum
-
-        elif status in ['bid', 'eob']:
-            message['bid'] = data
-
-        # Start of game is the same as end of hand except there are different
-        # logging requirements, so there's a little bit of duplicated code.
-        # Update: Text logging has been deprecated; this duplicated code
-        # could be cleaned up or merged later, but it isn't hurting anything
-        # for now.
-        elif status == 'sog':
-            message['dlr'] = gs.dealer
-            # Player deals.
-            output = [message.copy() for _ in range(NUM_PLAYERS)]
-            for player in self.players:
-                output[player.pNum]['addC'] = [card.code for card
-                                               in player.hand]
-                output[player.pNum]['tgt'] = player.pNum
-
-        # Note: New hands are handled differently from all others because they
-        # are the only ones dealing with private information. If status is
-        # 'eoh'/'sog', output will be a length-4 list containing 4 dicts with
-        # 'tgt' containing an integer, and 'addC' containing the new hands. If
-        # not, output will be a dict with 'tgt' containing a length-4 list.
-        # (With 4 meaning NUM_PLAYERS, of course.)
-        if status not in ['eoh', 'sog']:
-            message['tgt'] = [i for i in range(NUM_PLAYERS)]
-            output = message
-
-        if status in ['eoh', 'sog']:
-            for x in output:  # output is a list
-                self.gs.events.append({'hand_num':self.gs.hand_number,
-                                       'timestamp':datetime.utcnow().isoformat(),
-                                       'output':str(x)})
+        if even_team_won_bid:
+            even_team_score = self.update_score_from_bid(even_team_score, winning_bid)
         else:
-            self.gs.events.append({'hand_num':self.gs.hand_number,
-                                   'timestamp':datetime.utcnow().isoformat(),
-                                   'output':str(output)})
+            odd_team_score = self.update_score_from_bid(odd_team_score, winning_bid)
 
-        if status in ['eoh', 'eog']:
-            gs.hand_number += 1
-
-        # if status in ['eog']:
-            # self.dbupdate()
-
-        return output
+        # TODO determine winning team
+        self.update_game_state({
+            'even_team_score': self.gs['even_team_score'] + even_team_score,
+            'odd_team_score': self.gs['odd_team_score'] + odd_team_score
+        })
 
     def get_next_player(self, seat):
         """Return the seat number to the left of given seat."""
@@ -497,31 +480,6 @@ class Game:
             'dealer': dealer,
             'active_player': self.get_next_player(dealer),
             'phase': 'bid',
-            'trick': 1,
-            'hand': 1
+            'trick': 1
         })
 
-    def join_game_in_progress(self, pNum, name):
-        """Facilitate a player joining a game in progress.
-
-        pNum (int): The target player number.
-        name (str): The player's nickname.
-        """
-        self.players[pNum].name = name
-
-        message = dict(
-            actvP=self.gs.active_player,
-            actor=None,
-            addC=[card.code for card in self.players[pNum].hand],
-            dlr=self.gs.dealer,
-            mode=self.gs.phase,
-            tgt=pNum,
-            resumeData=dict(
-                handSizes=[len(x.hand) for x in self.players],
-                trp=self.gs.trump,
-                sco=self.gs.scores,
-                highBid=self.gs.high_bid,
-                declarer=self.gs.declarer,
-                cip=[(c.code, c.owner) for c in self.gs.cards_in_play])
-            )
-        return message
