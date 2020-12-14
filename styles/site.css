@@ -7,7 +7,26 @@ body {
     margin:0px;
 }
 
-button {
+kbd {
+    -moz-border-radius:3px;
+    -moz-box-shadow:0 1px 0 rgba(0,0,0,0.2),0 0 0 2px #fff inset;
+    -webkit-border-radius:3px;
+    -webkit-box-shadow:0 1px 0 rgba(0,0,0,0.2),0 0 0 2px #fff inset;
+    background-color:#f7f7f7;
+    border:3px solid #ccc;
+    border-radius:3px;
+    box-shadow:0 1px 0 rgba(0,0,0,0.2),0 0 0 2px #fff inset;
+    color:#333;
+    display:inline-block;
+    font-family:Arial,Helvetica,sans-serif;
+    font-size:11px;
+    line-height:1.4;
+    margin:0 .1em;
+    padding:.1em .6em;
+    text-shadow:0 1px 0 #fff;
+}
+
+button.large-button {
     font-size:1.2em;
     padding:5px;
 }
@@ -359,8 +378,44 @@ input.username {
     z-index:5;
 }
 
-.empty-seat {
-    opacity:0.5!important;
+.compact-fieldset {
+    padding: 2px;
+    margin: 5px 0;
+}
+
+.invite-link {
+    max-width: 100%;
+}
+
+@keyframes reminderPulse {
+    from {
+        background-color: rgba(255, 255, 255, 0.8);
+    }
+
+    to {
+        background-color: rgba(255, 255, 255, 0);
+    }
+}
+
+@-webkit-keyframes reminderPulse {
+    from {
+        background-color: rgba(255, 255, 255, 0.8);
+    }
+
+    to {
+        background-color: rgba(255, 255, 255, 0);
+    }
+}
+
+.active-border.reminder-pulse {
+    animation-duration: 0.4s;
+    animation-name: reminderPulse;
+    animation-iteration-count: 2;
+    animation-timing-function: ease-out;
+    -webkit-animation-duration: 0.4s;
+    -webkit-animation-name: reminderPulse;
+    -webkit-animation-iteration-count: 2;
+    -webkit-animation-timing-function: ease-out;
 }
 
 .middle-row {
@@ -375,6 +430,7 @@ input.username {
     display:inline;
     float:left;
     margin:1px;
+    text-align: center;
 }
 
 #game-content {

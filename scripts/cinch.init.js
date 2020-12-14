@@ -36,6 +36,28 @@ $(function () {
 
         //Focus on username entry field
         $('#username-input').focus();
+
+        //Set up detection for the window/tab being active
+        $(window).blur(function() {
+            CinchApp.viewModel.isWindowActive(false);
+        });
+
+        $(window).focus(function() {
+            CinchApp.viewModel.isWindowActive(true);
+        });
+
+        //Parse the URL query string
+        CinchApp.viewModel.getUrlParameters();
+
+        //Highlight the text of invite links when focused
+        $('.invite-link').mouseup(function() {
+            //Eliminates a de-select in some Webkit browsers
+            return false;
+        });
+
+        $('.invite-link').focus(function() {
+            $(this).select();
+        });
     }
     else {
         $('#browser-warning').fadeIn();

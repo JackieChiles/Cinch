@@ -341,8 +341,11 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         roomNum = int(roomNum)  # Arg `roomNum` is sent as unicode from browser
         room = self.getRoomByNumber(roomNum)
 
-        if room.isFull():
-            self.emit('err', 'That room is full')
+        if room is None:
+            self.emit('err', 'That room does not exist.')
+            return
+        elif room.isFull():
+            self.emit('err', 'That room is full.')
             return
         else:
             try:
@@ -600,7 +603,7 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         # False on bad bid, None for inactive player
 
         if res is False:
-            self.emit('err', 'Bad bid')
+            self.emit('err', 'Bad bid: {0}'.format(bid))
         elif res is None:
             self.emit('err', "It's not your turn")
         else:
@@ -610,7 +613,7 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
         """Relay play to game.
 
         Args:
-          play (str): Bid amount. Must be a number.
+          play (str): Card code. Must be a number.
 
         """
         g = self.getRoomByNumber(self.session['roomNum']).game
@@ -629,7 +632,7 @@ class GameNamespace(BaseNamespace, BroadcastMixin):
 
         if res is False:
             log.debug("on_play: illegal play attempted in seat " + str(pNum))
-            self.emit('err', 'Bad play')
+            self.emit('err', 'Bad play: {0}'.format(play))
         elif res is None:
             self.emit('err', "It's not your turn")
         else:
@@ -792,6 +795,7 @@ def runServer():
 
     try:
         server = SocketIOServer(('0.0.0.0', SOCKETIO_PORT), Server(),
+                                heartbeat_timeout=120,
                                 resource="socket.io", policy_server=False)
         Room.server = server
         server.application.request['rooms'].append(Room(LOBBY))

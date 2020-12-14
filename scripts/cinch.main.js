@@ -61,6 +61,10 @@ var CinchApp = {
         jack: 'j',
         game: 'g'
     },
+    localStorageKeys: {
+        enableAnimation: 'enableAnimation',
+        enableKeyboardShortcuts: 'enableKeyboardShortcuts'
+    },
 
     //Functions
     isNullOrUndefined: function(value) {

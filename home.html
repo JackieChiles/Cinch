@@ -29,7 +29,7 @@
             </div>
             <div>
                 <a href="https://www.google.com/intl/en-US/chrome/browser/">Chrome</a>
-            </div>        
+            </div>
         </div>
         <div id="home-page" class="cinch-view">
             <div class="header">
@@ -38,10 +38,14 @@
 
             <span title="This is the name that will be displayed to other players." class="username-label">Username:</span>
             <input data-bind="value: username, valueUpdate: 'afterkeydown'" type="text" placeholder="Enter your username" class="username" id="username-input" />
-            
-            <button data-bind="click: enterLobby" id="enter-lobby-btn">OK</button>
+            <div data-bind="visible: urlParamGame">
+                You will join game <strong data-bind="text: urlParamGame"></strong>
+                <span data-bind="visible: urlParamSeat">
+                    in seat <strong data-bind="text: urlParamSeat"></strong>
+                </span>.
+            </div>
+            <button data-bind="click: enter" id="enter-lobby-btn" class="large-button">OK</button>
         </div><!-- /home page -->
-
        
         <div id="lobby-page" class="cinch-view">
             <div class="header">
@@ -50,11 +54,11 @@
 
             <div class="game-lobby-container games-container">
                 <div class="title-value-container game newgame">
-                    <button data-bind="click: enterAi">Create New Game</button>
+                    <button data-bind="click: enterAi" class="large-button">Create New Game</button>
                 </div>
                 <!-- ko foreach: games -->
                     <div class="title-value-container game">
-                        <button data-bind="click: select, disable: isFull">
+                        <button data-bind="click: select, disable: isFull" class="large-button">
                             Join Game <span data-bind="text: name"></span>
                             <span data-bind="text: isFull() ? ' (Room Full)' : ''"></span>
                         </button>
@@ -75,7 +79,7 @@
         <div id="seat-select-page" class="cinch-view">
             <div class="header">
                 <h1>Select Seat</h1>
-                <button data-bind="click: exitToLobby" id="goto-lobby-from-game-btn">
+                <button data-bind="click: exitToLobby" id="goto-lobby-from-game-btn" class="large-button">
                     Cancel
                 </button>
             </div>
@@ -83,24 +87,24 @@
             <div data-bind="with: selectedRoom">
                 <div class="seat-list north title-value-container" data-bind="with: seats()[CinchApp.players.north]">
                     <div class="small-title white-border">North</div>
-                    <button class="seat-selector" data-bind="text: displayText, enable: available, click: join"></button>
+                    <button class="seat-selector" data-bind="text: displayText, enable: available, click: join" class="large-button"></button>
                 </div>
 
                 <div class="east-west-seat-container">
                     <div class="seat-list east-west with-south title-value-container" data-bind="with: seats()[CinchApp.players.west]">
                         <div class="small-title white-border">West</div>
-                        <button class="seat-selector" data-bind="text: displayText, enable: available, click: join"></button>
+                        <button class="seat-selector" data-bind="text: displayText, enable: available, click: join" class="large-button"></button>
                     </div>
 
                     <div class="seat-list east-west with-south title-value-container" data-bind="with: seats()[CinchApp.players.east]">
                         <div class="small-title white-border">East</div>
-                        <button class="seat-selector" data-bind="text: displayText, enable: available, click: join"></button>
+                        <button class="seat-selector" data-bind="text: displayText, enable: available, click: join" class="large-button"></button>
                     </div>
                 </div>
 
                 <div class="seat-list south title-value-container" data-bind="with: seats()[CinchApp.players.south]">
                     <div class="small-title white-border">South</div>
-                    <button class="seat-selector" data-bind="text: displayText, enable: available, click: join"></button>
+                    <button class="seat-selector" data-bind="text: displayText, enable: available, click: join" class="large-button"></button>
                 </div>
             </div>
         </div><!-- /seat select page -->
@@ -108,11 +112,11 @@
         <div id="ai-page" class="cinch-view">
             <div class="header">
                 <h1>Select AI Agents (Optional)</h1>
-                <button data-bind="click: exitToLobby">Back</button>
+                <button data-bind="click: exitToLobby" class="large-button">Back</button>
             </div>
             
             <div id="ai-upper">
-                <button data-bind="click: startNew">Start Game</button>
+                <button data-bind="click: startNew" class="large-button">Start Game</button>
                 <div class="seat-list north title-value-container">
                     <div class="small-title white-border">North</div>
                     <select data-bind="options: ai, optionsText: 'name', value: chosenAi[CinchApp.players.north], optionsCaption: 'Pick one'"></select>
@@ -213,7 +217,7 @@
             </div>
             
             <div>
-                <button data-bind="click: handEndContinue">Continue</button>
+                <button data-bind="click: handEndContinue" class="large-button">Continue</button>
             </div>
             <div data-bind="template: { name: 'chat-pane-template', data: $root }" class="chat-pane margin-center"></div>
         </div><!-- /hand-end page -->
@@ -221,12 +225,20 @@
         <div id="game-page" class="cinch-view">
             <div class="header">
                 <h1 data-bind="text: 'Room ' + curRoom()"></h1>
-                <button data-bind="click: exitToLobby" id="goto-lobby-from-game-btn">
+                <button data-bind="click: exitToLobby" id="goto-lobby-from-game-btn" class="large-button">
                     Go to Lobby
                 </button>
                 <div class="value-white-bg top-setting">
                     <label for="enable-animation-checkbox">Enable animation: </label>
-                    <input data-bind="checked: enableAnimation" type="checkbox" name="enable-animation-checkbox" />
+                    <input data-bind="checked: enableAnimation" type="checkbox" id="enable-animation-checkbox" />
+                </div>
+                <div class="value-white-bg top-setting">
+                    <label for="enable-keyboard-shortcuts-checkbox">Enable keyboard shortcuts: </label>
+                    <input data-bind="checked: enableKeyboardShortcuts" type="checkbox" id="enable-keyboard-shortcuts-checkbox" />
+                </div>
+                <div class="value-white-bg top-setting">
+                    <label for="game-link-input">Link: </label>
+                    <input data-bind="value: currentRoomInviteLink" type="text" class="invite-link" id="game-link-input" />
                 </div>
             </div>
             <div class="header">
@@ -258,7 +270,7 @@
             <div id="game-content">
                 <div id="left-content">
                     <div data-bind="with: players()[CinchApp.players.north]" class="other-player partner no-mobile">
-                        <div data-bind="css: { 'active-border' : active, 'empty-seat' : empty }" class="ab-left ab-top ab-z">
+                        <div data-bind="css: { 'active-border' : active }" class="ab-left ab-top ab-z">
                             <div data-bind="visible: !empty()">
                                 <div data-bind="text: numCardsInHand" class="card-counter vert"></div>
                                 <div>
@@ -270,14 +282,23 @@
                                     <div data-bind="text: name, attr: { title: name }" class="value-white-bg name-display-north"></div>
                                 </div>
                             </div>
-                            <div data-bind="visible: empty">
-                                Empty seat
+                            <div data-bind="visible: empty, with: $root">
+                                <strong>Empty seat</strong>
+                                <fieldset class="compact-fieldset">
+                                    <legend>Invite AI</legend>
+                                    <select data-bind="options: ai, optionsText: 'name', value: chosenAi[CinchApp.players.north], optionsCaption: 'Pick one'"></select>
+                                    <button data-bind="click: function() { inviteAi(CinchApp.players.north); }">Invite</button>
+                                </fieldset>
+                                <div>
+                                    <strong>Link:</strong>
+                                    <input data-bind="value: getInviteLink(curRoom(), CinchApp.players.north)" type="text" class="invite-link" />
+                                </div>
                             </div>
                         </div>
                     </div>
                     
                     <div data-bind="with: players()[CinchApp.players.west]" class="other-player middle-row opponent no-mobile">
-                        <div data-bind="css: { 'active-border' : active, 'empty-seat' : empty }" class="ab-left ab-top ab-z">
+                        <div data-bind="css: { 'active-border' : active }" class="ab-left ab-top ab-z">
                             <div data-bind="visible: !empty()">
                                 <div data-bind="text: numCardsInHand" class="card-counter horiz"></div>
                                 <div>
@@ -289,8 +310,17 @@
                                     <div data-bind="text: name, attr: { title: name }" class="value-white-bg name-display-east-west"></div>
                                 </div>
                             </div>
-                            <div data-bind="visible: empty">
-                                Empty seat
+                            <div data-bind="visible: empty, with: $root">
+                                <strong>Empty seat</strong>
+                                <fieldset class="compact-fieldset">
+                                    <legend>Invite AI</legend>
+                                    <select data-bind="options: ai, optionsText: 'name', value: chosenAi[CinchApp.players.west], optionsCaption: 'Pick one'"></select>
+                                    <button data-bind="click: function() { inviteAi(CinchApp.players.west); }">Invite</button>
+                                </fieldset>
+                                <div>
+                                    <strong>Link:</strong>
+                                    <input data-bind="value: getInviteLink(curRoom(), CinchApp.players.west)" type="text" class="invite-link" />
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -300,7 +330,7 @@
                     </div>
                         
                     <div data-bind="with: players()[CinchApp.players.east]" class="other-player middle-row opponent no-mobile">
-                        <div data-bind="css: { 'active-border' : active, 'empty-seat' : empty }" class="ab-left ab-top ab-z">
+                        <div data-bind="css: { 'active-border' : active }" class="ab-left ab-top ab-z">
                             <div data-bind="visible: !empty()">
                                 <div data-bind="text: numCardsInHand" class="card-counter horiz"></div>
                                 <div>
@@ -312,8 +342,17 @@
                                     <div data-bind="text: name, attr: { title: name }" class="value-white-bg name-display-east-west"></div>
                                 </div>
                             </div>
-                            <div data-bind="visible: empty">
-                                Empty seat
+                            <div data-bind="visible: empty, with: $root">
+                                <strong>Empty seat</strong>
+                                <fieldset class="compact-fieldset">
+                                    <legend>Invite AI</legend>
+                                    <select data-bind="options: ai, optionsText: 'name', value: chosenAi[CinchApp.players.east], optionsCaption: 'Pick one'"></select>
+                                    <button data-bind="click: function() { inviteAi(CinchApp.players.east); }">Invite</button>
+                                </fieldset>
+                                <div>
+                                    <strong>Link:</strong>
+                                    <input data-bind="value: getInviteLink(curRoom(), CinchApp.players.east)" type="text" class="invite-link" />
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -325,23 +364,28 @@
                     <div data-bind="template: { name: 'chat-pane-template', data: $root }" class="chat-pane"></div>
                 </div>
             </div>
-            <div data-bind="css: { 'active-border' : isActivePlayer() }" id="game-controls" class="ab-left ab-top ">
+            <div data-bind="css: { 'active-border reminder-pulse' : isActivePlayer() }, visible: gameMode" id="game-controls" class="ab-left ab-top ">
                 <div>
-                    Your bid:
+                    <span data-bind="visible: $root.gameMode() == CinchApp.gameModes.bid">Select a bid:</span>
+                    <span data-bind="visible: $root.gameMode() == CinchApp.gameModes.play">Your bid was:</span>
                     <span data-bind="foreach: possibleBids">
                         <button data-bind="
                             value: value,
                             text: name,
                             click: submit,
+                            visible: $root.gameMode() == CinchApp.gameModes.bid || $root.players()[CinchApp.players.south].currentBidValue() == value,
                             enable: isValid() && $root.gameMode() == CinchApp.gameModes.bid,
-                            css: { 'active-border' : $root.players()[CinchApp.players.south].currentBidValue() == value }">
+                            css: { 'active-border' : $root.players()[CinchApp.players.south].currentBidValue() == value }" class="large-button">
                         </button>
                     </span>
+                    <span data-bind="visible: enableKeyboardShortcuts() && gameMode() == CinchApp.gameModes.bid">Bid key shortcuts: 0-5</span>
                 </div>
                 <div data-bind="foreach: cardsInHand">
                     <div class="tile-button">
                         <div data-bind="visible: !($root.isActivePlayer() && $root.gameMode() == CinchApp.gameModes.play)" class="card-disabler"></div>
                         <img data-bind="attr: { src: imagePath}, click: submit" />
+                        <br />
+                        <kbd data-bind="visible: $root.enableKeyboardShortcuts, text: $index() + 1, attr: { title: 'Keyboard shortcut: ' + ($index() + 1) }"><kbd>
                     </div>
                 </div>
             </div><!-- /game page -->
@@ -350,7 +394,7 @@
         <script type="text/javascript" src="scripts/cinch.init.js"></script>
         <script type="text/html" id="chat-pane-template">
             <input data-bind="value: newChat, valueUpdate: 'afterkeydown'" class="chat-text" type="text" placeholder="Enter chat message" />
-            <button data-bind="click: submitChat" class="chat-submit-button">Submit Message</button>
+            <button data-bind="click: submitChat" class="chat-submit-button large-button">Submit Message</button>
 
             <div class="output-list">
                 <div class="chat-title">Messages</div>

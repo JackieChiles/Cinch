@@ -1,1 +1,4 @@
 RandAI.py
+JoeLowbid.py
+HAL.py
+Goofus.py

@@ -31,6 +31,18 @@ function CinchViewModel() {
     //Data
     self.socket = CinchApp.socket;
     self.actionQueue = []; //Don't add to this directly: call self.addAction
+    self.isWindowActive = ko.observable(true);
+    self.urlParameters = ko.observable({});
+    self.urlParamGame = ko.computed(function() {
+        var gameNum = parseInt(self.urlParameters().game, 10);
+
+        return isNaN(gameNum) ? null : gameNum;
+    });
+    self.urlParamSeat = ko.computed(function() {
+        var seatNum = parseInt(self.urlParameters().seat, 10);
+
+        return isNaN(seatNum) || seatNum >= CinchApp.numPlayers ? null : seatNum;
+    });
     self.username = ko.observable('');
     self.myPlayerNum = ko.observable(0); //Player num assigned by server
     self.myTeamNum = ko.computed(function() {
@@ -114,7 +126,21 @@ function CinchViewModel() {
             return new Card(cardCode);
         });
     });
-    self.enableAnimation = ko.observable(true);
+
+    //Retrieve animation and keyboard shortcut settings from local storage
+    (function() {
+        if (localStorage) {
+            var enableAnimation = localStorage.getItem(CinchApp.localStorageKeys.enableAnimation);
+            var enableKeyboardShortcuts = localStorage.getItem(CinchApp.localStorageKeys.enableKeyboardShortcuts);
+
+            //Default of true
+            self.enableAnimation = ko.observable(enableAnimation ? enableAnimation === 'true' : true);
+
+            //Default of false
+            self.enableKeyboardShortcuts = ko.observable(enableKeyboardShortcuts ? enableKeyboardShortcuts === 'true' : false);
+        }
+    })();
+
     self.isBoardLocked = ko.observable(false);
     self.teamNames = ko.computed(function() {
         var names = [];
@@ -127,11 +153,7 @@ function CinchViewModel() {
     self.winner = ko.observable(); //Integer, winning team. Will be 0 for players 0 and 2 and 1 for players 1 and 3.
     self.winnerName = ko.computed(function() {
         //Return name of the winning team
-	if (self.winner() == 0.5) {
-	    return 'Everybody';
-	} else {
-            return self.teamNames()[self.winner()];
-	}
+        return self.winner() == 0.5 ? 'Everybody' : self.teamNames()[self.winner()];
     });
     self.isGameOver = ko.computed(function() {
         return typeof self.winner() !== 'undefined';
@@ -178,17 +200,32 @@ function CinchViewModel() {
 
     //Seat selection
     self.selectedRoom = ko.observable();
+    self.getInviteLink = function (gameNum, seatNum) {
+        //Building the URL this way should work as long as we don't have any additional funky stuff like hash
+        //Seat number is optional, so leave it off if not provided
+        //If game number not provided, give up and just return the current URL
+        return gameNum ?
+            window.location.href.replace(window.location.search, "") + '?game=' + gameNum + (typeof seatNum === 'undefined' ? '' : '&seat=' + seatNum) :
+            window.location.href;
+    };
+    self.currentRoomInviteLink = ko.computed(function() {
+        return self.getInviteLink(self.curRoom());
+    });
 
     //Functions
 
     //When the user chooses to enter the lobby to select a game,
     //submit nickname request and switch to lobby view
-    self.enterLobby = function() {
+    //Or, join game immediately if query string parameters found
+    self.enter = function() {
         // Require a non-empty username
         if (self.username().length < 1) {
             alert("A username is required.");
             return;
         }
+
+        var gameNum = self.urlParamGame();
+        var seatNum = self.urlParamSeat();
 
         self.username() && self.socket.emit('nickname', self.username(), function(msg) {
             if (msg !== null) {
@@ -197,10 +234,33 @@ function CinchViewModel() {
             // If we ever want to show the people in the lobby, will need to
             // add a callback to this action. Otherwise, this user will not appear
             // in the lobby their first time connecting.
-            self.socket.emit('join', 0, 0);
+
+            //Join a game if one was specified in query string, otherwise join lobby
+            (gameNum && seatNum) ?
+                self.socket.emit('join', gameNum, seatNum, self.joinCallback) :
+                self.socket.emit('join', 0, 0);
         });
 
-        self.activeView(CinchApp.views.lobby);
+        //Load the AI list now. It might be used either in AI selection or in-game when filling empty seats.
+        self.socket.emit('aiList', function(msg) {
+            self.ai(msg);
+        });
+
+        //If game and seat number were specified, wait for server response to join request
+        if (gameNum && !seatNum) {
+            //If only gameNum was specified, go to the seat selection page for that game
+            var possibleRooms = self.games().filter(function(game) {
+                return game.number == gameNum;
+            });
+
+            if (possibleRooms.length > 0) {
+                possibleRooms[0].select();
+            }
+        }
+        else if (!seatNum) {
+            //If gameNum and seatNum weren't specified in the query string, go to lobby
+            self.activeView(CinchApp.views.lobby);
+        }
     };
 
     //Moves user from a game room to the lobby
@@ -209,8 +269,7 @@ function CinchViewModel() {
 
         if(!navigateAwayMessage || (navigateAwayMessage && confirm(navigateAwayMessage))) {
             self.socket.emit('exit');
-
-	    self.socket.emit('room_list'); //Update room list in Lobby
+            self.socket.emit('room_list'); //Update room list in Lobby
 
             //Clean up from last game
             self.dealerServer(null);
@@ -239,21 +298,60 @@ function CinchViewModel() {
         }
     };
 
+    self.resetChosenAi = function() {
+        self.chosenAi[CinchApp.players.west](null);
+        self.chosenAi[CinchApp.players.north](null);
+        self.chosenAi[CinchApp.players.east](null);
+    };
+
     self.enterAi = function() {
+        self.resetChosenAi();
         self.activeView(CinchApp.views.ai);
-        self.socket.emit('aiList', function(msg) {
-            self.ai(msg);
-        });
+    };
+
+    self.inviteAi = function(seat) {
+        self.chosenAi[seat]() && self.socket.emit('summonAI', self.chosenAi[seat]().id, self.curRoom(), seat);
+    };
+
+    self.getUrlParameters = function() {
+        //Adapted from http://stackoverflow.com/a/2880929/830125
+        //As with almost any simple solution to query string parsing, this one has its detractors,
+        //but it's good enough for our case
+
+        var match;
+        var pl = /\+/g;  // Regex for replacing addition symbol with a space
+        var search = /([^&=]+)=?([^&]*)/g;
+        var decode = function (s) { return decodeURIComponent(s.replace(pl, " ")); };
+        var query = window.location.search.substring(1);
+        var urlParameters = {};
+
+        while (match = search.exec(query)) {
+           urlParameters[decode(match[1])] = decode(match[2]);
+        }
+
+        self.urlParameters(urlParameters);
     };
 
     self.joinCallback = function(msg) {
-        self.curRoom(msg.roomNum);
-        self.activeView(CinchApp.views.game);
-        self.chats([]); //Clear any chats from before game start
+        //Message could be empty if there was an issue joining the room
+        if (msg) {
+            self.curRoom(msg.roomNum);
+            self.activeView(CinchApp.views.game);
+            self.chats([]); //Clear any chats from before game start
 
-        if (msg.roomNum != 0) {
-            self.myPlayerNum(msg.mySeat);
-            self.socket.$events.seatChart(msg.seatChart);
+            if (msg.roomNum != 0) {
+                self.myPlayerNum(msg.mySeat);
+                self.socket.$events.seatChart(msg.seatChart);
+            }
+        }
+        else {
+            //Reset the query string in case a bad join request was made there
+            self.urlParameters({});
+            history.pushState(null, "Cinch Home", window.location.href.replace(window.location.search, ""));
+
+            //Join failed, so just go to the lobby
+            self.socket.emit('join', 0, 0);
+            self.activeView(CinchApp.views.lobby);
         }
     };
 
@@ -408,7 +506,8 @@ function CinchViewModel() {
             if (self.activeView() === CinchApp.views.lobby && room == 0) {
                 self.chats.push(new VisibleMessage(
                     ['User', user, 'has entered the Lobby.'].join(' '), 'System'));
-            } else {
+            }
+            else {
                 self.activeView() === CinchApp.views.game && self.announceUser(user);
             }
             console.log('enter: ', user, room, seat);
@@ -432,87 +531,87 @@ function CinchViewModel() {
             }
         });
 
-    socket.on('exit', function(user, room, seat) {
-        //Notify client that someone has left
-        if (!(self.activeView() === CinchApp.views.lobby && room != 0)) {
-            // Users in the lobby receive exit messages for all rooms in order
-            // to update the seating charts for available rooms. However, we
-            // should not display a "departed" message when a user leaves a
-            // game room and this client is in the lobby.
-            self.chats.push(new VisibleMessage(
-                ['User', user, 'has departed ',
-                 (room == 0 ? 'the Lobby.' : 'Room ' + room + '.')].join(' '), 'System'));
-        }
-        console.log('exit: ', user, room, seat);
+        socket.on('exit', function(user, room, seat) {
+            //Notify client that someone has left
+            if (!(self.activeView() === CinchApp.views.lobby && room != 0)) {
+                // Users in the lobby receive exit messages for all rooms in order
+                // to update the seating charts for available rooms. However, we
+                // should not display a "departed" message when a user leaves a
+                // game room and this client is in the lobby.
+                self.chats.push(new VisibleMessage(
+                    ['User', user, 'has departed ',
+                     (room == 0 ? 'the Lobby.' : 'Room ' + room + '.')].join(' '), 'System'));
+            }
+            console.log('exit: ', user, room, seat);
 
-        //Update the Lobby Game objects
-        var i, j;
-        var tmp;
-        var games = self.games();
-        for (i = 0; i < games.length; i++) {
-            if (games[i].number == room) {
-                tmp = games[i].seatChart();
-                for (j = 0; j < tmp.length; j++) {
-                    if (tmp[j][0] == user && tmp[j][1] == seat) {
-                        break;
+            //Update the Lobby Game objects
+            var i, j;
+            var tmp;
+            var games = self.games();
+            for (i = 0; i < games.length; i++) {
+                if (games[i].number == room) {
+                    tmp = games[i].seatChart();
+                    for (j = 0; j < tmp.length; j++) {
+                        if (tmp[j][0] == user && tmp[j][1] == seat) {
+                            break;
+                        }
                     }
+
+                    tmp.splice(j, 1);
+                    self.games()[i].seatChart(tmp);
                 }
-
-                tmp.splice(j, 1);
-                self.games()[i].seatChart(tmp);
             }
-        }
 
-        //Update in-game view
-        if (self.activeView() === CinchApp.views.game) {
-            socket.$events.seatChart(tmp);
-        }
-    });
-
-    //Helper function for setting game full status
-    function setRoomFullStatus(status, roomNum) {
-        var i;
-        var games = self.games();
-
-        for (i = 0; i < games.length; i++) {
-            if (games[i].number == roomNum) {
-                games[i].isFull(status);
-                self.games(games); // Update class-level observable
-                break;
-            }
-        }
-    }
-
-    addSocketHandler('roomFull', function(roomNum) {
-        //Disallow joining of full rooms from the Lobby
-        setRoomFullStatus(true, roomNum);
-    });
-
-    addSocketHandler('roomNotFull', function(roomNum) {
-        //Re-allow joining of previously full room
-        setRoomFullStatus(false, roomNum);
-    });
-
-    addSocketHandler('roomGone', function(roomNum) {
-        //Remove room from games list
-        var i;
-        var games = self.games();
-
-        for (i = 0; i < games.length; i++) {
-            if (games[i].number == roomNum) {
-                games.splice(i, 1); // Remove element i from array
-                self.games(games); // Update observable array
-            }
-        }
-    });
-
-    addSocketHandler('gameStarted', function(roomNum) {
-        ko.utils.arrayForEach(self.games(), function(item) {
-            if (item.number == roomNum) {
-                item.started(true);
+            //Update in-game view
+            if (self.activeView() === CinchApp.views.game) {
+                socket.$events.seatChart(tmp);
             }
         });
-    });
+
+        //Helper function for setting game full status
+        function setRoomFullStatus(status, roomNum) {
+            var i;
+            var games = self.games();
+
+            for (i = 0; i < games.length; i++) {
+                if (games[i].number == roomNum) {
+                    games[i].isFull(status);
+                    self.games(games); // Update class-level observable
+                    break;
+                }
+            }
+        }
+
+        addSocketHandler('roomFull', function(roomNum) {
+            //Disallow joining of full rooms from the Lobby
+            setRoomFullStatus(true, roomNum);
+        });
+
+        addSocketHandler('roomNotFull', function(roomNum) {
+            //Re-allow joining of previously full room
+            setRoomFullStatus(false, roomNum);
+        });
+
+        addSocketHandler('roomGone', function(roomNum) {
+            //Remove room from games list
+            var i;
+            var games = self.games();
+
+            for (i = 0; i < games.length; i++) {
+                if (games[i].number == roomNum) {
+                    games.splice(i, 1); // Remove element i from array
+                    self.games(games); // Update observable array
+                }
+            }
+        });
+
+        addSocketHandler('gameStarted', function(roomNum) {
+            ko.utils.arrayForEach(self.games(), function(item) {
+                if (item.number == roomNum) {
+                    item.started(true);
+                }
+            });
+        });
 
         // Game message handlers
         addSocketHandler('startData', function(msg) {
@@ -647,7 +746,7 @@ function CinchViewModel() {
         var view = self.activeView();
         var views = CinchApp.views;
 
-        return view === views.game || view === views.handEnd ? 'Leaving the page will end the current game for you.' : null;
+        return (view === views.game || view === views.handEnd) && !self.isGameOver() ? 'Leaving the page will end the current game for you.' : null;
     };
 
     //Subscriptions
@@ -701,6 +800,23 @@ function CinchViewModel() {
 
         players[newValue].active(true);
     });
+    self.isActivePlayer.subscribe(function(newValue) {
+        var notify;
+
+        //Trigger a notification only if the window is not active and we're in the game or hand-end view
+        if(newValue && ("Notification" in window) && !self.isWindowActive() && (self.activeView() === CinchApp.views.game || self.activeView() === CinchApp.views.handEnd)) {
+             notify = function(permission) {
+                new Notification("It's your turn to " + (self.gameMode() === CinchApp.gameModes.play ? 'play' : 'bid') + ' in Cinch.');
+            };
+
+            if(Notification.permission === 'granted') {
+                notify(Notification.permission);
+            }
+            else if (Notification.permission !== 'denied') {
+                Notification.requestPermission(notify);
+            }
+        }
+    });
     self.gameMode.subscribe(function(newValue) {
         if(newValue == CinchApp.gameModes.bid) {
             //If match points on record, hand ended
@@ -729,8 +845,46 @@ function CinchViewModel() {
         }
     });
     self.winner.subscribe(function(newValue) {
-	if (typeof newValue !== 'undefined') {
+        if (typeof newValue !== 'undefined') {
             self.activeView(CinchApp.views.handEnd);
-	}
+        }
+    });
+    self.enableAnimation.subscribe(function(newValue) {
+        localStorage && localStorage.setItem(CinchApp.localStorageKeys.enableAnimation, newValue);
+    });
+    self.enableKeyboardShortcuts.subscribe(function(newValue) {
+        localStorage && localStorage.setItem(CinchApp.localStorageKeys.enableKeyboardShortcuts, newValue);
+
+        //Don't stay focused on the checkbox, or keyboard shortcuts won't work
+        $('input').blur();
+    });
+
+    //Set up keyboard shortcuts
+    $(document).keypress(function(event) {
+        if (self.enableKeyboardShortcuts()) {
+            var i = 0;
+            var minPlayCode = 49;
+            var minBidCode = 48;
+            var maxPlayCode = 57;
+            var maxBidCode = 53;
+            var code = event.which;
+
+            //Only handle shortcuts in game view and if active element isn't input or textarea
+            if(!$(event.target).is('input, textarea') && self.activeView() === CinchApp.views.game) {
+                //Look for number keys 1-9 (event codes 49-57) for play or 0-5 for bid
+                if (code >= minPlayCode && code <= maxPlayCode && self.gameMode() == CinchApp.gameModes.play) {
+                    var card = self.cardsInHand()[code - minPlayCode];
+
+                    event.preventDefault();
+                    card && card.submit();
+                }
+                else if (code >= minBidCode && code <= maxBidCode && self.gameMode() == CinchApp.gameModes.bid) {
+                    var bid = self.possibleBids[code - minBidCode];
+
+                    event.preventDefault();
+                    bid && bid.isValid() && bid.submit();
+                }
+            }
+        }
     });
 }

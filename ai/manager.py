@@ -102,9 +102,9 @@ def get_ai_models():
     with open(os.path.join(MY_PATH, MODELS_FILE)) as fin:
         lines = fin.readlines()
 
-    # Sanitize file data
+    # Sanitize file data; models can be commented out with '#'
     lines = map(string.strip, lines)
-    aiFiles = filter(lambda x: len(x) > 0, lines)
+    aiFiles = filter(lambda x: len(x) > 0 and x[0] != "#", lines)
 
     # Import each file into a module and set identity data
     filenameToModuleName = lambda f: os.path.splitext(f)[0]

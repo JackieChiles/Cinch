@@ -7,7 +7,6 @@ models, including socketio communications, game state management, and bid/play
 legality checking. This should leave AI subclass designers free to focus on the
 actual gameplay intelligence.
 
-TODO test is_legal_bid due to change in first case
 TODO fix bug that allows AI to make play that is called illegal by server
 TODO add handler for 'win' message to allow for post-mortem analysis
 TODO monitor log when multi-AI games end; used to get 'exit' message race
@@ -62,7 +61,8 @@ class GS(object):
         val = ""
         public_props = (name for name in dir(self) if not name.startswith('_'))
         for name in public_props:
-            val += name + ": " + str(getattr(self, name)) + "\n"
+            if name != "reset":
+                val += name + ": " + str(getattr(self, name)) + "\n"
         return val
 
     def reset(self):
@@ -219,7 +219,6 @@ class AIBase(object):
 
         if 'win' in msg:
             self.stop()
-            return
 
         if 'playC' in msg:
             self.gs.cardsInPlay.append(cards.Card(msg['playC']))
@@ -298,9 +297,9 @@ class AIBase(object):
             bid = 1
             log.error("Agent illegally tried to pass; adjusting bid to 1.")
         else:
-            bid = 0
             log.error("Agent made illegal bid of {0}; adjusting bid to PASS."
                       "".format(bid))
+            bid = 0
 
         self.ns.emit('bid', bid)  # Transmit bid to server
 
@@ -353,7 +352,7 @@ class AIBase(object):
             return False  # Bid out of bounds
         elif bid > self.gs.highBid:
             return True
-        elif bid == 5 & self.pNum == self.gs.dlr:
+        elif bid == 5 and self.pNum == self.gs.dealer:
             return True
         else:
             return False

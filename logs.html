@@ -85,8 +85,11 @@
             <th rowspan="2">Jack</th>
             <th rowspan="2">Game</th>
             <th colspan="2">Game Points</th>
+            <th colspan="2">Match Points</th>
           </tr>
           <tr>
+            <th>Team A</th>
+            <th>Team B</th>
             <th>Team A</th>
             <th>Team B</th>
           </tr>
@@ -102,6 +105,8 @@
             <td data-bind="text: points.game === null ? '' : String.fromCharCode(65+points.game)"></td>
             <td data-bind="text: gamePoints[0]"></td>
             <td data-bind="text: gamePoints[1]"></td>
+            <td data-bind="text: totalPoints[0]"></td>
+            <td data-bind="text: totalPoints[1]"></td>
           </tr>
           <!-- /ko -->
         </table>
